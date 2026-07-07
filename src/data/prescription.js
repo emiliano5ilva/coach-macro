@@ -117,7 +117,11 @@ const GOAL_CONTEXT = {
 };
 
 function isCompound(exerciseName) {
-  return COMPOUND_EXERCISES.has(exerciseName);
+  if (COMPOUND_EXERCISES.has(exerciseName)) return true;
+  // Equipment-prefix tolerance: "Barbell Deadlift" / "Barbell Bent Over Row" / "Dumbbell Row" etc.
+  // classify off the bare movement in COMPOUND_EXERCISES (else they'd fall to the isolation rest).
+  const stripped = String(exerciseName || '').replace(/^(Barbell|Dumbbell|Cable|Machine|Smith Machine|Banded|Resistance Band)\s+/i, '').trim();
+  return COMPOUND_EXERCISES.has(stripped);
 }
 
 export function getPrescription(goal, skillLevel, exerciseName) {

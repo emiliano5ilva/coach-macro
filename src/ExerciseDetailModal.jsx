@@ -248,7 +248,17 @@ function ExerciseImages({ url1, url2, exerciseName }) {
   );
 }
 
-export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap, sugg, focusVisual = false }) {
+// ONE section-label style used everywhere in the sheet: small accent tick + heavy dark uppercase.
+function SectionLabel({ children }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
+      <span style={{ width: 3, height: 12, background: "var(--cm-accent,#FF3B30)", borderRadius: 2, flexShrink: 0 }} />
+      <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 800, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--cm-ink,#0A0A0A)" }}>{children}</span>
+    </div>
+  );
+}
+
+export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap, sugg, coaching = null }) {
   const [exData,   setExData]   = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [wxHistory,setWxHistory]= useState([]);
@@ -334,74 +344,76 @@ export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap, sugg,
         )}
 
         <div style={{padding:"0 20px 28px"}}>
-          {/* Images */}
+          {/* LEAD — key_cue in a SOLID accent block (white bold, the hero moment), then the paragraph. */}
+          {coaching && (
+            <div style={{marginBottom:22}}>
+              <div style={{background:"var(--cm-accent,#FF3B30)",borderRadius:14,padding:"16px 18px",marginBottom:16}}>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(255,255,255,0.72)",marginBottom:7}}>Key Cue</div>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:18,color:"#fff",lineHeight:1.32}}>{coaching.key_cue}</div>
+              </div>
+              <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:500,fontSize:15,color:"rgba(var(--cm-ink-rgb,10,10,10),.90)",lineHeight:1.62,whiteSpace:"pre-wrap"}}>{coaching.coaching}</div>
+            </div>
+          )}
+          {/* QUICK REFERENCE — clean label+text rows (no colored alarm boxes). Only the ~35 exercises
+              with old COACHING_CUES have these; the rest are paragraph-only (fine — no fabrication). */}
+          {cues && (cues.common_mistake || cues.feel) && (
+            <div style={{marginBottom:22}}>
+              <SectionLabel>Quick Reference</SectionLabel>
+              {cues.common_mistake && (
+                <div style={{marginBottom:cues.feel?14:0}}>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:12.5,color:"var(--cm-ink,#0A0A0A)",marginBottom:2}}>Watch for</div>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:400,fontSize:14,color:"rgba(var(--cm-ink-rgb,10,10,10),.60)",lineHeight:1.5}}>{cues.common_mistake}</div>
+                </div>
+              )}
+              {cues.feel && (
+                <div>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:12.5,color:"var(--cm-ink,#0A0A0A)",marginBottom:2}}>Feel it</div>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:400,fontSize:14,color:"rgba(var(--cm-ink-rgb,10,10,10),.60)",lineHeight:1.5}}>{cues.feel}</div>
+                </div>
+              )}
+            </div>
+          )}
+          {/* Images (reference — after the coaching the button promised) */}
           {loading ? <GifSkeleton/> : <ExerciseImages url1={exData?.gif_url} url2={exData?.gif_url_2} exerciseName={exerciseName}/>}
 
-          {/* Muscles */}
+          {/* Muscles — one label; primary = solid accent pills, secondary = quiet grey pills. */}
           {!loading && (exData?.target_muscles?.length>0 || exData?.secondary_muscles?.length>0) && (
-            <div style={{marginBottom:20}}>
-              {exData.target_muscles?.length>0&&<>
-                <div style={{fontSize:9,color:T.prot,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>PRIMARY MUSCLES</div>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+            <div style={{marginBottom:22}}>
+              <SectionLabel>Muscles</SectionLabel>
+              {exData.target_muscles?.length>0&&(
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:exData.secondary_muscles?.length>0?8:0}}>
                   {exData.target_muscles.map(m=>(
-                    <span key={m} style={{padding:"4px 11px",background:`${T.prot}18`,border:`1px solid ${T.prot}35`,borderRadius:20,fontSize:11,fontWeight:700,color:T.prot,textTransform:"capitalize"}}>{m}</span>
+                    <span key={m} style={{padding:"5px 12px",background:"var(--cm-accent,#FF3B30)",borderRadius:20,fontFamily:"'Archivo',sans-serif",fontSize:11.5,fontWeight:700,color:"#fff",textTransform:"capitalize"}}>{m}</span>
                   ))}
                 </div>
-              </>}
-              {exData.secondary_muscles?.length>0&&<>
-                <div style={{fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>SECONDARY</div>
+              )}
+              {exData.secondary_muscles?.length>0&&(
                 <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                   {exData.secondary_muscles.map(m=>(
-                    <span key={m} style={{padding:"4px 11px",background:"rgba(var(--cm-ink-rgb,10,10,10),.05)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.10)",borderRadius:20,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),.55)",textTransform:"capitalize"}}>{m}</span>
+                    <span key={m} style={{padding:"5px 12px",background:"rgba(var(--cm-ink-rgb,10,10,10),.06)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.10)",borderRadius:20,fontFamily:"'Archivo',sans-serif",fontSize:11.5,fontWeight:600,color:"rgba(var(--cm-ink-rgb,10,10,10),.60)",textTransform:"capitalize"}}>{m}</span>
                   ))}
                 </div>
-              </>}
+              )}
             </div>
           )}
 
           {/* Instructions */}
           {!loading && exData?.instructions?.length>0 && (
-            <div style={{marginBottom:20}}>
-              <div style={{fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>HOW TO DO IT</div>
+            <div style={{marginBottom:22}}>
+              <SectionLabel>How To Do It</SectionLabel>
               {exData.instructions.map((step,i)=>(
                 <div key={i} style={{display:"flex",gap:12,marginBottom:10,alignItems:"flex-start"}}>
-                  <div style={{width:22,height:22,borderRadius:"50%",background:"rgba(var(--cm-ink-rgb,10,10,10),.06)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.10)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"rgba(var(--cm-ink-rgb,10,10,10),.50)",flexShrink:0,marginTop:1}}>{i+1}</div>
-                  <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),.70)",lineHeight:1.65,paddingTop:1}}>{step}</div>
+                  <div style={{width:22,height:22,borderRadius:"50%",background:"rgba(var(--cm-accent-rgb,255,59,48),.10)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:800,color:"var(--cm-accent,#FF3B30)",flexShrink:0,marginTop:1}}>{i+1}</div>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontSize:14,fontWeight:400,color:"rgba(var(--cm-ink-rgb,10,10,10),.72)",lineHeight:1.6,paddingTop:1}}>{step}</div>
                 </div>
               ))}
-            </div>
-          )}
-
-          {/* Coaching cues — suppressed when opened as "View Exercise" (the new coaching sheet is the
-              coaching surface now; here we want a clean gif + how-to visual, not the old cues grid). */}
-          {!focusVisual && cues && (
-            <div style={{marginBottom:20}}>
-              <div style={{fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>COACHING CUES</div>
-              <div style={{background:`${T.carb}12`,border:`1px solid ${T.carb}28`,borderRadius:12,padding:"14px 16px",marginBottom:8}}>
-                <div style={{fontSize:10,color:T.carb,fontWeight:700,letterSpacing:1,marginBottom:5}}>🔑 KEY CUE</div>
-                <div style={{fontSize:14,fontWeight:600,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.5}}>{cues.cue}</div>
-              </div>
-              {cues.setup && (
-                <div style={{background:"rgba(var(--cm-ink-rgb,10,10,10),.04)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.08)",borderRadius:12,padding:"12px 16px",marginBottom:8}}>
-                  <div style={{fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",fontWeight:700,letterSpacing:1,marginBottom:4}}>📐 SETUP</div>
-                  <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),.70)",lineHeight:1.5}}>{cues.setup}</div>
-                </div>
-              )}
-              <div style={{background:"rgba(239,68,68,.06)",border:"1px solid rgba(239,68,68,.18)",borderRadius:12,padding:"12px 16px",marginBottom:8}}>
-                <div style={{fontSize:10,color:"#EF4444",fontWeight:700,letterSpacing:1,marginBottom:4}}>⚠️ COMMON MISTAKE</div>
-                <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),.70)",lineHeight:1.5}}>{cues.common_mistake}</div>
-              </div>
-              <div style={{background:"rgba(255,59,48,.05)",border:"1px solid rgba(255,59,48,.14)",borderRadius:12,padding:"12px 16px"}}>
-                <div style={{fontSize:10,color:"var(--cm-red,#FF3B30)",fontWeight:700,letterSpacing:1,marginBottom:4}}>💪 FEEL IT HERE</div>
-                <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),.70)",lineHeight:1.5}}>{cues.feel}</div>
-              </div>
             </div>
           )}
 
           {/* Weight history */}
           {wxHistory.length>0 && (
             <div style={{marginBottom:20}}>
-              <div style={{fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>YOUR HISTORY</div>
+              <SectionLabel>Your History</SectionLabel>
               <div style={{background:"rgba(var(--cm-ink-rgb,10,10,10),.04)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.08)",borderRadius:12,overflow:"hidden"}}>
                 {wxHistory.map((h,i)=>{
                   const weights = h.sets.map(s=>parseFloat(s.weight)||0);

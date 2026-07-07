@@ -213,15 +213,34 @@ _**Current committed bundle: `NativeApp-403b5e65`** (run-logging milestone + run
 
 ---
 
-## 🔴 PRE-SUBMISSION BLOCKERS (security — CANNOT SHIP with these present)
-- 🔴 **SECURITY — dev-skip is a PRODUCTION BACKDOOR.** `showDevSkip = import.meta.env.DEV || localStorage.devmode==='true'`;
-  the **5-tap-logo gesture** (`handleLogoTap`, `NativeApp.jsx:253-264`) sets `localStorage.devmode='true'` → in a **PROD build**
-  this exposes: (a) the dev-skip button + **autologin into hardcoded creds `testuser@coachm.dev` / `CoachTest123!` that SHIP IN
-  THE BUNDLE**, (b) `isDevAccount` **subscription bypass** (`:545`), (c) `devEmail` **paywall-skip** (`:908`). Anyone can tap the
-  logo 5× in the shipped app to **bypass auth AND payment**. ~10 sites: `showDevSkip:252`, `VITE_AUTO_DEVMODE:251`,
-  `handleLogoTap:253-264`, `handleDevSkip:267`, `handleOnboardingTest:306`, buttons `:422/425/484/487`, `isDevAccount:545`,
-  `devEmail:908`. **MUST be removed before submission.** Kept through dev (drives testuser/dev-skip testing); remove + on-device
-  welcome/signin glance at submission time. **BLOCKER — cannot ship with this present.**
+## 🔴 PRE-SUBMISSION BLOCKERS — canonical gate list (must ALL clear before App Store)
+_Consolidated 2026-07-06. THIS is the single source of truth for "what must be resolved before submission" — nothing ships to the App Store (or web production) with an un-cleared 🔴 here. Detailed context for the 🟡 items also lives inline lower in this doc (line refs noted)._
+
+### 🔴 BLOCKERS — cannot ship
+1. **Auth/payment PRODUCTION BACKDOOR (dev-skip).** `showDevSkip = import.meta.env.DEV || localStorage.devmode==='true'`;
+   the **5-tap-logo gesture** (`handleLogoTap`, `NativeApp.jsx:253-264`) sets `localStorage.devmode='true'` → in a **PROD build**
+   this exposes: (a) the dev-skip button + **autologin into hardcoded creds `testuser@coachm.dev` / `CoachTest123!` that SHIP IN
+   THE BUNDLE**, (b) `isDevAccount` **subscription bypass** (`:545`), (c) `devEmail` **paywall-skip** (`:908`). Anyone can tap the
+   logo 5× in the shipped app to **bypass auth AND payment**. ~10 sites: `showDevSkip:252`, `VITE_AUTO_DEVMODE:251`,
+   `handleLogoTap:253-264`, `handleDevSkip:267`, `handleOnboardingTest:306`, buttons `:422/425/484/487`, `isDevAccount:545`,
+   `devEmail:908`. **MUST be removed before submission.** Kept through dev (drives testuser/dev-skip testing); remove + on-device
+   welcome/signin glance at submission time.
+2. **Web deploy pipeline BROKEN — Vercel Hobby 12-function limit** (diagnosed 2026-07-06, not fixed). Every production/preview
+   deploy fails at step `patchBuild` with `errorCode: exceeded_serverless_functions_per_deployment` ("No more than 12 Serverless
+   Functions … on the Hobby plan"). The `api/` dir has **14 functions** (12 endpoints + `api/middleware/logger.js` + `rateLimit.js`,
+   which Vercel counts). The Vite build compiles fine — the deploy is rejected post-build. **Every deploy for weeks has failed**, so
+   the corrected privacy policy (Sentry disclosure etc.) has never reached production and Sentry is live-collecting under a stale policy.
+   **FIX:** upgrade the team to **Vercel Pro** (limit ~100), OR free interim = move the 2 `api/middleware/*` helpers out of `api/`
+   (→ 12, at the limit). **Production branch is `main`, not `goclub-redesign`** (goclub-redesign only makes previews). Legal fix is
+   staged: branch **`legal-hotfix-main`** (`0a54c82`, pushed) + PR-ready → merge to `main` only AFTER this is fixed.
+
+### 🟡 MUST-VERIFY / CLEANUP before submission (not security-critical)
+3. **Clinical-records / provisioning entitlement cleanup** — verify portal App ID + provisioning profile carry only what's used
+   (binary entitlements currently clean). [detail ~"Clinical-records" bullet below]
+4. **HRV full device verification** — reads work (`ah_hrv_ok`); the Settings-permission-sheet + real HRV data needs an Apple Watch
+   wearer, cleanest via delete/reinstall so HRV is in the initial grant. [detail ~"HRV full device verification" bullet below]
+5. **Analytics breadcrumbs keep-vs-gate** — `ah_*` / `tier` / `bmr` / `plan_confirm_*` breadcrumbs kept through dev for cheap
+   observability; **gate or strip before App Store**. [detail ~"Breadcrumb keep-vs-gate" bullet below]
 
 ---
 
@@ -765,6 +784,16 @@ _Tracked, not scheduled. Each is design-before-build; several need competitor/ma
     mesocycle w/ auto-deload; stimulus-to-fatigue-ratio exercise selection; frequency per experience level; muscle
     emphasis / maintain / ignore (RP's _"Meso Builder"_); feedback-driven weekly volume adjustment.
   - **Keep watching:** RP Strength, Mesostrength, Alpha Progression, Hevy (UX/social leader), Fitbod, STRNDR.
+
+---
+
+## 🔵 V2 BACKLOG — COACHING CONTENT (author `exercise_coaching` rows)
+_Logged 2026-07-06. The coaching-pill normalization fix (`_normKey` + `_COACH_ALIAS`, uncommitted in `sections.jsx`, rides with the set-view commit) resolves generator name variants against the **103 seeded** `exercise_coaching` names via spelling/plural/synonym/equipment-generic + reviewed Tier-3 map-to-closest. After that, **38 real generator exercises have NO seeded row and NO safe closest** — left deliberately uncovered (pill correctly absent) rather than mapped to misleading coaching. A dev-only `console.warn('[coaching] no row for exercise:', name, '→ key:', ...)` surfaces these live. **V2 task = author beginner/intermediate/advanced rows (or rule "leave forever") for these 38:**_
+
+- **Genuine authoring candidates (distinct movement, no good proxy):** Air Squat, Bodyweight Squat, Front Raise, Pallof Press, Banded Pallof Press, Cable Pull Through, Banded Pull Through, Plank, Side Plank, Copenhagen Plank, Hollow Body Hold, Pigeon Pose Hold, Tricep Kickback, Cable Tricep Kickback, Banded Chest Press, and the tricep-emphasis push-up variants **Diamond Push Up / Close Grip Push Up / Tricep Push Up / Decline Push Up** (ruled LEAVE — generic Push-Up cues miss the point).
+- **Lunge / step-up family (ambiguous which seeded variant):** Lunge, Weighted Lunge, Sandbag Lunge, Curtsy Lunge, Lateral Lunge to Curtsy, Step Up.
+- **Plyometric / pulse / combo / non-lift (likely LEAVE-forever):** Jump Squat, Jump Squats, Banded Squat Jump, Sumo Squat with Pulse, Hip Thrust Pulse, Banded Squat to Pulse, Goblet Squat to Press, Dumbbell Romanian Deadlift to Row, Burpee Broad Jump, Push Press, "Pull Up / Lat Pulldown" (combo label), Sled Pull, Medicine Ball Throw.
+- _(3 originally-flagged items were MAPPED instead, not backlogged: Face Pull with Band→Band Face Pull, Face Pull or Band Pull-Apart→Face Pull, Push Up Progression→Push Up.)_
 
 ---
 

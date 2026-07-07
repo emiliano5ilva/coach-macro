@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import "./iconData.js"; // side-effect: registers fluent-emoji-flat + twemoji collections
 import { Icon } from "@iconify/react";
 import { CommunicationStyleSection, YourPatternsCard } from "./ob_screens2.jsx";
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { registerPlugin } from '@capacitor/core';
 import { createGpsFilter } from './utils/gpsFilter.js';
@@ -12,14 +12,66 @@ import { MN, MotionArc, StaggerItem } from './motion-layer.jsx';
 // Native CLLocationManager → the permission prompt reads "Coach Macro", not "localhost".
 const BackgroundGeolocation = registerPlugin('BackgroundGeolocation');
 const _hL=()=>{Haptics.impact({style:ImpactStyle.Light}).catch(()=>{});};
-// Canonicalize an exercise name for coaching lookup: strip the trailing superset/program tag the
-// generator appends — "(A1)", "(B2)", "(BBB)", "(Wide)", "(under a table)". The base name is usually
-// canonical (e.g. "Barbell Bench Press (BBB)" → "Barbell Bench Press"), recovering ~49 names. Then map
-// a few equivalents onto an authored row ("Back Squat"/"Squat" ARE the barbell back squat; "Flye"
-// spelling → "Dumbbell Fly", which resolves once that row is seeded).
-const _COACH_ALIAS={ "Back Squat":"Barbell Squat", "Squat":"Barbell Squat", "Dumbbell Flye":"Dumbbell Fly", "Tricep Overhead Extension":"Overhead Tricep Extension", "Clamshell with Band":"Clamshell", "Seated Dumbbell Press":"Dumbbell Shoulder Press" };
-const _canonName=(s)=>{ const b=String(s||'').replace(/\s*\([^)]*\)\s*$/,'').trim(); return _COACH_ALIAS[b]||b; };
+// Normalized coaching key: lowercase, strip ALL parens (superset/program tags anywhere), unify
+// hyphens/slashes → space, drop punctuation, collapse whitespace. Verified zero collisions across the
+// 103 seeded exercise_coaching names (e.g. "Close Grip Bench" ≠ "Close Grip Bench Press"). This resolves
+// pure spacing/hyphen/paren/case variants automatically; the alias map handles equipment/synonym classes.
+const _normKey = s => String(s||'').toLowerCase().replace(/\([^)]*\)/g,' ').replace(/[\/\-]/g,' ').replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();
+// Coaching aliases: generator-variant normKey → seeded normKey. EVERY value is a real exercise_coaching
+// name (verified). Same movement only — spelling/plural/synonym/equipment-generic + reviewed Tier-3
+// map-to-closest calls. Genuinely-different movements are left uncovered (V2 author-backlog), not mapped.
+const _COACH_ALIAS = {
+  // spelling / plural / synonym
+  'bench press':'barbell bench press','back extension':'hyperextension','bent over lateral raise':'rear delt fly',
+  'skullcrusher':'skull crusher','dumbbell flye':'dumbbell fly','flat dumbbell flye':'dumbbell fly',
+  'tricep overhead extension':'overhead tricep extension','cable pushdown':'tricep pushdown',
+  'nordic curl':'nordic hamstring curl','mountain climbers':'mountain climber','burpees':'burpee',
+  'upright row':'dumbbell upright row','barbell upright row':'dumbbell upright row',
+  // squat / deadlift generics
+  'squat':'barbell squat','back squat':'barbell squat','barbell deadlift':'deadlift',
+  'dumbbell goblet squat':'goblet squat','dumbbell sumo squat':'sumo squat','dumbbell sumo deadlift':'sumo deadlift',
+  // banded → band-specific / generic seeded
+  'banded bicep curl':'band curl','bicep curl with resistance band':'band curl','banded row':'band row',
+  'banded hip thrust':'band hip thrust','banded lateral walk':'band lateral walk','banded tricep pushdown':'band tricep pushdown',
+  'banded clamshell':'clamshell','clamshell with band':'clamshell','banded donkey kick':'donkey kick',
+  'banded good morning':'good morning','banded reverse lunge':'reverse lunge','banded romanian deadlift':'romanian deadlift',
+  'banded lateral raise':'lateral raise','cable lateral raise':'lateral raise','banded overhead press':'overhead press',
+  'seated barbell press':'overhead press',
+  // equipment → generic seeded
+  'dumbbell calf raise':'calf raise','dumbbell shrug':'shrug','one arm dumbbell row':'dumbbell row',
+  'wide grip pulldown':'lat pulldown','close grip pulldown':'lat pulldown','cable hip kickback':'cable kickback',
+  'seated dumbbell press':'dumbbell shoulder press','dumbbell overhead press':'dumbbell shoulder press',
+  // face pull labels (both parts seeded)
+  'face pull with band':'band face pull','face pull or band pull apart':'face pull',
+  'cable face pull':'face pull','barbell bent over row':'barbell row','bent over row':'barbell row',
+  // Tier-3 rulings (map-to-closest, reviewed)
+  'bicep curl':'dumbbell curl','assisted pull up':'pull up','pull up progression':'pull up','muscle up progression':'pull up',
+  'push up progression':'push up','pistol squat progression':'assisted pistol squat',
+  'pike push up handstand push up':'pike push up','handstand push up':'pike push up',
+  'chest fly':'dumbbell fly','incline dumbbell fly':'dumbbell fly','incline dumbbell flye':'dumbbell fly',
+  'flat dumbbell press':'dumbbell bench press','dumbbell press':'dumbbell bench press','decline barbell press':'barbell bench press',
+  'machine shoulder press':'overhead press','cable pullover':'dumbbell pullover','t bar row':'cable row',
+  'single arm cable row':'cable row','lying dumbbell hamstring curl':'lying leg curl','ring dip':'dip',
+  'single leg hip thrust':'hip thrust','glute bridge march':'glute bridge','modified push up':'push up',
+};
+const _coachKey = name => { const k=_normKey(name); return _COACH_ALIAS[k]||k; };
 const _hM=()=>{Haptics.impact({style:ImpactStyle.Medium}).catch(()=>{});};
+
+// ── SET-VIEW MOTION LANGUAGE — one shared spring, reused for EVERY layout state change (log collapse,
+// next-set expand, rest→next return, edit). Physics, not duration tweens: settles ~250-300ms with a
+// barely-perceptible overshoot ("had to happen", not bouncy). useReducedMotion → callers pass layout=false.
+const cmSpring = { type: "spring", stiffness: 520, damping: 34, mass: 0.9 };
+// Coach-voice "why this rest" note, bucketed by the ACTUAL prescribed rest (ex.restSecs, which comes
+// from data/prescription.js by goal × skill × movement). Honest: it explains the rule that's running.
+// Plain spoken, no em-dashes, same spirit as the water-goal explanation.
+function _restCoachNote(secs){
+  const s=Number(secs)||90;
+  if(s>=180) return "Heavy compound work drains your whole system. A full rest lets your muscles refill their fuel so your next set is just as strong. Cut it short and the set suffers, and so does your progress.";
+  if(s>=120) return "Big lifts need real recovery. This gives you enough to come back strong for a quality set without letting the muscle go cold.";
+  if(s>=75)  return "Enough time to recover for a solid set, short enough to keep the muscle working. This is the sweet spot for building size.";
+  if(s>=50)  return "Smaller muscles bounce back fast. A shorter rest keeps the blood in the muscle and the intensity up, which is what drives growth here.";
+  return "Short rest keeps your heart rate up and builds work capacity. The burn is the point, so we keep moving.";
+}
 import AthletePassportComponent from "./components/AthletePassport.jsx";
 import ReactDOM from "react-dom";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
@@ -51,6 +103,7 @@ import { scoreReadiness, getReadinessTier, READINESS_CONFIG, applyWeightMod, get
 import { lifeStageModifier, ACL_PREHAB, isLegDay, getPostpartumPhase, isCalorieFreeMode, getConsistencyScore, showConsistencyScore, getCycleNutrition } from "./utils/female.js";
 import { getAge, getAgeAppropriateProgram, applyOlderAdultProgram, HEALTH_CONDITIONS_SAFETY } from "./utils/safety.js";
 import { ExerciseDetailModal, COACHING_CUES } from "./ExerciseDetailModal.jsx";
+import { PrivacyPolicy, TermsOfService, HealthDisclaimer, HealthDataNotice, SupportPage } from "./legal.jsx";
 import { getThumbnailUrl } from "./services/exerciseMedia.js";
 import { COOL_DOWN, GENERAL_WARMUP, MOVEMENT_PREP } from "./utils/warmupProtocols.js";
 import WarmupScreen from "./components/WarmupScreen.jsx";
@@ -2367,27 +2420,37 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   // Coaching" is gated on a row existing (no row → no button, no error). gif_url drives "View Exercise".
   const _skillLevel=(()=>{const e=(wPrefs?.liftExp||profile?.liftExp||'beginner').toLowerCase();return e.startsWith('adv')||e.includes('elite')||e.includes('compet')?'advanced':e.startsWith('inter')||e.includes('moder')?'intermediate':'beginner';})();
   const [coachingMap,setCoachingMap]=useState({});     // { [exercise_name]: { key_cue, coaching } }
-  const [gifMap,setGifMap]=useState({});               // { [exercise_name]: { gif_url, target_muscles, secondary_muscles } }
-  const [coachingSheet,setCoachingSheet]=useState(null); // exercise_name whose sheet is open (null = closed)
-  const _activeExNames=[...new Set((activeWorkout?.exercises||[]).map(e=>_canonName(e.name)).filter(Boolean))];
+  const _activeExNames=[...new Set((activeWorkout?.exercises||[]).map(e=>_coachKey(e.name)).filter(Boolean))];
   const _exNamesKey=_activeExNames.join('|');
   useEffect(()=>{
-    if(trainScreen!=="active"||!_activeExNames.length)return;
+    if(trainScreen!=="active")return;
     let cancelled=false;
-    (async()=>{
+    // Fetch ALL coaching rows at the user's skill level (~103) and key by the NORMALIZED name, so the
+    // pill lookup matches generator variant spellings (normKey + _COACH_ALIAS). Filtering the query by
+    // name can't express normalized matching, and 103 rows is a trivial one-time payload. WKWebView +
+    // supabase-js can HANG on the auth lock (no throw), so race a timeout and retry a few times so a
+    // transient stall or empty first read doesn't silently drop the button. [[coach-macro-wkwebview-supabase-gotchas]]
+    const run=async(attempt)=>{
       try{
-        const [{data:coach},{data:cache}]=await Promise.all([
-          sb.from('exercise_coaching').select('exercise_name,key_cue,coaching').in('exercise_name',_activeExNames).eq('level',_skillLevel),
-          sb.from('exercise_cache').select('exercise_name,gif_url,target_muscles,secondary_muscles').in('exercise_name',_activeExNames),
-        ]);
+        const q=sb.from('exercise_coaching').select('exercise_name,key_cue,coaching').eq('level',_skillLevel);
+        const {data:coach}=await Promise.race([q, new Promise((_,rej)=>setTimeout(()=>rej(new Error('coaching-timeout')),4000))]);
         if(cancelled)return;
-        const cm={}; (coach||[]).forEach(r=>{cm[r.exercise_name]={key_cue:r.key_cue,coaching:r.coaching};});
-        const gm={}; (cache||[]).forEach(r=>{gm[r.exercise_name]={gif_url:r.gif_url,target_muscles:r.target_muscles,secondary_muscles:r.secondary_muscles};});
-        setCoachingMap(cm); setGifMap(gm);
-      }catch(_){/* best-effort — button simply won't show without data */}
-    })();
+        const cm={}; (coach||[]).forEach(r=>{cm[_normKey(r.exercise_name)]={key_cue:r.key_cue,coaching:r.coaching};});
+        if(Object.keys(cm).length===0 && attempt<2){ setTimeout(()=>{ if(!cancelled) run(attempt+1); }, 900); return; }
+        setCoachingMap(cm);
+      }catch(_){ if(!cancelled && attempt<3){ setTimeout(()=>{ if(!cancelled) run(attempt+1); }, 900); } }
+    };
+    run(0);
     return()=>{cancelled=true;};
-  },[trainScreen,_exNamesKey,_skillLevel]); // eslint-disable-line react-hooks/exhaustive-deps
+  },[trainScreen,_skillLevel]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Dev-only coverage warning: surface every generator exercise whose normalized key finds no coaching
+  // row, so remaining gaps are visible (V2 author-backlog) instead of a silently-absent pill.
+  useEffect(()=>{
+    if(!import.meta.env.DEV || trainScreen!=="active" || !Object.keys(coachingMap).length) return;
+    (activeWorkout?.exercises||[]).forEach(e=>{ if(!coachingMap[_coachKey(e.name)])
+      console.warn('[coaching] no row for exercise:', e.name, '→ key:', _coachKey(e.name)); });
+  },[trainScreen,_exNamesKey,coachingMap]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Custom routine session handoff ──────────────────────────────────────
   useEffect(()=>{
@@ -2476,6 +2539,21 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
   const [sessionMode,setSessionMode]=useState(null);
   const [editingSet,setEditingSet]=useState(null);
+  const [heroTouched,setHeroTouched]=useState(false); // set-view: has the user engaged the active weight input (faint suggestion → solid)
+  // U-timer morph (Part B): restingSet = the just-logged set whose hero is currently showing the U-timer
+  // (a PRESENTATION flag over the parent's showLocalRest — no timer logic here). restTotal = the rest
+  // duration captured at log time, for the ring's drain fraction.
+  const [restingSet,setRestingSet]=useState(null);
+  const [restTotal,setRestTotal]=useState(90);
+  const [whyRest,setWhyRest]=useState(null); // {secs, reason} for the "Why this rest?" note sheet
+  const [supportPageOpen,setSupportPageOpen]=useState(false); // in-app bundled SupportPage for health CTAs (no external URL)
+  const _prevRestRef=useRef(false);
+  useEffect(()=>{
+    // When the parent's rest ends (complete OR skip), collapse the resting hero → the next set's hero
+    // activates. Light "go" haptic on the transition.
+    if(_prevRestRef.current && !showLocalRest){ setRestingSet(null); _hL(); }
+    _prevRestRef.current=showLocalRest;
+  },[showLocalRest]);
   const [sessionPRs,setSessionPRs]=useState({});
   const [editHintDismissed,setEditHintDismissed]=useState(false);
   const [hyroxWeaknessStation,setHyroxWeaknessStation]=useState(null);
@@ -2813,7 +2891,10 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       const weightMod=readiness?.config?.weightMod||1.0;
       const lifeFactorMod=getLifeFactorMod(wPrefs?.stressLevel,profile?.sleepQuality||wPrefs?.sleepQuality,wPrefs?.jobPhysicality);
       const volMod=(readiness?.config?.volumeMod||1.0)*lifeFactorMod;
-      const trainingGoal=profile?.primaryGoal||wPrefs?.primaryGoal;
+      // Goal lives in profiles.goal (the real column, e.g. "build_muscle"); older code read the
+      // never-populated primaryGoal. Normalize case/spacing so "Build Muscle"/"Build_muscle" all map to
+      // the PRESCRIPTION key "build_muscle" (keys: build_muscle/get_stronger/lose_fat/recomp/train_for_race/get_faster).
+      const trainingGoal=(()=>{const g=profile?.goal||profile?.primaryGoal||wPrefs?.primaryGoal||wPrefs?.goal;return g?String(g).toLowerCase().trim().replace(/\s+/g,'_'):null;})();
       const skillLevel=wPrefs?.liftExp||profile?.liftExp||"beginner";
       const goalLabel=trainingGoal?getGoalLabel(trainingGoal):null;
       const goalCtx=trainingGoal?getGoalContext(trainingGoal):null;
@@ -4314,7 +4395,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       </div>
                     </div>
                     <div style={{background:"rgba(245,158,11,.05)",border:"1px solid rgba(245,158,11,.15)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
-                      <div style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.6}}>Exercise during pregnancy should be supervised by your OB-GYN or midwife. Coach Macro provides general guidance only.<br/><a href="https://coach-macro.com/support" style={{fontSize:10,color:"#FF3B30",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
+                      <div style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.6}}>Exercise during pregnancy should be supervised by your OB-GYN or midwife. Coach Macro provides general guidance only.<br/><button onClick={()=>setSupportPageOpen(true)} style={{fontSize:10,color:"#FF3B30",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3,background:"none",border:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>Talk to a professional →</button></div>
                     </div>
                   </>
                 )}
@@ -4330,7 +4411,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       </div>
                     </div>
                     <div style={{background:"rgba(245,158,11,.05)",border:"1px solid rgba(245,158,11,.15)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
-                      <div style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.6}}>Return to exercise postpartum should be guided by your healthcare provider.<br/><a href="https://coach-macro.com/support" style={{fontSize:10,color:"#FF3B30",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
+                      <div style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.6}}>Return to exercise postpartum should be guided by your healthcare provider.<br/><button onClick={()=>setSupportPageOpen(true)} style={{fontSize:10,color:"#FF3B30",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3,background:"none",border:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>Talk to a professional →</button></div>
                     </div>
                   </>
                 );})()}
@@ -4361,7 +4442,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       <div style={{display:"flex",flexDirection:"column",gap:4}}>
                         {hc.map(c=>{const info=HEALTH_CONDITIONS_SAFETY[c];return info?(<div key={c} style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.55}}><span style={{color:"var(--amber)",fontWeight:600}}>{info.label}:</span> {info.note}</div>):null;})}
                       </div>
-                      <a href="https://coach-macro.com/support" style={{fontSize:10,color:"#FF3B30",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:6}}>Talk to a professional →</a>
+                      <button onClick={()=>setSupportPageOpen(true)} style={{fontSize:10,color:"#FF3B30",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:6,background:"none",border:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>Talk to a professional →</button>
                     </div>
                   );
                 })()}
@@ -4978,15 +5059,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                                 ? <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#000" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></svg>
                                 : ei+1}
                             </div>
-                            {(()=>{
-                              const imgSrc=ex.gif||ex.gifUrl||ex.image||ex.imageUrl||ex.thumbnail||getThumbnailUrl(ex.name)||null;
-                              if(!imgSrc)return null;
-                              return(
-                                <div style={{position:"relative",width:64,height:64,borderRadius:10,background:'rgba(var(--cm-ink-rgb,10,10,10),.06)',border:'1px solid rgba(var(--cm-ink-rgb,10,10,10),.10)',flexShrink:0,overflow:"hidden"}}>
-                                  <img src={imgSrc} alt={ex.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={e=>{e.target.parentElement.style.display="none";}}/>
-                                </div>
-                              );
-                            })()}
+                            {/* Exercise thumbnail/gif intentionally omitted here — the visual lives ONLY
+                                inside View Coaching (ExerciseDetailModal). Main screen stays clean: name + tags. */}
                             <div style={{flex:1,cursor:"pointer",userSelect:"none",minWidth:0}} onPointerDown={()=>startLongPress(ex.name,ei)} onPointerUp={cancelLongPress} onPointerLeave={cancelLongPress} onPointerCancel={cancelLongPress}>
                               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:'var(--cm-ink,#0A0A0A)',textTransform:"uppercase",lineHeight:1.05,wordBreak:"break-word"}}>{ex.name}</div>
                               <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:2}}>
@@ -4995,9 +5069,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                                 {ex.mobilitySubstituted&&<span style={{fontSize:9,fontWeight:700,background:"rgba(139,92,246,.15)",color:"#8B5CF6",borderRadius:4,padding:"1px 5px",letterSpacing:".06em"}}>MODIFIED</span>}
                               </div>
                             </div>
-                            <button onClick={()=>{_hL();openDetail(ex.name,ei,sugg?{...sugg,unit:profile?.wUnit||'lbs'}:null);}} title="Exercise detail" style={{background:"none",border:"none",cursor:"pointer",padding:"4px",lineHeight:1,flexShrink:0,display:"flex",alignItems:"center",color:'rgba(var(--cm-ink-rgb,10,10,10),.40)',minHeight:"auto"}}>
-                              <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                            </button>
                             <button onClick={()=>{_hL();setSwapModal({exerciseIdx:ei,exerciseName:ex.name,originalName:ex.originalName||ex.name});}} style={{background:"none",border:"none",cursor:"pointer",padding:"4px",lineHeight:1,flexShrink:0,display:"flex",alignItems:"center",color:"rgba(var(--cm-ink-rgb,10,10,10),.30)"}}>
                               <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M16 3l4 4-4 4M20 17H4M8 21l-4-4 4-4"/></svg>
                             </button>
@@ -5028,55 +5099,146 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
                       {/* Coaching — data-driven (exercise_coaching, at the user's skill level). "View Coaching"
                           opens the sheet; shown ONLY when a row exists (no row → no button, no error). */}
-                      {coachingMap[_canonName(ex.name)]&&(
-                        <div style={{display:"flex",alignItems:"center",gap:10,margin:"2px 0 8px"}}>
-                          <button onClick={()=>{_hL&&_hL();setCoachingSheet(_canonName(ex.name));}} style={{display:"flex",alignItems:"center",gap:7,background:"rgba(var(--cm-accent-rgb,255,59,48),.10)",border:"1px solid rgba(var(--cm-accent-rgb,255,59,48),.28)",borderRadius:10,padding:"8px 12px",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
-                            <WhistleMark size={16} variant="glyph" style={{color:"var(--cm-accent,#FF3B30)"}}/>
-                            <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:11,letterSpacing:"0.06em",textTransform:"uppercase",color:"var(--cm-accent,#FF3B30)"}}>View Coaching</span>
+                      {coachingMap[_coachKey(ex.name)]&&(()=>{
+                        const _coach=coachingMap[_coachKey(ex.name)];
+                        // Rich coaching entry pill: white whistle in an accent chip, bold label, a key_cue
+                        // PREVIEW so the user knows real content sits behind it, and a chevron affordance.
+                        // The preview is hidden for beginners (they already get the full key_cue inline below).
+                        const _showPreview=_skillLevel!=='beginner'&&!!_coach.key_cue;
+                        return(
+                          <button onClick={()=>{_hL&&_hL();openDetail(ex.name,ei,sugg?{...sugg,unit:profile?.wUnit||'lbs'}:null);}} style={{display:"flex",alignItems:"center",gap:12,width:"100%",textAlign:"left",background:"linear-gradient(100deg, rgba(var(--cm-accent-rgb,255,59,48),.13), rgba(var(--cm-accent-rgb,255,59,48),.045))",border:"1px solid rgba(var(--cm-accent-rgb,255,59,48),.24)",borderRadius:14,padding:"11px 13px",margin:"2px 0 10px",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                            <div style={{width:34,height:34,borderRadius:10,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:"var(--cm-accent,#FF3B30)",boxShadow:"0 2px 8px rgba(var(--cm-accent-rgb,255,59,48),.35)"}}>
+                              <WhistleMark size={18} variant="glyph" style={{color:"#fff"}}/>
+                            </div>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:12,letterSpacing:"0.05em",textTransform:"uppercase",color:"var(--cm-accent,#FF3B30)",lineHeight:1.1}}>View Coaching</div>
+                              {_showPreview&&<div style={{fontFamily:"'Archivo',sans-serif",fontWeight:500,fontSize:11.5,color:"rgba(var(--cm-ink-rgb,10,10,10),.5)",lineHeight:1.35,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{_coach.key_cue}</div>}
+                            </div>
+                            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--cm-accent,#FF3B30)" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,opacity:.6}}><path d="M9 6l6 6-6 6"/></svg>
                           </button>
-                        </div>
-                      )}
+                        );
+                      })()}
                       {/* Beginner depth-adapt: key_cue shown INLINE by default (guidance without a tap). */}
-                      {_skillLevel==='beginner'&&coachingMap[_canonName(ex.name)]?.key_cue&&(
+                      {_skillLevel==='beginner'&&coachingMap[_coachKey(ex.name)]?.key_cue&&(
                         <div style={{display:"flex",alignItems:"flex-start",gap:8,padding:"10px 12px",marginBottom:10,borderRadius:10,background:"rgba(var(--cm-accent-rgb,255,59,48),.06)",borderLeft:"3px solid var(--cm-accent,#FF3B30)"}}>
                           <span style={{fontSize:12,flexShrink:0,lineHeight:1.4}}>🔑</span>
-                          <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:13,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.45}}>{coachingMap[_canonName(ex.name)].key_cue}</span>
+                          <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:13,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.45}}>{coachingMap[_coachKey(ex.name)].key_cue}</span>
                         </div>
                       )}
 
                       <PrevSessionRow exerciseName={ex.name} history={history} wUnit={profile?.wUnit||'lbs'}/>
 
-                      {/* Set headers — SET / WEIGHT / REPS / DONE */}
-                      <div style={{display:"grid",gridTemplateColumns:"44px 1fr 1fr 72px",gap:6,marginBottom:8}}>
-                        {["SET","WEIGHT","REPS","DONE"].map(h=>(<div key={h} style={{fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',fontWeight:700,letterSpacing:1.5,textAlign:"center"}}>{h}</div>))}
-                      </div>
-
-                      {/* Sets */}
+                      {/* ───────── SET-VIEW: the "compressing stack" (Direction B) ─────────
+                          Three states per set, presentation-only over the UNCHANGED write path:
+                          • completed → thin grey done-line (tap to edit)  • active/editing → solid-accent HERO
+                          • upcoming → ghosted dashed row.  Weight is the hero input (faint suggestion → solid
+                          on engage); reps stay fully editable, just de-emphasized. All handlers below are
+                          byte-identical to the prior grid: weight/reps onChange mutate activeWorkout, LOG →
+                          logSet, UPDATE → editSet, RPE → sets[si].rpe. finishWorkout reads activeWorkout. */}
                       {(()=>{
                         let _firstDoneMarked=false;
+                        const _wu=profile?.wUnit||'lbs';
                         return(ex.sets||[]).map((s,si)=>{
-                          const isActiveSt=!s.done&&si===nextSetIdx;
-                          const isEditing=editingSet?.ei===ei&&editingSet?.si===si;
+                          // One hero at a time: while editing a completed set, that set is the SOLE
+                          // hero — the active/next set collapses back to a quiet upcoming row.
+                          const _editActive=editingSet?.ei===ei;
+                          const isEditing=_editActive&&editingSet?.si===si;
+                          // Option B: on Log the logged set collapses to its done-line (spring) and the NEXT set
+                          // expands to the hero (spring). That next hero shows the calm rest countdown while a rest
+                          // runs in this exercise, then springs to the weight input. So the "resting hero" is the
+                          // active/next set during rest — NOT the just-logged set (which becomes a done-line at once).
+                          const _restPending=!!restingSet&&showLocalRest&&restingSet.ei===ei;
+                          const isActiveSt=!s.done&&si===nextSetIdx&&!_editActive;
+                          const _restingHero=isActiveSt&&_restPending;
+                          const isHero=isActiveSt||isEditing;
+                          const isDoneLine=s.done&&!isEditing;
                           const showHint=s.done&&!_firstDoneMarked&&!editHintDismissed;
                           if(s.done)_firstDoneMarked=true;
+                          // carry the nearest earlier logged weight forward as this set's default suggestion
+                          let _carry="";for(let k=si-1;k>=0;k--){if(ex.sets[k]?.done&&ex.sets[k]?.weight){_carry=ex.sets[k].weight;break;}}
+                          const _sugW=s.weight||_carry||sugg?.weight||"";
+                          const _faint=isActiveSt&&!heroTouched&&!s.weight&&!!(_carry||sugg?.weight);
+                          const _tgt=String(s.reps||sugg?.reps||ex.reps||10).replace('-','–'); // prescribed target (range or single)
                           return(
-                            <div key={si}>
-                              {showHint&&<div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4,marginLeft:44}}><svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="rgba(10,10,10,0.30)" strokeWidth={2} strokeLinecap="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span style={{fontFamily:"var(--mono)",fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),.30)',letterSpacing:"0.06em"}}>tap to edit</span></div>}
-                              <div style={{display:"grid",gridTemplateColumns:"44px 1fr 1fr 72px",gap:6,marginBottom:8,alignItems:"center"}}>
-                                <div style={{fontSize:13,color:s.done?"#22c55e":isActiveSt?'var(--cm-ink,#0A0A0A)':"rgba(var(--cm-ink-rgb,10,10,10),.35)",fontWeight:700,textAlign:"center"}}>#{si+1}</div>
-                                <input defaultValue={s.weight||sugg?.weight||""} placeholder={profile?.wUnit||'lbs'} style={{background:s.done&&!isEditing?"rgba(34,197,94,0.08)":isActiveSt||isEditing?"rgba(var(--accent-rgb),0.06)":"rgba(var(--cm-ink-rgb,10,10,10),.04)",border:`1.5px solid ${s.done&&!isEditing?"rgba(34,197,94,0.25)":isActiveSt||isEditing?"rgba(var(--accent-rgb),0.3)":"rgba(var(--cm-ink-rgb,10,10,10),.10)"}`,borderRadius:9,padding:"10px",color:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?'var(--cm-ink,#0A0A0A)':"rgba(var(--cm-ink-rgb,10,10,10),.40)",fontSize:14,fontWeight:700,outline:"none",fontFamily:"inherit",textAlign:"center",width:"100%",boxSizing:"border-box"}} onChange={e=>{const u={...activeWorkout};u.exercises[ei].sets[si].weight=e.target.value;setActiveWorkout(u);}} onFocus={s.done?()=>{setEditingSet({ei,si});setEditHintDismissed(true);}:undefined}/>
-                                <input defaultValue={s.reps||sugg?.reps||10} style={{background:s.done&&!isEditing?"rgba(34,197,94,0.08)":isActiveSt||isEditing?"rgba(var(--accent-rgb),0.06)":"rgba(var(--cm-ink-rgb,10,10,10),.04)",border:`1.5px solid ${s.done&&!isEditing?"rgba(34,197,94,0.25)":isActiveSt||isEditing?"rgba(var(--accent-rgb),0.3)":"rgba(var(--cm-ink-rgb,10,10,10),.10)"}`,borderRadius:9,padding:"10px",color:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?'var(--cm-ink,#0A0A0A)':"rgba(var(--cm-ink-rgb,10,10,10),.40)",fontSize:14,fontWeight:700,outline:"none",fontFamily:"inherit",textAlign:"center",width:"100%",boxSizing:"border-box"}} onChange={e=>{const u={...activeWorkout};u.exercises[ei].sets[si].reps=e.target.value;setActiveWorkout(u);}} onFocus={s.done?()=>{setEditingSet({ei,si});setEditHintDismissed(true);}:undefined}/>
-                                <button onClick={()=>{if(isEditing){editSet(ei,si,activeWorkout.exercises[ei].sets[si].reps,activeWorkout.exercises[ei].sets[si].weight);setEditingSet(null);}else{const u={...activeWorkout};logSet(ei,si,u.exercises[ei].sets[si].reps,u.exercises[ei].sets[si].weight);onStartLocalRest&&onStartLocalRest(90);}}} style={{padding:"10px 0",background:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?'var(--cm-red,#FF3B30)':"rgba(var(--cm-ink-rgb,10,10,10),.06)",color:s.done&&!isEditing?"#000":isActiveSt||isEditing?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),.35)",border:`1.5px solid ${s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?'var(--cm-red,#FF3B30)':"rgba(var(--cm-ink-rgb,10,10,10),.10)"}`,borderRadius:9,cursor:"pointer",fontSize:13,fontWeight:800,fontFamily:"inherit",width:"100%",transition:"all .2s"}}>{isEditing?"UPDATE":s.done?"✓":"LOG"}</button>
-                              </div>
-                              {s.done&&(
-                                <div style={{display:"flex",alignItems:"center",gap:4,marginLeft:44,marginBottom:6,marginTop:-2}}>
+                            <motion.div key={si} layout={!_trainEyeRedMo} transition={cmSpring} style={{position:"relative"}}>
+                              {/* ── ACTIVE / EDITING / RESTING hero — one accent card. The row's `layout` spring does the
+                                  compression: on Log the logged set becomes a done-line (below) and THIS next set springs
+                                  up here. During rest it shows the calm countdown, then springs to the weight input. ── */}
+                              {isHero&&(
+                                <div style={{background:"linear-gradient(160deg, color-mix(in srgb, var(--cm-accent,#FF3B30) 82%, #fff), var(--cm-accent,#FF3B30) 46%, color-mix(in srgb, var(--cm-accent,#FF3B30) 70%, #000))",borderRadius:24,padding:"26px 24px 24px",marginBottom:10,boxShadow:"0 18px 40px rgba(var(--cm-accent-rgb,255,59,48),.42), inset 0 1px 0 rgba(255,255,255,.22)"}}>
+                                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
+                                    <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,letterSpacing:"0.04em",color:"#fff",opacity:.9}}>Set {si+1} of {totalSets}</span>
+                                    {_restingHero
+                                      ? <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,letterSpacing:"0.04em",color:"#fff",opacity:.9}}>Logged ✓</span>
+                                      : isEditing
+                                        ? <button onClick={()=>setEditingSet(null)} style={{background:"none",border:"none",color:"#fff",opacity:.9,fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,letterSpacing:"0.04em",cursor:"pointer",padding:0,WebkitTapHighlightColor:"transparent"}}>Cancel</button>
+                                        : <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,letterSpacing:"0.04em",color:"#fff",opacity:.9}}>{_tgt} reps</span>}
+                                  </div>
+                                  {_restingHero ? (
+                                    /* ── CALM REST STATE — quiet DM-Mono countdown + a clean 2px draining line + pill buttons. ── */
+                                    <div style={{marginTop:16}}>
+                                      <motion.div initial={_trainEyeRedMo?false:{scale:0.96,opacity:0}} animate={{scale:1,opacity:1}} transition={cmSpring} style={{fontFamily:"var(--mono)",fontSize:64,fontWeight:900,color:"#fff",textAlign:"center",lineHeight:0.9,letterSpacing:"-0.03em"}}>{Math.floor(Math.max(0,localRestSecs)/60)}:{(Math.max(0,localRestSecs)%60).toString().padStart(2,'0')}</motion.div>
+                                      <div style={{height:2,borderRadius:2,background:"rgba(255,255,255,.2)",overflow:"hidden",marginTop:18}}>
+                                        <div style={{height:"100%",background:"#fff",borderRadius:2,width:`${Math.max(0,Math.min(100,(localRestSecs/(restTotal||1))*100))}%`,transition:_trainEyeRedMo?"none":"width 1s linear"}}/>
+                                      </div>
+                                      <div style={{display:"flex",justifyContent:"center",alignItems:"center",gap:12,marginTop:18}}>
+                                        <button onClick={()=>{onSkipLocalRest&&onSkipLocalRest();}} style={{background:"rgba(255,255,255,.14)",border:"none",borderRadius:10,padding:"8px 18px",color:"#fff",fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,letterSpacing:"0.02em",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>Skip rest →</button>
+                                        <button onClick={()=>{_hL();setWhyRest({secs:ex.restSecs||restTotal||90, reason:ex.restReason||`${Math.round(((ex.restSecs||restTotal||90)/60)*10)/10} min rest`});}} style={{background:"rgba(255,255,255,.14)",border:"none",borderRadius:10,padding:"8px 18px",color:"#fff",fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,letterSpacing:"0.02em",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>Why {Math.floor((ex.restSecs||restTotal||90)/60)}:{((ex.restSecs||restTotal||90)%60).toString().padStart(2,'0')}?</button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    /* ── ACTIVE — weight-input hero + reps + Log (write path unchanged) ── */
+                                    <div>
+                                      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:8,marginTop:14}}>
+                                        <input inputMode="decimal" defaultValue={_sugW} placeholder="0" onFocus={()=>setHeroTouched(true)} style={{width:(Math.max(1,String(s.weight||_sugW||'').length)+0.4)+'ch',minWidth:'1ch',background:"transparent",border:"none",padding:0,margin:0,color:"#fff",opacity:_faint?0.5:1,caretColor:"#fff",fontFamily:"var(--mono)",fontSize:82,fontWeight:900,lineHeight:0.78,letterSpacing:"-0.045em",outline:"none",textAlign:"center",boxSizing:"border-box",WebkitAppearance:"none"}} onChange={e=>{setHeroTouched(true);const u={...activeWorkout};u.exercises[ei].sets[si].weight=e.target.value;setActiveWorkout(u);}}/>
+                                        <span style={{fontFamily:"'Archivo',sans-serif",fontSize:18,fontWeight:800,color:"#fff",opacity:.72,marginTop:6,flexShrink:0}}>{_wu.toUpperCase()}</span>
+                                      </div>
+                                      {_faint&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10.5,fontWeight:700,letterSpacing:"0.05em",textTransform:"uppercase",color:"#fff",opacity:.62,textAlign:"center",marginTop:12}}>tap to enter · {_carry||sugg?.weight} last time</div>}
+                                      <div style={{textAlign:"center",marginTop:14}}>
+                                        <div style={{display:"inline-flex",alignItems:"center",justifyContent:"center",background:"rgba(255,255,255,.14)",borderRadius:12,padding:"8px 18px"}}>
+                                          <input inputMode="numeric" defaultValue={s.reps||sugg?.reps||10} style={{width:(Math.max(2,String(s.reps||sugg?.reps||10).length)+0.6)+'ch',minWidth:'2ch',background:"transparent",border:"none",padding:0,margin:0,color:"#fff",fontFamily:"var(--mono)",fontSize:15,fontWeight:800,outline:"none",textAlign:"center",WebkitAppearance:"none"}} onChange={e=>{const u={...activeWorkout};u.exercises[ei].sets[si].reps=e.target.value;setActiveWorkout(u);}}/>
+                                        </div>
+                                      </div>
+                                      <button onClick={()=>{
+                                        // Honest fallback: an untouched field means the user accepted the SHOWN value
+                                        // (the big suggestion) — log that, not empty. A typed "0" stays 0 ("0" truthy).
+                                        const _rf=s.reps||sugg?.reps||10;
+                                        if(isEditing){const st=activeWorkout.exercises[ei].sets[si];editSet(ei,si,(st.reps||_rf),(st.weight||_sugW));setEditingSet(null);}
+                                        // Log: write is byte-identical; start rest with the PRESCRIBED value; medium haptic on
+                                        // the SETTLE (~120ms, when the spring lands), not tap-down — the reward coincides with the landing.
+                                        else{const u={...activeWorkout};const st=u.exercises[ei].sets[si];logSet(ei,si,(st.reps||_rf),(st.weight||_sugW));setHeroTouched(false);const _rest=ex.restSecs||90;setRestTotal(_rest);setRestingSet({ei,si});onStartLocalRest&&onStartLocalRest(_rest);_trainEyeRedMo?_hM():setTimeout(_hM,120);}
+                                      }} style={{width:"100%",padding:16,background:"#fff",border:"none",borderRadius:15,color:"var(--cm-accent,#FF3B30)",fontFamily:"'Archivo',sans-serif",fontWeight:900,fontSize:15,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",marginTop:18,WebkitTapHighlightColor:"transparent"}}>{isEditing?"Update set":"Log set"}</button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* ── COMPLETED — receded done-line; the weight number scale-settles as it lands (plate on the rack) ── */}
+                              {isDoneLine&&(<>
+                                {showHint&&<div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4,marginLeft:16}}><svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="rgba(10,10,10,0.30)" strokeWidth={2} strokeLinecap="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span style={{fontFamily:"var(--mono)",fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),.30)',letterSpacing:"0.06em"}}>tap to edit</span></div>}
+                                <div onClick={()=>{setEditingSet({ei,si});setEditHintDismissed(true);}} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 16px",marginBottom:6,borderRadius:13,background:"var(--cm-surface,#f7f8fa)",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                                  <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,letterSpacing:"0.04em",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",flexShrink:0}}>Set {si+1}</span>
+                                  <motion.span initial={_trainEyeRedMo?false:{scale:0.9}} animate={{scale:1}} transition={cmSpring} style={{display:"inline-block",transformOrigin:"left center",fontFamily:"var(--mono)",fontSize:13,fontWeight:700,color:"rgba(var(--cm-ink-rgb,10,10,10),.72)",letterSpacing:"-0.01em"}}>{s.weight||"—"} <span style={{fontWeight:500,opacity:.6}}>{_wu}</span> <span style={{opacity:.4}}>×</span> {s.reps}</motion.span>
+                                  <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
+                                    {s.rpe&&<span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:"#FEA020"}}>RPE {s.rpe}</span>}
+                                    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}><path d="M5 13l4 4L19 7" stroke="var(--cm-good,#22c55e)" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                  </div>
+                                </div>
+                                <div style={{display:"flex",alignItems:"center",gap:4,marginLeft:16,marginBottom:8,marginTop:-1}}>
                                   <span style={{fontFamily:"var(--mono)",fontSize:7,color:'rgba(var(--cm-ink-rgb,10,10,10),.35)',marginRight:2,letterSpacing:"0.08em"}}>RPE</span>
                                   {[6,7,8,9,10].map(r=>(
                                     <button key={r} onClick={()=>{const u={...activeWorkout};u.exercises[ei].sets[si].rpe=r;setActiveWorkout(u);}} style={{width:26,height:20,borderRadius:4,border:`1px solid ${s.rpe===r?"#FEA020":"rgba(var(--cm-ink-rgb,10,10,10),.10)"}`,background:s.rpe===r?"rgba(254,160,32,0.15)":"transparent",color:s.rpe===r?"#FEA020":"rgba(var(--cm-ink-rgb,10,10,10),.35)",fontFamily:"var(--mono)",fontSize:8,cursor:"pointer",padding:0,fontWeight:s.rpe===r?700:400,lineHeight:1}}>{r}</button>
                                   ))}
                                 </div>
+                              </>)}
+
+                              {/* ── UPCOMING — ghosted dashed row (exact spec) ── */}
+                              {!isHero&&!isDoneLine&&(
+                                <div style={{display:"flex",alignItems:"center",padding:"11px 16px",marginBottom:6,borderRadius:13,border:"1.5px dashed var(--cm-border,rgba(17,17,17,.12))",background:"transparent"}}>
+                                  <span style={{fontFamily:"var(--mono)",fontSize:13,fontWeight:600,color:"rgba(var(--cm-ink-rgb,10,10,10),.4)",letterSpacing:"-0.01em"}}>— · {_tgt}</span>
+                                </div>
                               )}
-                            </div>
+                            </motion.div>
                           );
                         });
                       })()}
@@ -5090,7 +5252,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
                       <button onClick={()=>{const u={...activeWorkout};u.exercises[ei].sets=[...u.exercises[ei].sets,{reps:u.exercises[ei].sets[0]?.reps||10,weight:u.exercises[ei].sets[0]?.weight||"",done:false}];setActiveWorkout(u);}} style={{width:"100%",fontSize:11,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',background:"none",border:'1px dashed rgba(var(--cm-ink-rgb,10,10,10),.15)',borderRadius:8,padding:"8px",cursor:"pointer",fontFamily:"inherit",marginTop:4}}>+ Add Set</button>
 
-                      {showLocalRest&&(
+                      {/* Legacy rest card — now only a FALLBACK: the U-timer skins rest in-place (restingSet).
+                          Shown only if rest is running without our morph (e.g. resting set is in another exercise). */}
+                      {showLocalRest&&(!restingSet||restingSet.ei!==ei)&&(
                         <div style={{background:"var(--cm-paper,#fff)",border:"2px solid var(--cm-red,#FF3B30)",borderRadius:14,padding:"14px 16px",marginTop:12,marginBottom:4}}>
                           <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:6,textAlign:"center"}}>// REST</div>
                           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:56,color:"var(--cm-ink,#0A0A0A)",textAlign:"center",lineHeight:1,marginBottom:10}}>
@@ -5155,7 +5319,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             exerciseName={detailModal.exerciseName}
             user={user}
             sugg={detailModal.sugg}
-            focusVisual={detailModal.focusVisual}
+            coaching={coachingMap[_coachKey(detailModal.exerciseName)]}
             onClose={()=>setDetailModal(null)}
             onSwap={()=>{
               setDetailModal(null);
@@ -5164,33 +5328,35 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           />
         )}
 
-        {/* ── VIEW COACHING sheet — data-driven (exercise_coaching), portaled to .goclub (theme-safe) ── */}
-        {coachingSheet&&coachingMap[coachingSheet]&&ReactDOM.createPortal(
-          <div onClick={()=>setCoachingSheet(null)} style={{position:"fixed",inset:0,zIndex:10002,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)",display:"flex",alignItems:"flex-end"}}>
-            <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:520,margin:"0 auto",background:"var(--cm-paper,#fff)",borderRadius:"24px 24px 0 0",padding:"20px 20px calc(24px + env(safe-area-inset-bottom))",boxShadow:"0 -10px 44px rgba(0,0,0,.34)",maxHeight:"82vh",overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
-              <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:14}}>
-                <WhistleMark size={20} variant="glyph" style={{color:"var(--cm-accent,#FF3B30)"}}/>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",letterSpacing:"0.01em",flex:1}}>Coaching</div>
-                <button onClick={()=>setCoachingSheet(null)} aria-label="Close" style={{background:"none",border:"none",padding:6,cursor:"pointer",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",WebkitTapHighlightColor:"transparent",lineHeight:1}}>
-                  <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-                </button>
+        {/* ── "Why this rest?" — honest coach note over the prescribed rest (ex.restReason + a
+             plain-spoken, goal-aware explanation). Portaled to .goclub so themes apply. ── */}
+        {whyRest&&ReactDOM.createPortal(
+          <div onClick={()=>setWhyRest(null)} style={{position:"fixed",inset:0,zIndex:10060,background:"rgba(0,0,0,.5)",backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)",display:"flex",alignItems:"flex-end"}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:"var(--cm-paper,#fff)",borderRadius:"24px 24px 0 0",padding:"22px 20px calc(env(safe-area-inset-bottom,0px) + 24px)",width:"100%",maxWidth:480,marginLeft:"auto",marginRight:"auto",boxShadow:"0 -10px 44px rgba(0,0,0,.34)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+                <div style={{width:32,height:32,borderRadius:9,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:"var(--cm-accent,#FF3B30)"}}><WhistleMark size={17} variant="glyph" style={{color:"#fff"}}/></div>
+                <div style={{flex:1,fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:17,color:"var(--cm-ink,#0A0A0A)"}}>Why this rest?</div>
+                <button onClick={()=>setWhyRest(null)} style={{background:"none",border:"none",cursor:"pointer",color:"rgba(var(--cm-ink-rgb,10,10,10),.4)",padding:4,fontSize:18,lineHeight:1,WebkitTapHighlightColor:"transparent"}}>✕</button>
               </div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",marginBottom:12}}>{coachingSheet}</div>
-              <div style={{background:"rgba(var(--cm-accent-rgb,255,59,48),.07)",borderLeft:"3px solid var(--cm-accent,#FF3B30)",borderRadius:"6px 12px 12px 6px",padding:"14px 16px",marginBottom:16}}>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:"var(--cm-accent,#FF3B30)",marginBottom:6}}>🔑 Key Cue</div>
-                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:16,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.4}}>{coachingMap[coachingSheet].key_cue}</div>
-              </div>
-              <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:400,fontSize:14.5,color:"rgba(var(--cm-ink-rgb,10,10,10),.78)",lineHeight:1.62,marginBottom:20,whiteSpace:"pre-wrap"}}>{coachingMap[coachingSheet].coaching}</div>
-              {gifMap[coachingSheet]?.gif_url&&(
-                <button onClick={()=>{const _ei=(activeWorkout?.exercises||[]).findIndex(e=>_canonName(e.name)===coachingSheet);setDetailModal({exerciseName:coachingSheet,exerciseIdx:_ei>=0?_ei:0,sugg:null,focusVisual:true});setCoachingSheet(null);}} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"14px",background:"var(--cm-accent,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:14,letterSpacing:"0.02em",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
-                  <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                  View Exercise
-                </button>
-              )}
+              {whyRest.reason&&<div style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"var(--cm-accent,#FF3B30)",marginBottom:11}}>{whyRest.reason}</div>}
+              <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:500,fontSize:15,lineHeight:1.55,color:"rgba(var(--cm-ink-rgb,10,10,10),.82)"}}>{_restCoachNote(whyRest.secs)}</div>
             </div>
           </div>,
           themeRoot()
         )}
+
+        {/* In-app Support viewer for the pregnancy/postpartum/health-condition CTAs (bundled SupportPage,
+            no external coach-macro.com). Mirrors the Settings legal viewer. */}
+        {supportPageOpen&&(
+          <div style={{position:"fixed",inset:0,zIndex:99999,background:"#000",overflowY:"auto"}}>
+            <button onClick={()=>setSupportPageOpen(false)} style={{position:"sticky",top:0,zIndex:1,display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.9)",border:"none",borderBottom:"1px solid rgba(245,245,240,0.1)",color:"var(--cm-red,#FF3B30)",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",padding:"14px 20px",width:"100%"}}>
+              <svg width={16} height={16} viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+              Back
+            </button>
+            <SupportPage/>
+          </div>
+        )}
+
 
         {/* ── PLAN — redesigned paper view ── */}
         {trainScreen==="plan"&&GOCLUB_REDESIGN&&(()=>{
@@ -6706,6 +6872,7 @@ function WheelCol({options,value,onChange,width=80}){
 // ─── SETTINGS SECTION ────────────────────────────────────────────────────────
 export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,dayFocus,todayKey,isMobile,onSignOut,user,onPreviewBrief,calendarConnected,onCalendarConnect,onCalendarDisconnect,onLogInjury,onProfileUpdate}) {
   const [delStep,setDelStep]=useState(0);
+  const [legalPage,setLegalPage]=useState(null); // null | 'privacy' | 'terms' | 'health-disclaimer' | 'health-data-notice' | 'support' — in-app bundled legal pages
   const [delInput,setDelInput]=useState("");
   const [deleting,setDeleting]=useState(false);
   const [displayPrefs,setDisplayPrefs]=useState(wPrefs?.displayPrefs||{});
@@ -7318,13 +7485,27 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             </div>
             {/* Peer Comparison */}
             <PeerComparisonSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle} hideEyebrow/>
-            {/* Legal & support */}
+            {/* Legal & support — BUNDLED pages, reachable in-app (health disclaimers must not be web-only) */}
             <div style={cardStyle}>
-              <MeRow label="Privacy Policy" onPress={()=>window.open("https://coach-macro.com/privacy","_blank")} value=""/>
-              <MeRow label="Terms of Service" onPress={()=>window.open("https://coach-macro.com/terms","_blank")} value=""/>
-              <MeRow label="Help & Support" onPress={()=>window.open("https://coach-macro.com/support","_blank")} value=""/>
+              <MeRow label="Privacy Policy" onPress={()=>setLegalPage("privacy")} value=""/>
+              <MeRow label="Terms of Service" onPress={()=>setLegalPage("terms")} value=""/>
+              <MeRow label="Health Disclaimer" onPress={()=>setLegalPage("health-disclaimer")} value=""/>
+              <MeRow label="Health Data Notice" onPress={()=>setLegalPage("health-data-notice")} value=""/>
+              <MeRow label="Help & Support" onPress={()=>setLegalPage("support")} value=""/>
               <MeRow label="Delete Account" isDestructive isLast onPress={()=>setDelStep(delStep===0?1:0)}/>
             </div>
+
+            {/* In-app legal viewer — renders the bundled legal.jsx component full-screen (mirrors the
+                onboarding legal modal in NativeApp). No external URLs, no WKWebView navigation. */}
+            {legalPage&&(
+              <div style={{position:"fixed",inset:0,zIndex:99999,background:"#000",overflowY:"auto"}}>
+                <button onClick={()=>setLegalPage(null)} style={{position:"sticky",top:0,zIndex:1,display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.9)",border:"none",borderBottom:"1px solid rgba(245,245,240,0.1)",color:"var(--cm-red,#FF3B30)",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",padding:"14px 20px",width:"100%"}}>
+                  <svg width={16} height={16} viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+                  Back
+                </button>
+                {legalPage==="terms"?<TermsOfService/>:legalPage==="health-disclaimer"?<HealthDisclaimer/>:legalPage==="health-data-notice"?<HealthDataNotice/>:legalPage==="support"?<SupportPage/>:<PrivacyPolicy/>}
+              </div>
+            )}
             {/* Delete confirmation — inline, follows Delete Account row */}
             {delStep>0&&(
               <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.06)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:12,padding:16,marginTop:8}}>
