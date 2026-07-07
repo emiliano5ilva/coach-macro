@@ -210,6 +210,20 @@ _**Current committed bundle: `NativeApp-403b5e65`** (run-logging milestone + run
     helper (`ob_screens2.jsx:4279`) — **KEEP for now** (cheap observability on the critical onboarding path); gate/strip with the
     `ah_*` diagnostic breadcrumbs pre-release.
 - **Design system locked** — Me tab, Today/Train/Fuel reskins, weight logging, security/RLS.
+- **RapidAPI (ExerciseDB) key LEAK VECTOR — ✅ CLOSED on `main` / web prod** (commit **`b6c68ad`**, 2026-07-07; deploy
+  `dpl_H142qhJjPU3crBqAC3F398NSosB4` READY). The key no longer lives client-side: new **`api/exercise-media.js`** proxy holds it as
+  `process.env.RAPIDAPI_KEY` (non-`VITE_` → never bundled), CORS-allowlisted GET-only, 80-char name cap, normalizes server-side so the
+  raw RapidAPI response shape never reaches the browser; `exerciseMedia.js` now calls the proxy (graceful null fallback preserved). Folded
+  in **Option B** (`foodDatabase.js:152`: `import.meta.env?.VITE_API_BASE` → `import.meta.env.VITE_API_BASE`, outer `typeof` guard kept)
+  so Vite inlines the single key at build instead of materializing the whole `import.meta.env` object into the bundle.
+  **VERIFIED in the LIVE prod bundle** (`index-5e96f262.js` + `NativeApp-b9880efe.js`): `X-RapidAPI-Key` / `X-RapidAPI` /
+  `VITE_RAPIDAPI_KEY` / `RAPIDAPI_KEY` / `exercisedb.p.rapidapi.com` = **0 hits** (the lone `RapidAPI`/`exercisedb` match is privacy-policy
+  prose, not code); `import.meta.env` = **0 hits** — Vite replaced it with `{}`, so **no wholesale env-dump** remains. Proxy tested live
+  end-to-end (`/api/exercise-media?name=barbell squat|bench press|deadlift` → 200, normalized `{target_muscles,secondary_muscles,
+  instructions,equipment,body_part}`) → ExerciseDetailModal is fed by the proxy. Backdoor + legal hotfix re-confirmed intact in the SAME
+  bundle (backdoor artifacts `testuser@coachm.dev`/`CoachTest123`/`devmode`/`handleLogoTap`/`isDevAccount`/`dev-skip` = 0; `Sentry`/
+  `Indemnification`/`Allergen`/`us-east-2` present). Branch `rapidapi-relocate-main` merged to `main` and deleted (worktree removed).
+  ⚠️ **The key VALUE itself is still compromised** (shipped publicly + in git history) — rotation is an OPEN blocker (see below).
 
 ---
 
@@ -238,13 +252,25 @@ _Consolidated 2026-07-06. THIS is the single source of truth for "what must be r
    dev-skip → bundled creds + payment bypass). The `goclub-redesign` fix does NOT reach `main` (file diverged ~100 lines). **Ported
    to branch `security-backdoor-main` (off `main`) — PR-ready, diff under review; do NOT merge until reviewed.** Merge + deploy to
    web prod once reviewed (Vercel Pro now clears the pipeline). Rotate the testuser password applies to web too.
+4. **✅ RapidAPI (ExerciseDB) key ROTATION — DONE & VERIFIED** (2026-07-07). The leak **vector** was CLOSED (server proxy + env-dump
+   killed, verified in the live bundle — see DONE above), and the compromised key VALUE (had shipped publicly in prior `main`/web bundles
+   as `VITE_RAPIDAPI_KEY` + remains in git history) has now been **rotated**: new ExerciseDB key regenerated in RapidAPI → `RAPIDAPI_KEY`
+   updated in Vercel (Production) → redeployed (`dpl_691tCz1ptLzCTKEB4kkemR4LaQT1`, READY). **VERIFIED live:**
+   `GET /api/exercise-media?name=barbell squat` → HTTP 200 with a fully-populated normalized object (`target_muscles:["quads"]`,
+   `equipment:"barbell"`, `body_part:"upper legs"`, 6 instructions) — i.e. RapidAPI accepted the new key (a `200 null` would have meant
+   no ExerciseDB access), proving the new key is live + subscribed. Old key is now unused → safe to delete in RapidAPI.
+   (Same class of caveat as the `testuser@coachm.dev` password rotation under item 1.)
+   ↳ **Dead-var cleanup — ✅ DONE:** **`VITE_RAPIDAPI_KEY`** deleted from Vercel (all environments) by Emiliano dashboard-side,
+   2026-07-07 — no code references it anymore (0 hits in the live bundle). *(Claude Code couldn't self-verify: the stored Vercel CLI
+   token was expired (`invalidToken`) and no CLI was installed; deletion confirmed by owner.)*
+   → **Entire RapidAPI-key arc CLOSED: leak vector + rotation + dead-var cleanup all DONE.**
 
 ### 🟡 MUST-VERIFY / CLEANUP before submission (not security-critical)
-4. **Clinical-records / provisioning entitlement cleanup** — verify portal App ID + provisioning profile carry only what's used
+5. **Clinical-records / provisioning entitlement cleanup** — verify portal App ID + provisioning profile carry only what's used
    (binary entitlements currently clean). [detail ~"Clinical-records" bullet below]
-5. **HRV full device verification** — reads work (`ah_hrv_ok`); the Settings-permission-sheet + real HRV data needs an Apple Watch
+6. **HRV full device verification** — reads work (`ah_hrv_ok`); the Settings-permission-sheet + real HRV data needs an Apple Watch
    wearer, cleanest via delete/reinstall so HRV is in the initial grant. [detail ~"HRV full device verification" bullet below]
-6. **Analytics breadcrumbs keep-vs-gate** — `ah_*` / `tier` / `bmr` / `plan_confirm_*` breadcrumbs kept through dev for cheap
+7. **Analytics breadcrumbs keep-vs-gate** — `ah_*` / `tier` / `bmr` / `plan_confirm_*` breadcrumbs kept through dev for cheap
    observability; **gate or strip before App Store**. [detail ~"Breadcrumb keep-vs-gate" bullet below]
 
 ---
