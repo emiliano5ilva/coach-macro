@@ -149,7 +149,10 @@ const getNutrient = (nutrients, nutrientId) => {
 
 const searchUSDA = async (query) => {
   try {
-    const API_BASE = typeof import.meta !== "undefined" ? (import.meta.env?.VITE_API_BASE || "") : "";
+    // Static `import.meta.env.VITE_API_BASE` (no `?.`) so Vite replaces just this key at build
+    // time instead of materializing the whole import.meta.env object into the bundle (which would
+    // dump every VITE_* var — secrets included). Outer typeof guard covers non-ESM contexts.
+    const API_BASE = typeof import.meta !== "undefined" ? (import.meta.env.VITE_API_BASE || "") : "";
     const res = await fetch(`${API_BASE}/api/food-search-usda?query=${encodeURIComponent(query)}`, {
       signal: AbortSignal.timeout(6000),
     });

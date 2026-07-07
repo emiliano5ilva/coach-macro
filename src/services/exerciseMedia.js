@@ -1,8 +1,10 @@
 import { sb } from "../supabase.js";
 
-const EXERCISEDB_BASE = "https://exercisedb.p.rapidapi.com";
-const RAPIDAPI_KEY    = import.meta.env.VITE_RAPIDAPI_KEY;
-const FREE_DB_BASE    = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises";
+// ExerciseDB metadata is fetched through our own /api/exercise-media proxy, which holds
+// the RapidAPI key server-side (process.env.RAPIDAPI_KEY). The key is NOT VITE_-prefixed,
+// so it never ships in the client bundle. Same VITE_API_BASE_URL the other client calls use.
+const API_BASE     = import.meta.env.VITE_API_BASE_URL || "";
+const FREE_DB_BASE = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises";
 
 // Maps our display names → ExerciseDB search strings
 export const EXERCISEDB_NAME_MAP = {
@@ -117,24 +119,12 @@ export function getThumbnailUrl(exerciseName) {
 }
 
 async function fetchMetadataFromExerciseDB(exerciseName) {
-  if (!RAPIDAPI_KEY) return null;
   try {
     const searchName = EXERCISEDB_NAME_MAP[exerciseName] || exerciseName.toLowerCase();
-    const res = await fetch(
-      `${EXERCISEDB_BASE}/exercises/name/${encodeURIComponent(searchName)}?limit=1`,
-      { headers: { "X-RapidAPI-Key": RAPIDAPI_KEY, "X-RapidAPI-Host": "exercisedb.p.rapidapi.com" } }
-    );
+    // Proxy holds the RapidAPI key and returns the already-normalized metadata shape.
+    const res = await fetch(`${API_BASE}/api/exercise-media?name=${encodeURIComponent(searchName)}`);
     if (!res.ok) return null;
-    const data = await res.json();
-    if (!data?.[0]) return null;
-    const d = data[0];
-    return {
-      target_muscles:    d.target    ? [d.target]           : [],
-      secondary_muscles: d.secondaryMuscles                 || [],
-      instructions:      d.instructions                     || [],
-      equipment:         d.equipment                        || null,
-      body_part:         d.bodyPart                         || null,
-    };
+    return await res.json(); // { target_muscles, secondary_muscles, instructions, equipment, body_part } | null
   } catch { return null; }
 }
 
