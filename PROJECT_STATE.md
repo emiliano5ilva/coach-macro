@@ -473,6 +473,48 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
 ---
 
 ## OPEN — big feature (was "next up" pre-Apple-Health)
+- **🟢 DESIGNED, NOT BUILT — "LIVING TRAINER" ONBOARDING (2-stage conversational reskin of BOTH onboardings).**
+  Reimagines the two existing onboarding flows as ONE continuous coach-led conversation where the trainer "talks
+  back" — words animate in, the coach reacts to each answer, and real stats surface as proof. **Script is LOCKED**
+  (full, final copy) — it currently lives in the outputs file **`living-trainer-onboarding-script.md`** and must be
+  **brought into the repo** as the build's source of truth. Design intent, not code — nothing implemented yet.
+  - **TWO STAGES (map onto the existing two-flow structure — see the onboarding recon below in this doc / the
+    two-stage map):**
+    - **Stage 1 — pre-paywall (the SELL).** Reskins `ob_new.jsx` (`NewOnboarding`, `NEW_ONBOARDING`). Full-bleed
+      **red canvas**. Ends at the existing paywall (screen 31). This is where the trust + desire is built before asking
+      for the card.
+    - **Stage 2 — post-paywall (the DEEPEN + COACH REVEAL).** Reskins `ob_screens2.jsx` `PlanOnboarding` (the in-app
+      "Plan" tab, `GOCLUB_REDESIGN`). Runs on the **EXISTING red aurora background** (`PlanAurora`, already in that
+      component — reuse it, don't rebuild). Terminates in a **coach reveal** that fires the **existing 3→5 tab unlock**
+      (`handleConfirm` → atomic `profiles` upsert w/ `plan_built:true` @ ob_screens2.jsx:~4462 → `_spb(true)` @ :4484 →
+      `activeNav` swaps `GOCLUB_NAV_3`→`GOCLUB_NAV_5` @ :9132). No new unlock mechanic — the reveal is just the new
+      front-end on the same flag flip.
+  - **BUILD SEQUENCE (ordered):**
+    1. **Add the net-new EMOTIONAL questions** (these do not exist in either flow today): **why / gap / event** in
+       Stage 1, **belief** in Stage 2. (Note: Stage 1 already has a `why` at screen 27 → `profile_data.why`; the
+       living-trainer "why" is a richer conversational prompt — reconcile whether it replaces or feeds S27.)
+    2. **Reaction-logic engine** — maps each answer to the coach's spoken reaction (branching response copy).
+    3. **Word-by-word `cmSpring` animation** — the "talking" reveal. **⚠️ NEEDS A DEVICE to tune timing** (per-word
+       cadence/spring feel can't be judged in sim/web).
+    4. **Real-sourced stat bubbles** — proof points that surface during the conversation. **⚠️ MUST be REAL, verified
+       studies with citations — NOT fabricated numbers.** Any stat without a real source is a blocker, not a placeholder.
+    5. **Reskin** both flows to the conversational UI.
+    6. **Coach reveal** wires to the existing 3→5 unlock (see Stage 2 above).
+  - **🔴 CRITICAL DEPENDENCY — this is the missing INPUT for the tone/coach system built THIS SESSION.** The **why**
+    (Stage 1) + **belief** (Stage 2) questions are what seed a user's emotional tone. The tone/coach layer is already
+    built — `personality_profiles.emotional_tone` column, `mapWhyToTone()`, `buildContextualMessage()`, and the
+    **Coach McFarland / Garcia / Eckley** toggle + live preview in the Me tab (`CommunicationStyleSection`,
+    ob_screens2.jsx:~3639) — but **it has no real input yet: without these onboarding questions, every user falls to
+    the `balanced` default → Coach Garcia for everyone.** Building living-trainer onboarding is what makes the coach
+    system actually differentiate. Treat the two as one initiative: the tone engine is the payoff, these questions are
+    the fuel.
+  - **⚠️ TONE-LAYER RENDER — BUILT THIS SESSION, UNVERIFIED ON DEVICE.** The `buildContextualMessage` helper +
+    live coach-voice preview under the McFarland/Garcia/Eckley toggle are implemented and compile clean (web +
+    native `BUILD SUCCEEDED`), but **NOT yet confirmed on device** — the physical iPhone read `unavailable`
+    (wireless-debug link down) when the install was attempted. Demo user is seeded to **`drive` (Coach Eckley)** to
+    make the switch observable. **Pending device build:** confirm the three coaches render AND that tapping between
+    them visibly flips the preview line to that coach's voice. (Changes still uncommitted in the working tree:
+    `personalityService.js`, `ob_screens2.jsx`, `NativeApp.jsx`.)
 - **🟡 v2 — RECIPE LIBRARY BROWSER (Kitchen "Recipes" repurpose).** Turn the Kitchen "Recipes" section into a
   **browsable / searchable / diet-filterable library of the 299 curated cooking-guide recipes** (`recipes WHERE
   user_id IS NULL`) — currently those 299 (all with authored `instructions` cooking guides, verified renderer-clean)

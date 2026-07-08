@@ -10,6 +10,7 @@ import { Onboarding } from "./ob_screens.jsx";
 import { NewOnboarding, NEW_ONBOARDING } from "./ob_new.jsx";
 import { App } from "./ob_screens2.jsx";
 import { getAge } from "./utils/safety.js";
+import { setEmotionalTone, mapWhyToTone } from "./services/personalityService.js";
 import { minSecToInterval, RUNNING_GOAL_TO_RACE_TYPE } from "./utils/runPlanUtils.js";
 import { getErrorMessage } from "./utils/errors.js";
 import { ErrorMessage } from "./utils/errors.jsx";
@@ -729,6 +730,9 @@ export default function NativeApp() {
       }catch(e){
         console.error("[handleProfileDone] saveProfile threw:",e);
       }
+      // Seed emotional tone from the onboarding "why" so persona-adapted copy fires day one.
+      // Exempt from the cognitive confidence gates (tone is chosen, not inferred).
+      try{ await setEmotionalTone(user.id, mapWhyToTone(baseProf.why)); }catch{}
       // Seed starting weight into bodyweight_logs so Day-1 weight chart/TDEE have a baseline.
       // onConflict is idempotent — safe if onboarding runs twice.
       const _startW=parseFloat(baseProf.weight)||0;

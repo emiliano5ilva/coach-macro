@@ -127,7 +127,7 @@ import { getAdaptiveFactors, detectSystematicBias, applyAdaptiveFactors, recalib
 import { generateProactiveAdjustments } from "./services/predictiveService.js";
 import { buildContextSnapshot, recordMemory, recallApplicableLearnings, updateMemoryOutcomes, detectRecurringPatterns, getAllMemories, getUserPatterns, deleteMemory, exportMemories } from "./services/coachMemoryService.js";
 import { detectActivePatterns, generateIntervention, recordPatternDetection, dismissPattern, trackInterventionOutcome, FAILURE_PATTERNS } from "./services/failurePatternService.js";
-import { detectPrimaryPersonality, adaptMessageSync, trackUserEvent, setManualOverride, getPersonalityProfile, getProfileSync, PERSONALITY_TYPES } from "./services/personalityService.js";
+import { detectPrimaryPersonality, adaptMessageSync, buildContextualMessage, trackUserEvent, setManualOverride, setEmotionalTone, getPersonalityProfile, getProfileSync, PERSONALITY_TYPES } from "./services/personalityService.js";
 import { getConnectionsData, identifyActiveInfluencers, predictDownstreamEffects, getConnectionInsights, getNodeStatus, formatMetricValue, METRIC_META, isTrustedCorr } from "./services/connectionsService.js";
 import { runOutreachCheck, calibrateFrequency } from "./services/outreachService.js";
 import { getPeerComparison, assignCohort, getOptIn, setOptIn as setPeerOptIn, getPercentileLabel, interpolatePercentile, isPeerTrusted, computeCohortId } from "./services/peerComparisonService.js";
@@ -3627,6 +3627,15 @@ function CoachInsightsCard({recall, userId}) {
 }
 
 // ── Communication Style Section (Me tab) ─────────────────────────────────────
+// Presentation-only display mapping for the coaching-tone segments. Internal values
+// (nurture|balanced|drive) are untouched in DB / code / CHECK constraint — only the
+// names, subtitles, and glyphs live here, so they can be renamed without touching logic.
+const TONE_DISPLAY = {
+  nurture:  { name: "Coach McFarland", subtitle: "Warm and encouraging",      glyph: "fluent-emoji-flat:beaming-face-with-smiling-eyes" },
+  balanced: { name: "Coach Garcia",    subtitle: "Straight and steady",       glyph: "fluent-emoji-flat:bust-in-silhouette" },
+  drive:    { name: "Coach Eckley",    subtitle: "No excuses, all intensity", glyph: "fluent-emoji-flat:flexed-biceps" },
+};
+
 export function CommunicationStyleSection({ userId }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -3647,6 +3656,14 @@ export function CommunicationStyleSection({ userId }) {
     setShowOptions(false);
   }
 
+  async function handleTone(tone) {
+    setProfile(p => p ? { ...p, emotionalTone: tone } : { emotionalTone: tone }); // optimistic → toggle + preview flip instantly
+    setSaving(true);
+    await setEmotionalTone(userId, tone);
+    setProfile(await getPersonalityProfile(userId));
+    setSaving(false);
+  }
+
   const effectiveType = profile?.manualOverride || profile?.primaryType;
   const typeInfo      = effectiveType && effectiveType !== 'balanced' ? PERSONALITY_TYPES[effectiveType] : null;
   const isOverridden  = !!profile?.manualOverride;
@@ -3654,6 +3671,53 @@ export function CommunicationStyleSection({ userId }) {
 
   return (
     <div>
+      {/* Coaching tone — PRIMARY control (warm↔tough). Seeded from onboarding "why";
+          exempt from the cognitive confidence gate so it's live from day one. Display
+          names/subtitles/glyphs come from TONE_DISPLAY (internal values stay
+          nurture|balanced|drive). The Communication Style block below is the
+          advanced/secondary (cognitive) control. */}
+      <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,letterSpacing:"0.24em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",margin:"0 0 12px 2px"}}>Coaching tone</div>
+      <div style={{display:"flex",gap:6,margin:"0 16px 24px"}}>
+        {['nurture','balanced','drive'].map(v=>{
+          const t=TONE_DISPLAY[v];
+          const sel=(profile?.emotionalTone||'balanced')===v;
+          return (
+            <button key={v} onClick={()=>handleTone(v)} disabled={saving}
+              style={{flex:1,padding:"14px 8px",borderRadius:12,cursor:saving?"default":"pointer",textAlign:"center",
+                background: sel?"rgba(var(--cm-red-rgb,255,59,48),0.1)":"rgba(var(--cm-ink-rgb,10,10,10),0.03)",
+                border:`1.5px solid ${sel?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,
+                transition:"all 0.15s"}}>
+              <Icon icon={t.glyph} width={26} height={26}/>
+              <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontStyle:"italic",fontSize:12.5,marginTop:6,lineHeight:1.1,
+                color:sel?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.7)"}}>{t.name}</div>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:9.5,marginTop:3,lineHeight:1.25,
+                color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)"}}>{t.subtitle}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Live tone preview — the on-device surface that makes "switching changes the
+          voice" observable, and a real feature: users hear their coach before picking.
+          Calls the SAME buildContextualMessage helper the notification bridge will use,
+          on a token-free moment ('showed_up') so no user data is needed. Re-renders in
+          real time off profile.emotionalTone as the toggle above flips. */}
+      {(() => {
+        const tone  = profile?.emotionalTone || 'balanced';
+        const coach = TONE_DISPLAY[tone];
+        const line  = buildContextualMessage('showed_up', { emotionalTone: tone }, {});
+        if (!line || !coach) return null;
+        return (
+          <div style={{margin:"0 16px 24px",padding:"14px 16px",background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)",borderRadius:14,boxShadow:"0 2px 12px rgba(0,0,0,.06)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+              <Icon icon={coach.glyph} width={18} height={18}/>
+              <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:9.5,letterSpacing:"0.14em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)"}}>{coach.name} · after a tough day</div>
+            </div>
+            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,fontStyle:"italic",lineHeight:1.5,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)"}}>“{line}”</div>
+          </div>
+        );
+      })()}
+
       <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,letterSpacing:"0.24em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",margin:"0 0 12px 2px"}}>Communication Style</div>
       <div style={{margin:"0 16px 16px",padding:"16px",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)",borderRadius:14}}>
         {loading ? (
