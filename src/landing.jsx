@@ -105,7 +105,8 @@ const CSS = `
 
   /* PHONE */
   .lp-phone-wrap { position: relative; display: flex; justify-content: center; align-items: center; z-index: 2; }
-  .lp-phone { position: relative; width: 340px; height: 690px; border-radius: 48px; background: #0a0e1a; overflow: hidden; box-shadow: 0 0 0 10px #1a1a1f, 0 0 0 11px #2a2a30, 0 0 80px rgba(255,59,48,0.22), 0 40px 80px rgba(0,0,0,0.9); animation: lp-float 6s ease-in-out infinite; }
+  .lp-phone { position: relative; width: 340px; height: 736px; border-radius: 48px; background: #0a0e1a; overflow: hidden; box-shadow: 0 0 0 10px #1a1a1f, 0 0 0 11px #2a2a30, 0 0 80px rgba(255,59,48,0.22), 0 40px 80px rgba(0,0,0,0.9); animation: lp-float 6s ease-in-out infinite; }
+  .lp-phone-shot { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; z-index: 1; }
   @keyframes lp-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
   .lp-phone-notch { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 110px; height: 30px; background: #000; border-radius: 16px; z-index: 50; }
   .lp-phone-statusbar { position: absolute; top: 0; left: 0; right: 0; height: 48px; z-index: 40; display: flex; align-items: center; justify-content: space-between; padding: 16px 28px 0; font-family: -apple-system,sans-serif; font-weight: 600; font-size: 13px; color: var(--white); }
@@ -722,89 +723,21 @@ function PhoneStatusIcons() {
 function HeroPhone() {
   return (
     <div className="lp-phone">
+      {/* Real product screenshot — Today's Session training dashboard (IMG_2232, full-res 1284x2778
+          → optimized 800w WebP+JPEG). Fills the phone frame; notch overlays the status-bar gap. */}
+      <picture>
+        <source srcSet="/hero-session.webp" type="image/webp" />
+        <img
+          className="lp-phone-shot"
+          src="/hero-session.jpg"
+          alt="Coach Macro app showing a training session dashboard"
+          width="800"
+          height="1731"
+          loading="eager"
+          decoding="async"
+        />
+      </picture>
       <div className="lp-phone-notch"/>
-      <div className="lp-phone-statusbar">
-        <span>9:41</span>
-        <PhoneStatusIcons/>
-      </div>
-      <div className="lp-phone-screen">
-        <div className="dash-header">
-          <div>
-            <div className="dash-eyebrow">Tuesday, Push Day</div>
-            <div className="dash-h1">Welcome,<br/>Alex</div>
-          </div>
-          <div style={{display:'flex',gap:6,alignItems:'center'}}>
-            <div className="dash-icon-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
-            <div className="dash-avatar">A</div>
-          </div>
-        </div>
-        <div className="dash-quote">
-          <div className="dash-quote-l">Coach</div>
-          <div className="dash-quote-t"><strong>Push Day at 5pm.</strong> Carbs are up 65g — hit them in the next 2 meals to fuel the session.</div>
-        </div>
-        <div className="dash-session">
-          <div className="dash-session-row">
-            <div>
-              <div style={{fontFamily:'var(--mono)',fontSize:8,letterSpacing:'0.16em',color:'var(--red)',textTransform:'uppercase',marginBottom:5}}>Today's Session · 5:00 PM</div>
-              <div className="dash-session-title">Upper<br/>Hypertrophy A</div>
-            </div>
-            <div className="dash-session-tag">Ready</div>
-          </div>
-          <div className="dash-session-stats">
-            <div><div className="dash-stat-l">Exercises</div><div className="dash-stat-v">6</div></div>
-            <div><div className="dash-stat-l">Est. Time</div><div className="dash-stat-v">58<span style={{fontSize:9,color:'rgba(245,245,240,0.55)',marginLeft:2}}>min</span></div></div>
-            <div><div className="dash-stat-l">PRs Ready</div><div className="dash-stat-v" style={{color:'var(--red)'}}>2</div></div>
-          </div>
-          <button className="dash-start-btn" tabIndex={-1}>▶ Start Session</button>
-        </div>
-        <div className="dash-rings">
-          <div className="dash-ring-card">
-            <div className="dash-ring-l">Fuel Today</div>
-            <div className="dash-ring-wrap">
-              <svg width="76" height="76" viewBox="0 0 76 76" style={{transform:'rotate(-90deg)'}}>
-                <circle cx="38" cy="38" r="32" fill="none" stroke="rgba(245,245,240,0.06)" strokeWidth="6"/>
-                <circle cx="38" cy="38" r="32" fill="none" stroke="#FF3B30" strokeWidth="6" strokeDasharray="86 201" strokeLinecap="round" style={{filter:'drop-shadow(0 0 4px #FF3B30)'}}/>
-              </svg>
-              <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
-                <div className="dash-ring-num">1,393</div>
-                <div className="dash-ring-sub">of 3,240</div>
-              </div>
-            </div>
-            <div className="dash-ring-foot" style={{color:'#22c55e'}}>1,847 kcal left</div>
-          </div>
-          <div className="dash-ring-card">
-            <div className="dash-ring-l">Train Week</div>
-            <div className="dash-ring-wrap">
-              <svg width="76" height="76" viewBox="0 0 76 76" style={{transform:'rotate(-90deg)'}}>
-                <circle cx="38" cy="38" r="32" fill="none" stroke="rgba(245,245,240,0.06)" strokeWidth="6"/>
-                <circle cx="38" cy="38" r="32" fill="none" stroke="#60a5fa" strokeWidth="6" strokeDasharray="100 201" strokeLinecap="round" style={{filter:'drop-shadow(0 0 4px #60a5fa)'}}/>
-              </svg>
-              <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
-                <div className="dash-ring-num">2/4</div>
-                <div className="dash-ring-sub">sessions</div>
-              </div>
-            </div>
-            <div className="dash-ring-foot" style={{color:'#60a5fa'}}>Week 6 · on track</div>
-          </div>
-        </div>
-        <div className="dash-week">
-          {[
-            {d:'M',l:'PULL',bg:'rgba(34,197,94,0.12)',bc:'rgba(34,197,94,0.3)',c:'#22c55e'},
-            {d:'T',l:'PUSH',bg:'rgba(255,59,48,0.18)',bc:'rgba(255,59,48,0.5)',c:'var(--red)'},
-            {d:'W',l:'PULL',bg:'#0f1628',bc:'rgba(245,245,240,0.08)',c:'rgba(245,245,240,0.6)'},
-            {d:'T',l:'LEGS',bg:'#0f1628',bc:'rgba(245,245,240,0.08)',c:'rgba(245,245,240,0.6)'},
-            {d:'F',l:'REST',bg:'rgba(245,245,240,0.04)',bc:'rgba(245,245,240,0.08)',c:'rgba(245,245,240,0.4)'},
-            {d:'S',l:'COND',bg:'#0f1628',bc:'rgba(245,245,240,0.08)',c:'rgba(245,245,240,0.6)'},
-            {d:'S',l:'REST',bg:'rgba(245,245,240,0.04)',bc:'rgba(245,245,240,0.08)',c:'rgba(245,245,240,0.4)'},
-          ].map((day,i) => (
-            <div key={i} className="dash-week-day" style={{background:day.bg,borderColor:day.bc}}>
-              <div className="dash-week-d">{day.d}</div>
-              <div className="dash-week-l" style={{color:day.c}}>{day.l}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="lp-phone-home"/>
     </div>
   );
 }
@@ -1543,17 +1476,17 @@ export function LandingPage({ onSignUp }) {
           </div>
         </div>
 
-        <div className="lp-phone-wrap" aria-hidden="true">
+        <div className="lp-phone-wrap">
           <HeroPhone/>
-          <div className="lp-float-pill tl">
+          <div className="lp-float-pill tl" aria-hidden="true">
             <span className="dot" style={{background:'#00E676',color:'#00E676'}}/>
             <span><strong>+312 calories earned</strong> today</span>
           </div>
-          <div className="lp-float-pill tr">
+          <div className="lp-float-pill tr" aria-hidden="true">
             <span className="dot" style={{background:'#FF3B30',color:'#FF3B30'}}/>
             <span>Push Day · <strong>847 kcal left</strong></span>
           </div>
-          <div className="lp-float-pill bl">
+          <div className="lp-float-pill bl" aria-hidden="true">
             <span className="dot" style={{background:'#2979FF',color:'#2979FF'}}/>
             <span><strong>Week 4</strong> of 12</span>
           </div>
