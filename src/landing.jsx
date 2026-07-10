@@ -1480,15 +1480,15 @@ export function LandingPage({ onSignUp }) {
           <HeroPhone/>
           <div className="lp-float-pill tl" aria-hidden="true">
             <span className="dot" style={{background:'#00E676',color:'#00E676'}}/>
-            <span><strong>+312 calories earned</strong> today</span>
+            <span>Recovery <strong>ready</strong></span>
           </div>
           <div className="lp-float-pill tr" aria-hidden="true">
             <span className="dot" style={{background:'#FF3B30',color:'#FF3B30'}}/>
-            <span>Push Day · <strong>847 kcal left</strong></span>
+            <span>Carbs up <strong>for the long run</strong></span>
           </div>
           <div className="lp-float-pill bl" aria-hidden="true">
             <span className="dot" style={{background:'#2979FF',color:'#2979FF'}}/>
-            <span><strong>Week 4</strong> of 12</span>
+            <span><strong>Week 1</strong> of 12</span>
           </div>
         </div>
       </section>
