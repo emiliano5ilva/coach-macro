@@ -368,6 +368,39 @@ const CSS = `
   .lp-evidence-headline { font-family: var(--mono); font-weight: 500; font-size: 26px; line-height: 1.05; letter-spacing: 0.03em; text-transform: uppercase; color: var(--red); margin-bottom: 16px; min-height: 41px; display: flex; align-items: flex-end; }
 
   /* ── PRICING ── */
+  /* ── Pick-a-card color-theme showcase ─────────────────────────────────────── */
+  .lp-cards { padding: 140px 48px; border-top: 1px solid var(--white-border); overflow: hidden; }
+  .lp-cards-head { max-width: 720px; margin: 0 auto; text-align: center; }
+  .lp-cards-head .lp-section-title { text-align: center; }
+  .lp-cards-head .lp-lede { text-align: center; max-width: 560px; margin: -40px auto 0; }
+  .lp-cards-fan { display: flex; justify-content: center; align-items: flex-end; padding: 72px 0 40px; min-height: 560px; }
+  .lp-card { -webkit-appearance: none; appearance: none; background: none; border: none; padding: 0; margin: 0 -58px; cursor: pointer; flex-shrink: 0; position: relative; transform: rotate(var(--rot)); transform-origin: bottom center; transition: transform 0.55s cubic-bezier(0.34,1.35,0.42,1); -webkit-tap-highlight-color: transparent; outline: none; }
+  .lp-card:nth-child(1){ --rot:-15deg; z-index:1; }
+  .lp-card:nth-child(2){ --rot:-5deg;  z-index:2; }
+  .lp-card:nth-child(3){ --rot:5deg;   z-index:3; }
+  .lp-card:nth-child(4){ --rot:15deg;  z-index:4; }
+  .lp:not(.motion-off) .lp-card:hover,
+  .lp:not(.motion-off) .lp-card:focus-visible,
+  .lp:not(.motion-off) .lp-card.active { transform: rotate(0deg) translateY(-44px) scale(1.06); z-index: 20; }
+  .lp-card-phone { position: relative; width: 224px; height: 485px; border-radius: 34px; overflow: hidden; background: #0a0e1a; box-shadow: 0 0 0 7px #1a1a1f, 0 0 0 8px #2a2a30, 0 24px 55px rgba(0,0,0,0.55); }
+  .lp-card:focus-visible .lp-card-phone { box-shadow: 0 0 0 7px #1a1a1f, 0 0 0 9px var(--red), 0 24px 55px rgba(0,0,0,0.55); }
+  .lp-card-phone img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+  .lp-card-notch { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 76px; height: 20px; background: #000; border-radius: 11px; z-index: 5; }
+  .lp-cards-hint { text-align: center; font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--white-faint); margin-top: 6px; }
+  .lp.motion-off .lp-card { transition: none; }
+  @media (max-width: 620px) {
+    .lp-cards { padding: 100px 20px; }
+    .lp-cards-fan { padding: 48px 0 28px; min-height: 400px; }
+    .lp-card { margin: 0 -46px; }
+    .lp-card-phone { width: 156px; height: 338px; border-radius: 26px; box-shadow: 0 0 0 5px #1a1a1f, 0 0 0 6px #2a2a30, 0 16px 36px rgba(0,0,0,0.55); }
+    .lp-card-notch { width: 54px; height: 15px; top: 6px; }
+    .lp-card:nth-child(1){ --rot:-12deg; } .lp-card:nth-child(2){ --rot:-4deg; }
+    .lp-card:nth-child(3){ --rot:4deg; }   .lp-card:nth-child(4){ --rot:12deg; }
+    .lp:not(.motion-off) .lp-card:hover,
+    .lp:not(.motion-off) .lp-card:focus-visible,
+    .lp:not(.motion-off) .lp-card.active { transform: rotate(0deg) translateY(-26px) scale(1.08); }
+  }
+
   .lp-pricing { padding: 140px 48px; border-top: 1px solid var(--white-border); }
   .lp-pricing-inner { max-width: 860px; margin: 0 auto; }
   /* Pricing = one consistently-centered section (headline + subhead join the already-centered table/lines/cards). */
@@ -1121,6 +1154,45 @@ function WorksWithSection() {
   );
 }
 
+// ── COLOR-THEME SHOWCASE — fanned "hand of cards", hover/tap to lift ──────────
+function CardsSection() {
+  const [active, setActive] = React.useState(null);
+  const cards = [
+    { src: 'theme-magenta', alt: 'Coach Macro app in the magenta color theme' },
+    { src: 'theme-red',     alt: 'Coach Macro app in the red color theme' },
+    { src: 'theme-blue',    alt: 'Coach Macro app in the blue color theme' },
+    { src: 'theme-purple',  alt: 'Coach Macro app in the purple color theme' },
+  ];
+  return (
+    <section className="lp-cards" id="themes">
+      <div className="lp-cards-head">
+        <div className="lp-section-eyebrow">Make it yours</div>
+        <h2 className="lp-section-title fade-up">Your coach,<br/>your <span className="accent">way.</span></h2>
+        <p className="lp-lede fade-up">Eight color themes, light or dark. Make the whole app yours — the training and the coaching stay exactly the same, the look is up to you.</p>
+      </div>
+      <div className="lp-cards-fan fade-up" role="group" aria-label="App color themes — pick a card">
+        {cards.map((c, i) => (
+          <button
+            key={c.src}
+            className={`lp-card${active === i ? ' active' : ''}`}
+            onClick={() => setActive(active === i ? null : i)}
+            aria-pressed={active === i}
+          >
+            <div className="lp-card-phone">
+              <picture>
+                <source srcSet={`/screens/${c.src}.webp`} type="image/webp" />
+                <img src={`/screens/${c.src}.jpg`} alt={c.alt} width="800" height="1731" loading="eager" decoding="async" />
+              </picture>
+              <div className="lp-card-notch"/>
+            </div>
+          </button>
+        ))}
+      </div>
+      <div className="lp-cards-hint" aria-hidden="true">Hover or tap a card</div>
+    </section>
+  );
+}
+
 // ── PRICING — trial-led, annual anchored vs monthly, one plan emphasized ──────
 function PricingSection({ onStart }) {
   const CATS = ['Training','Nutrition','Running','Recovery','Coaching'];
@@ -1397,6 +1469,7 @@ export function LandingPage({ onSignUp }) {
       <ScreensSection/>
       <FeatureDumpSection/>
       <WorksWithSection/>
+      <CardsSection/>
       <PricingSection onStart={startTrial}/>
       <FaqSection/>
       <FinalCtaSection onStart={startTrial}/>
