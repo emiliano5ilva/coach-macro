@@ -7162,6 +7162,9 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [morningBriefLoading,setMorningBriefLoading]=useState(false);
   const [morningBriefError,setMorningBriefError]=useState(null);
   const [briefDismissed,setBriefDismissed]=useState(()=>localStorage.getItem("brief_dismissed")===new Date().toISOString().split("T")[0]);
+  // User-facing dismiss removed (brief is collapse-only). Clear any stale date-keyed flag so the
+  // brief always shows. Plumbing (briefDismissed / previewMorningBrief) kept for the debug helper.
+  useEffect(()=>{ localStorage.removeItem("brief_dismissed"); setBriefDismissed(false); },[]);
   const [briefTrigger,setBriefTrigger]=useState(0);
   const [showCheckin,setShowCheckin]=useState(false);
   const [sorenessData,setSorenessData]=useState(null);
@@ -9431,9 +9434,8 @@ Rules:
                 }
                 {!morningBriefLoading&&(
                   <div style={{marginTop:12}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                    <div style={{marginBottom:12}}>
                       <button onClick={()=>{setBriefExpanded(false);}} style={{background:"transparent",border:"none",color:"rgba(245,245,240,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",padding:0}}>COLLAPSE ↑</button>
-                      <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{background:"transparent",border:"none",color:"var(--red)",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>GOT IT →</button>
                     </div>
                     {(()=>{
                       const hour=new Date().getHours();
@@ -10661,7 +10663,7 @@ Rules:
 
           {isToday ? (<>
             {/* ── TODAY: morning brief ── */}
-            {!briefDismissed&&(morningBriefLoading||morningBriefError||b?.coach_says||b?.today)&&(
+            {(morningBriefLoading||morningBriefError||b?.coach_says||b?.today)&&(
               <StaggerItem i={0} style={{marginBottom:22}}>
                 <div style={{display:"flex",alignItems:"center",gap:11,marginBottom:10}}>
                   <WhistleMark size={40} variant="glyph" style={{color:"var(--cm-accent,#FF3B30)"}}/>
@@ -10732,9 +10734,8 @@ Rules:
                         return <button onClick={()=>{_hL();setSection("fuel");setFuelScreen("home");}} style={{width:"100%",padding:"11px 0",background:"var(--cm-ink,#0A0A0A)",color:"#fff",border:"none",borderRadius:10,fontFamily:AF,fontWeight:700,fontSize:12,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent",marginBottom:14}}>Log Breakfast →</button>;
                       return null;
                     })()}
-                    <div style={{display:"flex",justifyContent:"space-between"}}>
+                    <div>
                       <button onClick={()=>setBriefExpandedLocal(false)} style={{fontFamily:AF,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.38)",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>COLLAPSE ↑</button>
-                      <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{fontFamily:AF,fontSize:9,color:"var(--cm-red,#FF3B30)",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>GOT IT →</button>
                     </div>
                   </div>
                 ) : (
