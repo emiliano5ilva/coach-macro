@@ -373,12 +373,12 @@ const CSS = `
   .lp-cards-head { max-width: 720px; margin: 0 auto; text-align: center; }
   .lp-cards-head .lp-section-title { text-align: center; }
   .lp-cards-head .lp-lede { text-align: center; max-width: 560px; margin: -40px auto 0; }
-  .lp-cards-fan { display: flex; justify-content: center; align-items: flex-end; padding: 72px 0 40px; min-height: 560px; }
+  .lp-cards-fan { display: flex; justify-content: center; align-items: flex-end; padding: 120px 0 40px; min-height: 600px; }
   .lp-card { -webkit-appearance: none; appearance: none; background: none; border: none; padding: 0; margin: 0 -58px; cursor: pointer; flex-shrink: 0; position: relative; transform: rotate(var(--rot)); transform-origin: bottom center; transition: transform 0.55s cubic-bezier(0.34,1.35,0.42,1); -webkit-tap-highlight-color: transparent; outline: none; }
   .lp-card:nth-child(1){ --rot:-15deg; z-index:1; }
   .lp-card:nth-child(2){ --rot:-5deg;  z-index:2; }
-  .lp-card:nth-child(3){ --rot:5deg;   z-index:3; }
-  .lp-card:nth-child(4){ --rot:15deg;  z-index:4; }
+  .lp-card:nth-child(3){ --rot:5deg;   z-index:4; }  /* red — central anchor, on top at rest */
+  .lp-card:nth-child(4){ --rot:15deg;  z-index:3; }
   .lp:not(.motion-off) .lp-card:hover,
   .lp:not(.motion-off) .lp-card:focus-visible,
   .lp:not(.motion-off) .lp-card.active { transform: rotate(0deg) translateY(-44px) scale(1.06); z-index: 20; }
@@ -390,7 +390,7 @@ const CSS = `
   .lp.motion-off .lp-card { transition: none; }
   @media (max-width: 620px) {
     .lp-cards { padding: 100px 20px; }
-    .lp-cards-fan { padding: 48px 0 28px; min-height: 400px; }
+    .lp-cards-fan { padding: 76px 0 28px; min-height: 430px; }
     .lp-card { margin: 0 -46px; }
     .lp-card-phone { width: 156px; height: 338px; border-radius: 26px; box-shadow: 0 0 0 5px #1a1a1f, 0 0 0 6px #2a2a30, 0 16px 36px rgba(0,0,0,0.55); }
     .lp-card-notch { width: 54px; height: 15px; top: 6px; }
@@ -1159,8 +1159,8 @@ function CardsSection() {
   const [active, setActive] = React.useState(null);
   const cards = [
     { src: 'theme-magenta', alt: 'Coach Macro app in the magenta color theme' },
-    { src: 'theme-red',     alt: 'Coach Macro app in the red color theme' },
     { src: 'theme-blue',    alt: 'Coach Macro app in the blue color theme' },
+    { src: 'theme-red',     alt: 'Coach Macro app in the red color theme' },
     { src: 'theme-purple',  alt: 'Coach Macro app in the purple color theme' },
   ];
   return (
