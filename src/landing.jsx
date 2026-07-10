@@ -805,7 +805,7 @@ function RealScreen({ src, alt }) {
     <div className="lp-sphone">
       <picture>
         <source srcSet={`/screens/${src}.webp`} type="image/webp" />
-        <img className="lp-sphone-shot" src={`/screens/${src}.jpg`} alt={alt} width="800" height="1731" loading="lazy" decoding="async" />
+        <img className="lp-sphone-shot" src={`/screens/${src}.jpg`} alt={alt} width="800" height="1731" loading="eager" decoding="async" />
       </picture>
       <div className="lp-sphone-notch"/>
     </div>
