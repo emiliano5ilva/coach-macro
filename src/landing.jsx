@@ -1119,18 +1119,20 @@ function SolutionSection() {
 function TrustSection() {
   const evidence = [
     { claim: "People following a structured, guided program see significantly greater gains in strength and physical function than those training on their own.",
-      src: "Peer-reviewed · Meta-analysis", cite: "Gómez-Redondo et al., Sports Medicine (2024). 34 RCTs, n=2,830.",
+      src: "Peer-reviewed · Meta-analysis", cite: "Gómez-Redondo et al., Sports Medicine (2024). 34 RCTs, 2,830 participants.",
       stat: { to: 2830, label: "participants across 34 studies" } },
     { claim: "Across decades of studies, the people who consistently track what they eat lose more weight than those who don't. Tracking isn't busywork — it's the strongest predictor of success.",
-      src: "Peer-reviewed · Systematic review", cite: "Burke et al., J. Am. Diet. Assoc. (2011)." },
+      src: "Peer-reviewed · Systematic review", cite: "Burke et al., J. Am. Diet. Assoc. (2011).",
+      stat: { to: 15, label: "studies on food tracking" } },
     { claim: "In one study, people who logged more frequently lost noticeably more weight — the habit of logging, not the perfect diet, tracked with success.",
-      src: "Peer-reviewed · Clinical trial", cite: "Harvey et al., Obesity (2019). n=142." },
+      src: "Peer-reviewed · Clinical trial", cite: "Harvey et al., Obesity (2019). 142 participants.",
+      stat: { to: 142, label: "participants tracked" } },
   ];
   return (
     <section className="lp-trust" id="evidence">
       <div className="lp-trust-inner">
         <div className="lp-section-eyebrow">The evidence</div>
-        <h2 className="lp-section-title fade-up">This isn't<br/>a <span className="accent">hunch.</span></h2>
+        <h2 className="lp-section-title fade-up">Backed by<br/><span className="accent">science.</span></h2>
         <p className="lp-lede fade-up">The approach is built on what the research keeps showing — about training with structure, and about what actually makes it stick.</p>
         <div className="lp-evidence-grid">
           {evidence.map((e,i) => (
