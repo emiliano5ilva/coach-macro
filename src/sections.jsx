@@ -4297,11 +4297,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 </div>
                 {/* Session brief */}
                 {exCount>0&&(
-                  <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.55)",letterSpacing:"0.12em",textTransform:"uppercase",marginTop:12,display:"flex",gap:10,alignItems:"center"}}>
+                  <div style={{fontFamily:_AF,fontWeight:700,fontSize:11,color:"#ffffff",letterSpacing:0,textTransform:"uppercase",marginTop:12,display:"flex",gap:10,alignItems:"center"}}>
                     <span>~{estMin} min</span>
-                    <span style={{color:"rgba(255,255,255,0.22)"}}>·</span>
+                    <span style={{color:"rgba(255,255,255,0.45)"}}>·</span>
                     <span>{exCount} exercises</span>
-                    <span style={{color:"rgba(255,255,255,0.22)"}}>·</span>
+                    <span style={{color:"rgba(255,255,255,0.45)"}}>·</span>
                     <span>{totalSets} sets</span>
                   </div>
                 )}
@@ -4342,7 +4342,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   {(profile?.primaryGoal||wPrefs?.primaryGoal)&&<span className="cm-pill" style={{background:"rgba(255,59,48,0.10)",color:"#FF3B30"}}>{getGoalLabel(profile?.primaryGoal||wPrefs?.primaryGoal)}</span>}
                 </div>
                 {/* Muscle focus */}
-                <div style={{fontFamily:_MO,fontSize:9,color:"var(--cm-ink)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:14,lineHeight:1.5}}>
+                <div style={{fontFamily:_AF,fontWeight:700,fontSize:11,color:"var(--cm-ink)",letterSpacing:0,textTransform:"uppercase",marginBottom:14,lineHeight:1.5}}>
                   {muscleDesc?.replace(/\s*[\.\!\?].*$/,"").toUpperCase?.()}
                 </div>
                 {/* RED-S / Overreaching */}
@@ -4511,8 +4511,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     {Array.isArray(todayPrescription)&&todayPrescription.length>0?(
                       <>
                         <div onClick={()=>{_hL();setSessionDetailExpanded(s=>!s);}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 14px",background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.12)",borderRadius:10,cursor:"pointer",marginBottom:sessionDetailExpanded?10:0,transition:"margin 0.2s"}}>
-                          <span style={{fontFamily:_MO,fontSize:10,fontWeight:700,color:"#FF3B30",letterSpacing:"0.14em",textTransform:"uppercase"}}>{sessionDetailExpanded?"Hide ↑":"See exercises ↓"}</span>
-                          <span style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb),0.75)",letterSpacing:"0.08em"}}>{exCount} exercises · {totalSets} sets</span>
+                          <span style={{fontFamily:_AF,fontSize:11,fontWeight:800,color:"#FF3B30",letterSpacing:0,textTransform:"uppercase"}}>{sessionDetailExpanded?"Hide ↑":"See exercises ↓"}</span>
+                          <span style={{fontFamily:_AF,fontWeight:600,fontSize:11,color:"var(--cm-ink)",letterSpacing:0}}>{exCount} exercises · {totalSets} sets</span>
                         </div>
                         {sessionDetailExpanded&&(
                           <div>
