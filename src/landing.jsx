@@ -5,48 +5,70 @@ const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,600;1,700;1,800;1,900&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
 
   :root {
-    --bg: #000000;
-    --bg-card: rgba(255,255,255,0.02);
-    --red: #E8341C;
-    --red-glow: rgba(232,52,28,0.4);
-    --red-border: rgba(232,52,28,0.18);
-    --red-border-strong: rgba(232,52,28,0.4);
-    --white: #FFFFFF;
-    --white-dim: rgba(255,255,255,0.5);
-    --white-faint: rgba(255,255,255,0.3);
-    --white-border: rgba(255,255,255,0.06);
-    --c-protein: #2979FF;
-    --c-carbs: #00E676;
-    --c-fat: #FFD740;
+    /* Non-color tokens (theme-independent). Type = ORIGINAL website face: Barlow Condensed (italic) + DM Mono numerals. */
     --condensed: 'Barlow Condensed', 'Inter', sans-serif;
     --body: 'Inter', sans-serif;
     --mono: 'DM Mono', monospace;
+    --c-protein: #2979FF;
+    --c-carbs: #00E676;
+    --c-fat: #FFD740;
+  }
+
+  /* ── Landing theme tokens — DEFAULT = DARK (FOUC-safe). applyLandingTheme() overrides
+     these on the .lp element per light/dark. Web-side mirror of themeService.js:86-95,
+     deliberately NOT .goclub-coupled. Red accent (#FF3B30 = --cm-red) is CONSTANT across
+     both themes — the toggle swaps bg/text/surface only. NO GREY TEXT: dim/faint aliases
+     resolve to full-contrast ink/paper (hierarchy = size/weight/red, never grey). ── */
+  .lp {
+    --bg: #000000;
+    --bg-rgb: 0,0,0;
+    --bg-card: rgba(255,255,255,0.04);
+    --lp-surface: #0E0E10;
+    --white: #FFFFFF;
+    --white-dim: #FFFFFF;
+    --white-faint: #FFFFFF;
+    --white-border: rgba(255,255,255,0.12);
+    --lp-border: rgba(255,255,255,0.14);
+    --red: #FF3B30;               /* bright — LARGE accents / borders / glows only */
+    --red-text: #FF3B30;          /* small red TEXT — theme-aware (deep in light) for AA */
+    --cm-accent-deep: #D13027;    /* deepened red — solid-button bg so white labels pass AA (5.0:1) */
+    --red-glow: rgba(255,59,48,0.40);
+    --red-border: rgba(255,59,48,0.35);
+    --red-border-strong: rgba(255,59,48,0.60);
   }
 
   .lp * { box-sizing: border-box; margin: 0; padding: 0; }
-  .lp { background: var(--bg); color: var(--white); font-family: var(--body); overflow-x: hidden; -webkit-font-smoothing: antialiased; position: relative; }
+  .lp { background: var(--bg); color: var(--white); font-family: var(--body); overflow-x: clip; -webkit-font-smoothing: antialiased; position: relative; }
 
   .lp-aurora { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-  .lp-aurora::before { content: ''; position: absolute; top: -40%; left: -20%; width: 80vw; height: 80vw; background: radial-gradient(ellipse at center, rgba(232,52,28,0.08), transparent 60%); animation: lp-aurora-drift 20s ease-in-out infinite; }
+  .lp-aurora::before { content: ''; position: absolute; top: -40%; left: -20%; width: 80vw; height: 80vw; background: radial-gradient(ellipse at center, rgba(255,59,48,0.08), transparent 60%); animation: lp-aurora-drift 20s ease-in-out infinite; }
   .lp-aurora::after { content: ''; position: absolute; bottom: -20%; right: -10%; width: 60vw; height: 60vw; background: radial-gradient(ellipse at center, rgba(41,121,255,0.05), transparent 60%); animation: lp-aurora-drift 28s ease-in-out infinite reverse; }
   @keyframes lp-aurora-drift { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(3%,2%) scale(1.04)} 66%{transform:translate(-2%,1%) scale(0.97)} }
 
-  .lp-cursor-glow { position: fixed; top: 0; left: 0; width: 480px; height: 480px; border-radius: 50%; background: radial-gradient(circle, rgba(232,52,28,0.12) 0%, transparent 60%); pointer-events: none; z-index: 1; transform: translate3d(-50%,-50%,0); transition: opacity 0.4s; mix-blend-mode: screen; filter: blur(20px); opacity: 0; }
+  .lp-cursor-glow { position: fixed; top: 0; left: 0; width: 480px; height: 480px; border-radius: 50%; background: radial-gradient(circle, rgba(255,59,48,0.12) 0%, transparent 60%); pointer-events: none; z-index: 1; transform: translate3d(-50%,-50%,0); transition: opacity 0.4s; mix-blend-mode: screen; filter: blur(20px); opacity: 0; }
   .lp.cursor-active .lp-cursor-glow { opacity: 1; }
 
   /* NAV */
-  .lp-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; background: rgba(0,0,0,0.7); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); border-bottom: 1px solid var(--white-border); }
+  /* Pause control (WCAG 2.2.2) — kills all looping ambient motion when engaged */
+  .lp.motion-off .lp-aurora::before, .lp.motion-off .lp-aurora::after, .lp.motion-off .lp-phone,
+  .lp.motion-off .lp-float-pill, .lp.motion-off .lp-hero-eyebrow::before, .lp.motion-off .lp-cta-btn,
+  .lp.motion-off .lp-price-btn:not(.ghost), .lp.motion-off .lp-wl-counter::before, .lp.motion-off .lp-spinner { animation: none !important; }
+  .lp-motion-btn { background: none; border: 1px solid var(--white-border); color: var(--white); font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 12px; border-radius: 4px; cursor: pointer; transition: border-color 0.2s, color 0.2s; }
+  .lp-motion-btn:hover { border-color: var(--red); color: var(--red-text); }
+  .lp-skip { position: fixed; top: -60px; left: 12px; z-index: 400; background: var(--cm-accent-deep); color: #fff; padding: 10px 16px; border-radius: 6px; font-family: var(--body); font-size: 14px; font-weight: 600; text-decoration: none; transition: top 0.2s; }
+  .lp-skip:focus { top: 12px; }
+  .lp-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; background: rgba(var(--bg-rgb),0.82); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); border-bottom: 1px solid var(--white-border); }
   .lp.has-banner .lp-nav { top: 48px; }
   .lp-logo { display: flex; align-items: center; gap: 12px; font-family: var(--condensed); font-weight: 800; font-size: 20px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--white); text-decoration: none; cursor: pointer; background: none; border: none; }
-  .lp-logo-mark { width: 32px; height: 32px; border-radius: 7px; object-fit: cover; display: block; box-shadow: 0 0 18px rgba(232,52,28,0.45), 0 0 2px rgba(232,52,28,0.6); }
+  .lp-logo-mark { width: 32px; height: 32px; border-radius: 7px; object-fit: cover; display: block; box-shadow: 0 0 18px rgba(255,59,48,0.45), 0 0 2px rgba(255,59,48,0.6); }
   .lp-logo-text { display: flex; gap: 4px; align-items: baseline; }
   .lp-logo-coach { color: var(--white-dim); font-style: italic; font-weight: 400; }
   .lp-logo-macro { color: var(--white); font-weight: 800; }
   .lp-nav-links { display: flex; gap: 32px; align-items: center; }
   .lp-nav-link { color: var(--white); font-size: 13px; font-weight: 500; text-decoration: none; letter-spacing: 0.02em; transition: color 0.2s; background: none; border: none; cursor: pointer; font-family: var(--body); }
-  .lp-nav-link:hover { color: var(--red); }
-  .lp-nav-cta { font-family: var(--condensed); font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--red); background: transparent; border: 1px solid var(--red); padding: 9px 18px; border-radius: 4px; cursor: pointer; transition: all 0.25s; white-space: nowrap; }
-  .lp-nav-cta:hover { background: var(--red); color: var(--white); box-shadow: 0 0 30px var(--red-glow); }
+  .lp-nav-link:hover { color: var(--red-text); }
+  .lp-nav-cta { font-family: var(--condensed); font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--red-text); background: transparent; border: 1px solid var(--red-text); padding: 9px 18px; border-radius: 4px; cursor: pointer; transition: all 0.25s; white-space: nowrap; }
+  .lp-nav-cta:hover { background: var(--cm-accent-deep); color: #fff; box-shadow: 0 0 30px var(--red-glow); }
 
   /* BANNERS */
   .lp-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 300; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 13px 24px; font-size: 13px; font-weight: 500; text-align: center; line-height: 1.4; font-family: var(--body); }
@@ -57,12 +79,12 @@ const CSS = `
 
   /* SECTION GLOBALS */
   .lp section { position: relative; z-index: 2; }
-  .lp-section-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--red); margin-bottom: 16px; }
+  .lp-section-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--red-text); margin-bottom: 16px; }
   .lp-section-title { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(48px, 6vw, 96px); line-height: 0.92; letter-spacing: -0.02em; text-transform: uppercase; color: var(--white); margin-bottom: 64px; }
   .lp-section-title .accent { color: var(--red); }
 
   /* CTA BUTTON */
-  .lp-cta-btn { display: inline-flex; align-items: center; gap: 10px; background: var(--red); color: var(--white); font-family: var(--condensed); font-weight: 700; font-size: 16px; letter-spacing: 0.06em; text-transform: uppercase; padding: 16px 28px; border-radius: 6px; border: none; cursor: pointer; transition: transform 0.2s, box-shadow 0.3s; box-shadow: 0 0 30px var(--red-glow), 0 12px 40px rgba(0,0,0,0.6); position: relative; }
+  .lp-cta-btn { display: inline-flex; align-items: center; gap: 10px; background: var(--cm-accent-deep); color: #fff; font-family: var(--condensed); font-weight: 700; font-size: 16px; letter-spacing: 0.06em; text-transform: uppercase; padding: 16px 28px; border-radius: 6px; border: none; cursor: pointer; transition: transform 0.2s, box-shadow 0.3s; box-shadow: 0 0 30px var(--red-glow), 0 12px 40px rgba(0,0,0,0.6); position: relative; }
   .lp-cta-btn:hover { transform: translateY(-2px); box-shadow: 0 0 50px var(--red-glow), 0 16px 50px rgba(0,0,0,0.8); }
   .lp-cta-btn .arrow { transition: transform 0.2s; }
   .lp-cta-btn:hover .arrow { transform: translateX(4px); }
@@ -70,12 +92,12 @@ const CSS = `
   /* HERO */
   .lp-hero { min-height: 100vh; padding: 120px 48px 80px; display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); gap: 80px; align-items: center; position: relative; max-width: 1400px; margin: 0 auto; z-index: 2; }
   .lp-hero-content { position: relative; z-index: 2; min-width: 0; }
-  .lp-hero-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--red); margin-bottom: 24px; display: flex; align-items: center; gap: 10px; }
+  .lp-hero-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--red-text); margin-bottom: 24px; display: flex; align-items: center; gap: 10px; }
   .lp-hero-eyebrow::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--red); box-shadow: 0 0 12px var(--red); animation: lp-pulse 2s infinite; flex-shrink: 0; }
   @keyframes lp-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.85)} }
   .lp-hero-headline { font-family: var(--condensed); font-weight: 900; font-style: italic; font-size: clamp(48px,4.8vw,80px); line-height: 0.95; letter-spacing: -0.02em; text-transform: uppercase; color: var(--white); margin-bottom: 32px; }
   .lp-hero-headline .red { color: var(--red); position: relative; }
-  .lp-hero-headline .red::after { content: ''; position: absolute; inset: -10% -8%; background: radial-gradient(ellipse at center,rgba(232,52,28,0.4),transparent 70%); z-index: -1; filter: blur(24px); }
+  .lp-hero-headline .red::after { content: ''; position: absolute; inset: -10% -8%; background: radial-gradient(ellipse at center,rgba(255,59,48,0.4),transparent 70%); z-index: -1; filter: blur(24px); }
   .lp-hero-sub { font-family: var(--body); font-size: 18px; line-height: 1.55; color: var(--white-dim); margin-bottom: 36px; max-width: 540px; }
   .lp-hero-sub strong { color: var(--white); font-weight: 600; }
   .lp-hero-cta-group { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
@@ -84,13 +106,13 @@ const CSS = `
 
   /* PHONE */
   .lp-phone-wrap { position: relative; display: flex; justify-content: center; align-items: center; z-index: 2; }
-  .lp-phone { position: relative; width: 340px; height: 690px; border-radius: 48px; background: #0a0e1a; overflow: hidden; box-shadow: 0 0 0 10px #1a1a1f, 0 0 0 11px #2a2a30, 0 0 80px rgba(232,52,28,0.22), 0 40px 80px rgba(0,0,0,0.9); animation: lp-float 6s ease-in-out infinite; }
+  .lp-phone { position: relative; width: 340px; height: 690px; border-radius: 48px; background: #0a0e1a; overflow: hidden; box-shadow: 0 0 0 10px #1a1a1f, 0 0 0 11px #2a2a30, 0 0 80px rgba(255,59,48,0.22), 0 40px 80px rgba(0,0,0,0.9); animation: lp-float 6s ease-in-out infinite; }
   @keyframes lp-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
   .lp-phone-notch { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 110px; height: 30px; background: #000; border-radius: 16px; z-index: 50; }
   .lp-phone-statusbar { position: absolute; top: 0; left: 0; right: 0; height: 48px; z-index: 40; display: flex; align-items: center; justify-content: space-between; padding: 16px 28px 0; font-family: -apple-system,sans-serif; font-weight: 600; font-size: 13px; color: var(--white); }
   .lp-phone-home { position: absolute; bottom: 7px; left: 50%; transform: translateX(-50%); width: 116px; height: 4px; background: rgba(245,245,240,0.85); border-radius: 3px; z-index: 60; }
-  .lp-phone-screen { position: absolute; inset: 0; padding: 48px 0 26px; overflow: hidden; background-image: radial-gradient(ellipse at 30% 0%,rgba(232,52,28,0.06),transparent 50%); }
-  .lp-float-pill { position: absolute; background: rgba(255,255,255,0.04); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border: 1px solid var(--red-border); border-radius: 999px; padding: 10px 16px; display: flex; align-items: center; gap: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.1),0 0 30px rgba(232,52,28,0.08),0 12px 40px rgba(0,0,0,0.6); font-family: var(--mono); font-size: 11px; color: var(--white); white-space: nowrap; z-index: 3; animation: lp-drift 5s ease-in-out infinite; }
+  .lp-phone-screen { position: absolute; inset: 0; padding: 48px 0 26px; overflow: hidden; background-image: radial-gradient(ellipse at 30% 0%,rgba(255,59,48,0.06),transparent 50%); }
+  .lp-float-pill { position: absolute; background: rgba(255,255,255,0.04); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border: 1px solid var(--red-border); border-radius: 999px; padding: 10px 16px; display: flex; align-items: center; gap: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.1),0 0 30px rgba(255,59,48,0.08),0 12px 40px rgba(0,0,0,0.6); font-family: var(--mono); font-size: 11px; color: var(--white); white-space: nowrap; z-index: 3; animation: lp-drift 5s ease-in-out infinite; }
   .lp-float-pill strong { color: var(--white); font-weight: 600; }
   @keyframes lp-drift { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
   .lp-float-pill .dot { width: 7px; height: 7px; border-radius: 50%; box-shadow: 0 0 10px currentColor; }
@@ -103,12 +125,12 @@ const CSS = `
   .dash-eyebrow { font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em; color: var(--red); text-transform: uppercase; margin-bottom: 4px; }
   .dash-h1 { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 28px; line-height: 1; color: var(--white); text-transform: uppercase; letter-spacing: -0.01em; }
   .dash-icon-btn { width: 30px; height: 30px; border-radius: 50%; background: rgba(245,245,240,0.06); border: 1px solid rgba(245,245,240,0.08); display: flex; align-items: center; justify-content: center; color: var(--white); }
-  .dash-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg,#e8341c,#f59e0b); display: flex; align-items: center; justify-content: center; font-family: var(--condensed); font-weight: 800; font-size: 12px; color: var(--white); }
+  .dash-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg,#FF3B30,#f59e0b); display: flex; align-items: center; justify-content: center; font-family: var(--condensed); font-weight: 800; font-size: 12px; color: var(--white); }
   .dash-quote { margin: 6px 18px 14px; background: rgba(245,245,240,0.03); border-radius: 14px; padding: 12px 14px; border-left: 2px solid var(--red); }
   .dash-quote-l { font-family: var(--mono); font-size: 8px; letter-spacing: 0.16em; color: var(--red); text-transform: uppercase; margin-bottom: 4px; }
   .dash-quote-t { font-family: var(--body); font-size: 11px; line-height: 1.45; color: var(--white); }
-  .dash-session { margin: 0 18px 12px; padding: 14px; border-radius: 16px; background: linear-gradient(135deg,rgba(232,52,28,0.16),rgba(15,22,40,0.6)); border: 1px solid rgba(232,52,28,0.28); position: relative; overflow: hidden; }
-  .dash-session::before { content: ''; position: absolute; top: -30px; right: -30px; width: 120px; height: 120px; background: radial-gradient(circle,rgba(232,52,28,0.18),transparent 65%); pointer-events: none; }
+  .dash-session { margin: 0 18px 12px; padding: 14px; border-radius: 16px; background: linear-gradient(135deg,rgba(255,59,48,0.16),rgba(15,22,40,0.6)); border: 1px solid rgba(255,59,48,0.28); position: relative; overflow: hidden; }
+  .dash-session::before { content: ''; position: absolute; top: -30px; right: -30px; width: 120px; height: 120px; background: radial-gradient(circle,rgba(255,59,48,0.18),transparent 65%); pointer-events: none; }
   .dash-session-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; position: relative; z-index: 1; }
   .dash-session-title { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 22px; line-height: 0.95; color: var(--white); text-transform: uppercase; }
   .dash-session-tag { padding: 3px 7px; background: rgba(34,197,94,0.18); border-radius: 5px; font-family: var(--mono); font-size: 8px; letter-spacing: 0.12em; color: #22c55e; text-transform: uppercase; flex-shrink: 0; }
@@ -133,19 +155,23 @@ const CSS = `
   .lp-problem { padding: 160px 48px; border-top: 1px solid var(--white-border); border-bottom: 1px solid var(--white-border); }
   .lp-problem-grid { display: flex; flex-direction: column; gap: 80px; max-width: 1100px; margin: 0 auto; }
   .lp-problem-block { text-align: center; }
-  .lp-problem-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; color: var(--red); text-transform: uppercase; margin-bottom: 24px; }
+  .lp-problem-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; color: var(--red-text); text-transform: uppercase; margin-bottom: 24px; }
   .lp-problem-text { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(44px,5.4vw,86px); line-height: 0.92; letter-spacing: -0.02em; text-transform: uppercase; color: var(--white); }
   .lp-problem-text.dim { color: var(--white-faint); }
   .lp-problem-resolution { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(56px,7vw,110px); line-height: 0.9; letter-spacing: -0.02em; text-transform: uppercase; color: var(--white); margin-top: 24px; }
-  .lp-problem-resolution .red { color: var(--red); text-shadow: 0 0 40px rgba(232,52,28,0.6); }
+  .lp-problem-resolution .red { color: var(--red); text-shadow: 0 0 40px rgba(255,59,48,0.6); }
+  .lp-problem-lead { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(40px,5.6vw,88px); line-height: 0.93; letter-spacing: -0.02em; text-transform: uppercase; color: var(--white); }
+  .lp-problem-lead .red { color: var(--red); text-shadow: 0 0 40px rgba(255,59,48,0.5); }
+  .lp-problem-body { font-family: var(--body); font-size: 18px; line-height: 1.65; color: var(--white); max-width: 620px; margin-top: 26px; }
+  .lp-lede { font-family: var(--body); font-size: 18px; line-height: 1.6; color: var(--white); max-width: 640px; margin: -40px 0 0; }
   .lp-problem-divider { width: 1px; height: 60px; background: var(--red-border-strong); margin: 0 auto; }
 
   /* BENTO */
   .lp-bento { padding: 140px 48px; }
   .lp-bento-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; max-width: 1280px; margin: 0 auto; }
-  .lp-tile { background: rgba(255,255,255,0.02); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--red-border); border-radius: 24px; padding: 32px; position: relative; overflow: hidden; transition: transform 0.4s cubic-bezier(.2,.7,.3,1),border-color 0.3s,box-shadow 0.3s; box-shadow: 0 20px 60px rgba(0,0,0,0.9),0 0 40px rgba(232,52,28,0.04); display: flex; flex-direction: column; }
-  .lp-tile:hover { border-color: var(--red-border-strong); transform: translateY(-4px); box-shadow: 0 24px 80px rgba(0,0,0,0.9),0 0 60px rgba(232,52,28,0.12); }
-  .lp-tile::before { content: ''; position: absolute; top: 0; right: 0; width: 200px; height: 200px; background: radial-gradient(circle,rgba(232,52,28,0.08),transparent 70%); pointer-events: none; }
+  .lp-tile { background: var(--bg-card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--red-border); border-radius: 24px; padding: 32px; position: relative; overflow: hidden; transition: transform 0.4s cubic-bezier(.2,.7,.3,1),border-color 0.3s,box-shadow 0.3s; box-shadow: 0 20px 60px rgba(0,0,0,0.9),0 0 40px rgba(255,59,48,0.04); display: flex; flex-direction: column; }
+  .lp-tile:hover { border-color: var(--red-border-strong); transform: translateY(-4px); box-shadow: 0 24px 80px rgba(0,0,0,0.9),0 0 60px rgba(255,59,48,0.12); }
+  .lp-tile::before { content: ''; position: absolute; top: 0; right: 0; width: 200px; height: 200px; background: radial-gradient(circle,rgba(255,59,48,0.08),transparent 70%); pointer-events: none; }
   .lp-tile.span2 { grid-column: span 2; }
   .lp-tile.span3 { grid-column: span 3; }
   .lp-tile-eye { font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--red); margin-bottom: 14px; }
@@ -153,7 +179,7 @@ const CSS = `
   .lp-tile.span2 .lp-tile-title, .lp-tile.span3 .lp-tile-title { font-size: 40px; }
   .lp-tile-body { color: var(--white-dim); font-size: 14px; line-height: 1.55; }
   .lp-tile-stat { font-family: var(--mono); font-size: 11px; color: var(--white); letter-spacing: 0.04em; margin-top: auto; padding-top: 20px; border-top: 1px solid var(--white-border); }
-  .lp-tile-bignum { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 120px; line-height: 0.9; letter-spacing: -0.04em; color: var(--red); text-shadow: 0 0 40px rgba(232,52,28,0.5); margin: 24px 0 8px; }
+  .lp-tile-bignum { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 120px; line-height: 0.9; letter-spacing: -0.04em; color: var(--red); text-shadow: 0 0 40px rgba(255,59,48,0.5); margin: 24px 0 8px; }
   .lp-ring-wrap { display: flex; align-items: center; gap: 32px; margin: 24px 0; }
   .lp-ring { position: relative; width: 180px; height: 180px; flex-shrink: 0; }
   .lp-ring-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 78px; height: 78px; border-radius: 50%; background: radial-gradient(circle,#050505 60%,rgba(5,5,5,0.85) 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2; }
@@ -162,8 +188,8 @@ const CSS = `
   .lp-ring-legend { flex: 1; display: flex; flex-direction: column; gap: 10px; }
   .lp-leg-row { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 11px; }
   .lp-leg-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
-  .lp-ai-msg { font-family: var(--mono); font-size: 11px; color: var(--white); background: rgba(232,52,28,0.06); border: 1px solid var(--red-border); border-radius: 8px; padding: 10px 12px; margin: 16px 0 10px; line-height: 1.5; }
-  .lp-ai-msg-l { color: var(--red); letter-spacing: 0.16em; font-size: 9px; text-transform: uppercase; margin-bottom: 4px; }
+  .lp-ai-msg { font-family: var(--mono); font-size: 11px; color: var(--white); background: rgba(255,59,48,0.06); border: 1px solid var(--red-border); border-radius: 8px; padding: 10px 12px; margin: 16px 0 10px; line-height: 1.5; }
+  .lp-ai-msg-l { color: var(--red-text); letter-spacing: 0.16em; font-size: 9px; text-transform: uppercase; margin-bottom: 4px; }
   .lp-overload-card { display: flex; align-items: center; gap: 14px; margin: 20px 0 8px; padding: 14px; background: rgba(0,230,118,0.04); border: 1px solid rgba(0,230,118,0.15); border-radius: 12px; }
   .lp-overload-arr { width: 36px; height: 36px; border-radius: 9px; background: rgba(0,230,118,0.12); color: var(--c-carbs); display: flex; align-items: center; justify-content: center; font-size: 22px; text-shadow: 0 0 10px rgba(0,230,118,0.6); }
   .lp-overload-name { font-family: var(--condensed); font-weight: 800; font-size: 16px; text-transform: uppercase; color: var(--white); line-height: 1; margin-bottom: 4px; }
@@ -180,10 +206,10 @@ const CSS = `
   /* HOW */
   .lp-how { padding: 140px 48px; border-top: 1px solid var(--white-border); }
   .lp-how-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; max-width: 1280px; margin: 0 auto; }
-  .lp-how-card { background: rgba(255,255,255,0.02); backdrop-filter: blur(20px); border: 1px solid var(--red-border); border-radius: 24px; padding: 40px 32px; position: relative; overflow: hidden; transition: transform 0.4s cubic-bezier(.2,.7,.3,1),border-color 0.3s,box-shadow 0.3s; box-shadow: 0 20px 60px rgba(0,0,0,0.9),0 0 40px rgba(232,52,28,0.04); }
-  .lp-how-card:hover { transform: translateY(-4px); border-color: var(--red-border-strong); box-shadow: 0 24px 80px rgba(0,0,0,0.9),0 0 60px rgba(232,52,28,0.12); }
-  .lp-how-num { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 88px; line-height: 0.9; color: var(--red); letter-spacing: -0.04em; margin-bottom: 24px; text-shadow: 0 0 30px rgba(232,52,28,0.4); }
-  .lp-how-step { font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em; color: var(--red); text-transform: uppercase; margin-bottom: 12px; }
+  .lp-how-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--red-border); border-radius: 24px; padding: 40px 32px; position: relative; overflow: hidden; transition: transform 0.4s cubic-bezier(.2,.7,.3,1),border-color 0.3s,box-shadow 0.3s; box-shadow: 0 20px 60px rgba(0,0,0,0.9),0 0 40px rgba(255,59,48,0.04); }
+  .lp-how-card:hover { transform: translateY(-4px); border-color: var(--red-border-strong); box-shadow: 0 24px 80px rgba(0,0,0,0.9),0 0 60px rgba(255,59,48,0.12); }
+  .lp-how-num { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 88px; line-height: 0.9; color: var(--red); letter-spacing: -0.04em; margin-bottom: 24px; text-shadow: 0 0 30px rgba(255,59,48,0.4); }
+  .lp-how-step { font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em; color: var(--red-text); text-transform: uppercase; margin-bottom: 12px; }
   .lp-how-title { font-family: var(--condensed); font-weight: 800; font-size: 26px; line-height: 1.05; text-transform: uppercase; letter-spacing: -0.01em; color: var(--white); margin-bottom: 14px; }
   .lp-how-body { color: var(--white-dim); font-size: 14px; line-height: 1.6; }
   .lp-how-body strong { color: var(--white); font-weight: 600; }
@@ -191,34 +217,34 @@ const CSS = `
   /* COMPARE */
   .lp-compare { padding: 140px 48px; }
   .lp-compare-inner { max-width: 1100px; margin: 0 auto; }
-  .lp-compare-table { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid rgba(232,52,28,0.2); border-radius: 16px; overflow: hidden; background: var(--bg); }
+  .lp-compare-table { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid rgba(255,59,48,0.2); border-radius: 16px; overflow: hidden; background: var(--bg); }
   .lp-compare-table th,.lp-compare-table td { padding: 18px 20px; text-align: left; border-bottom: 1px solid var(--white-border); font-size: 14px; }
   .lp-compare-table tr:last-child td { border-bottom: none; }
-  .lp-compare-table th { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; background: #0a0a0a; border-bottom: 1px solid rgba(232,52,28,0.2); }
+  .lp-compare-table th { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; background: var(--lp-surface); border-bottom: 1px solid rgba(255,59,48,0.2); }
   .lp-compare-table th.col-other { color: var(--white-dim); text-align: center; width: 17%; }
-  .lp-compare-table th.col-cm { background: var(--bg); color: var(--red); font-weight: 700; text-align: center; width: 17%; text-shadow: 0 0 10px rgba(232,52,28,0.4); }
+  .lp-compare-table th.col-cm { background: var(--bg); color: var(--red); font-weight: 700; text-align: center; width: 17%; text-shadow: 0 0 10px rgba(255,59,48,0.4); }
   .lp-compare-table td { color: var(--white); font-family: var(--body); font-size: 13px; }
-  .lp-compare-table td.col-other { text-align: center; background: #0a0a0a; color: rgba(255,255,255,0.3); }
+  .lp-compare-table td.col-other { text-align: center; background: var(--lp-surface); color: var(--white); }
   .lp-compare-table td.col-cm { text-align: center; }
   .lp-compare-note { text-align: center; margin-top: 24px; font-family: var(--mono); font-size: 10px; color: var(--white-faint); letter-spacing: 0.08em; text-transform: uppercase; }
-  .lp-cross { color: rgba(255,255,255,0.18); font-size: 16px; }
+  .lp-cross { color: var(--white); opacity: 0.55; font-size: 16px; }
   .lp-check { color: var(--red); font-size: 18px; font-weight: 700; text-shadow: 0 0 10px var(--red-glow); }
 
   /* SCREENS */
   .lp-screens { padding: 140px 0 140px 48px; }
   .lp-screens-head { padding-right: 48px; margin-bottom: 32px; }
-  .lp-featured { margin: 0 48px 48px 0; background: rgba(255,255,255,0.02); backdrop-filter: blur(20px); border: 1px solid var(--red-border); border-radius: 24px; padding: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; box-shadow: 0 20px 60px rgba(0,0,0,0.9),0 0 40px rgba(232,52,28,0.06); position: relative; overflow: hidden; max-width: 1200px; }
-  .lp-featured::before { content: ''; position: absolute; top: 0; right: 0; width: 400px; height: 400px; background: radial-gradient(circle,rgba(232,52,28,0.1),transparent 70%); pointer-events: none; }
-  .lp-feat-eye { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; color: var(--red); text-transform: uppercase; margin-bottom: 12px; }
+  .lp-featured { margin: 0 48px 48px 0; background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--red-border); border-radius: 24px; padding: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; box-shadow: 0 20px 60px rgba(0,0,0,0.9),0 0 40px rgba(255,59,48,0.06); position: relative; overflow: hidden; max-width: 1200px; }
+  .lp-featured::before { content: ''; position: absolute; top: 0; right: 0; width: 400px; height: 400px; background: radial-gradient(circle,rgba(255,59,48,0.1),transparent 70%); pointer-events: none; }
+  .lp-feat-eye { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; color: var(--red-text); text-transform: uppercase; margin-bottom: 12px; }
   .lp-feat-title { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 44px; line-height: 1; text-transform: uppercase; letter-spacing: -0.02em; color: var(--white); margin-bottom: 16px; }
   .lp-feat-body { color: var(--white-dim); font-size: 15px; line-height: 1.6; margin-bottom: 20px; }
   .lp-scroll { display: flex; gap: 24px; overflow-x: auto; padding: 24px 0 32px; cursor: grab; scrollbar-width: none; }
   .lp-scroll::-webkit-scrollbar { display: none; }
-  .lp-sphone { flex-shrink: 0; width: 300px; height: 620px; background: #0a0e1a; border-radius: 44px; overflow: hidden; position: relative; box-shadow: 0 0 0 9px #1a1a1f,0 0 0 10px #2a2a30,0 0 60px rgba(232,52,28,0.16),0 30px 60px rgba(0,0,0,0.9); user-select: none; }
+  .lp-sphone { flex-shrink: 0; width: 300px; height: 620px; background: #0a0e1a; border-radius: 44px; overflow: hidden; position: relative; box-shadow: 0 0 0 9px #1a1a1f,0 0 0 10px #2a2a30,0 0 60px rgba(255,59,48,0.16),0 30px 60px rgba(0,0,0,0.9); user-select: none; }
   .lp-sphone-notch { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 96px; height: 26px; background: #000; border-radius: 14px; z-index: 50; }
   .lp-sphone-bar { position: absolute; top: 0; left: 0; right: 0; height: 42px; z-index: 40; display: flex; align-items: center; justify-content: space-between; padding: 14px 24px 0; font-family: -apple-system,sans-serif; font-weight: 600; font-size: 12px; color: var(--white); }
   .lp-sphone-home { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); width: 100px; height: 4px; background: rgba(245,245,240,0.85); border-radius: 3px; z-index: 60; }
-  .lp-sphone-body { padding: 42px 0 22px; height: 100%; overflow: hidden; background-image: radial-gradient(ellipse at 30% 0%,rgba(232,52,28,0.05),transparent 50%); }
+  .lp-sphone-body { padding: 42px 0 22px; height: 100%; overflow: hidden; background-image: radial-gradient(ellipse at 30% 0%,rgba(255,59,48,0.05),transparent 50%); }
   .lp-pscr-head { padding: 12px 18px 8px; display: flex; align-items: flex-end; justify-content: space-between; }
   .lp-pscr-eye { font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em; color: var(--red); text-transform: uppercase; margin-bottom: 4px; }
   .lp-pscr-h1 { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 26px; line-height: 1; color: var(--white); text-transform: uppercase; letter-spacing: -0.01em; }
@@ -226,12 +252,12 @@ const CSS = `
   /* PROOF */
   .lp-proof { padding: 140px 48px; border-top: 1px solid var(--white-border); }
   .lp-proof-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; max-width: 1100px; margin: 0 auto 80px; }
-  .lp-proof-stat { text-align: center; padding: 32px 24px; background: rgba(255,255,255,0.02); border: 1px solid var(--red-border); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.9),0 0 40px rgba(232,52,28,0.04); }
+  .lp-proof-stat { text-align: center; padding: 32px 24px; background: var(--bg-card); border: 1px solid var(--red-border); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.9),0 0 40px rgba(255,59,48,0.04); }
   .lp-proof-num { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(60px,7vw,100px); line-height: 0.9; color: var(--white); letter-spacing: -0.03em; margin-bottom: 8px; }
-  .lp-proof-num .red { color: var(--red); text-shadow: 0 0 30px rgba(232,52,28,0.5); }
+  .lp-proof-num .red { color: var(--red); text-shadow: 0 0 30px rgba(255,59,48,0.5); }
   .lp-proof-lbl { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; color: var(--white-dim); text-transform: uppercase; line-height: 1.5; }
   .lp-testi-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; max-width: 1280px; margin: 0 auto; }
-  .lp-testi { background: rgba(255,255,255,0.02); backdrop-filter: blur(20px); border: 1px solid var(--red-border); border-radius: 18px; padding: 28px; transition: transform 0.35s,border-color 0.3s; box-shadow: 0 20px 60px rgba(0,0,0,0.9),0 0 40px rgba(232,52,28,0.04); }
+  .lp-testi { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--red-border); border-radius: 18px; padding: 28px; transition: transform 0.35s,border-color 0.3s; box-shadow: 0 20px 60px rgba(0,0,0,0.9),0 0 40px rgba(255,59,48,0.04); }
   .lp-testi:hover { transform: translateY(-4px); border-color: var(--red-border-strong); }
   .lp-testi-text { font-size: 15px; line-height: 1.6; color: var(--white); margin-bottom: 20px; }
   .lp-testi-name { font-family: var(--condensed); font-weight: 700; font-size: 14px; color: var(--white); text-transform: uppercase; letter-spacing: 0.04em; }
@@ -243,7 +269,7 @@ const CSS = `
   .lp-faq-item { border-bottom: 1px solid rgba(255,255,255,0.06); position: relative; }
   .lp-faq-item.open { border-left: 2px solid var(--red); padding-left: 22px; margin-left: -24px; }
   .lp-faq-q { width: 100%; background: none; border: none; color: var(--white); padding: 24px 0; cursor: pointer; display: flex; align-items: center; justify-content: space-between; text-align: left; font-family: var(--body); font-size: 17px; font-weight: 500; transition: color 0.2s; line-height: 1.4; }
-  .lp-faq-q:hover { color: var(--red); }
+  .lp-faq-q:hover { color: var(--red-text); }
   .lp-faq-icon { font-family: var(--mono); font-size: 24px; color: var(--red); font-weight: 300; transition: transform 0.3s; flex-shrink: 0; margin-left: 16px; }
   .lp-faq-item.open .lp-faq-icon { transform: rotate(45deg); }
   .lp-faq-a { max-height: 0; overflow: hidden; transition: max-height 0.4s ease,padding 0.3s; color: var(--white-dim); font-size: 15px; line-height: 1.7; }
@@ -251,9 +277,9 @@ const CSS = `
 
   /* WAITLIST */
   .lp-waitlist { padding: 160px 48px; text-align: center; position: relative; overflow: hidden; background: radial-gradient(ellipse at center,#1a0008 0%,#000000 70%); }
-  .lp-waitlist::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 50%,rgba(232,52,28,0.15),transparent 50%); pointer-events: none; }
+  .lp-waitlist::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 50%,rgba(255,59,48,0.15),transparent 50%); pointer-events: none; }
   .lp-waitlist-inner { max-width: 720px; margin: 0 auto; position: relative; z-index: 2; }
-  .lp-wl-hl { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(80px,10vw,160px); line-height: 0.9; letter-spacing: -0.04em; text-transform: uppercase; color: var(--white); margin-bottom: 32px; text-shadow: 0 0 80px rgba(232,52,28,0.4); }
+  .lp-wl-hl { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(80px,10vw,160px); line-height: 0.9; letter-spacing: -0.04em; text-transform: uppercase; color: var(--white); margin-bottom: 32px; text-shadow: 0 0 80px rgba(255,59,48,0.4); }
   .lp-wl-sub { font-size: 18px; line-height: 1.55; color: var(--white-dim); margin-bottom: 16px; }
   .lp-wl-sub strong { color: var(--white); }
   .lp-wl-counter { display: inline-flex; align-items: center; gap: 10px; padding: 10px 20px; background: rgba(255,255,255,0.04); border: 1px solid var(--red-border); border-radius: 999px; font-family: var(--mono); font-size: 13px; color: var(--white); letter-spacing: 0.06em; margin-bottom: 40px; }
@@ -261,7 +287,7 @@ const CSS = `
   .lp-wl-form { display: grid; grid-template-columns: 1fr 1.5fr; gap: 12px; margin-bottom: 16px; }
   .lp-wl-input { background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); color: var(--white); padding: 18px 20px; border-radius: 8px; font-family: var(--body); font-size: 15px; transition: border-color 0.2s,box-shadow 0.2s; outline: none; width: 100%; }
   .lp-wl-input::placeholder { color: var(--white-faint); }
-  .lp-wl-input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(232,52,28,0.15),0 0 30px rgba(232,52,28,0.3); }
+  .lp-wl-input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(255,59,48,0.15),0 0 30px rgba(255,59,48,0.3); }
   .lp-wl-btn { background: var(--red); color: var(--white); border: none; border-radius: 8px; padding: 16px 28px; font-family: var(--condensed); font-weight: 700; font-size: 16px; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; box-shadow: 0 0 30px var(--red-glow); transition: transform 0.2s,box-shadow 0.3s; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; grid-column: 1/-1; }
   .lp-wl-btn:hover { transform: translateY(-2px); box-shadow: 0 0 50px var(--red-glow); }
   .lp-wl-btn:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -271,22 +297,169 @@ const CSS = `
   .lp-spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.25); border-top-color: #fff; border-radius: 50%; animation: lp-spin 0.7s linear infinite; }
 
   /* FOOTER */
-  .lp-footer { padding: 32px 48px; border-top: 1px solid rgba(232,52,28,0.2); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; position: relative; z-index: 2; }
+  .lp-footer { padding: 32px 48px; border-top: 1px solid rgba(255,59,48,0.2); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; position: relative; z-index: 2; }
   .lp-footer-copy { font-family: var(--mono); font-size: 11px; color: var(--white-faint); letter-spacing: 0.04em; }
   .lp-footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
   .lp-footer-links a { font-size: 12px; color: var(--white-dim); text-decoration: none; letter-spacing: 0.04em; transition: color 0.2s; }
-  .lp-footer-links a:hover { color: var(--red); }
+  .lp-footer-links a:hover { color: var(--red-text); }
 
-  .lp .fade-up { opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease,transform 0.8s cubic-bezier(.2,.7,.3,1); }
+  /* Scroll reveal — spring-settle up with slight overshoot, staggered per section.
+     Transition is armed by JS (.rev-armed) so there's no pre-JS flash; --rev-delay
+     is set per element in DOM order for the cascade. cmSpring-ish cubic-bezier. */
+  .lp .fade-up { opacity: 0; transform: translateY(24px); }
+  .lp.rev-armed .fade-up { transition: opacity 0.34s ease-out, transform 0.46s cubic-bezier(0.34,1.36,0.5,1); transition-delay: var(--rev-delay, 0ms); }
   .lp .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+  /* ── SOLUTION (two-way food↔training sync) ── */
+  .lp-solution { padding: 140px 48px; border-top: 1px solid var(--white-border); }
+  .lp-solution-inner { max-width: 1100px; margin: 0 auto; }
+  .lp-solution-lead { font-family: var(--body); font-size: 18px; line-height: 1.6; color: var(--white); max-width: 620px; }
+  .lp-solution-lead strong { font-weight: 600; }
+  .lp-sync { display: grid; grid-template-columns: 1fr auto 1fr; gap: 28px; align-items: stretch; margin-top: 56px; }
+  .lp-sync-col { background: var(--bg-card); border: 1px solid var(--red-border); border-radius: 20px; padding: 32px; box-shadow: 0 20px 60px rgba(0,0,0,0.35); }
+  .lp-sync-arrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--red-text); margin-bottom: 12px; }
+  .lp-sync-title { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 28px; text-transform: uppercase; color: var(--white); line-height: 1; margin-bottom: 14px; letter-spacing: -0.01em; }
+  .lp-sync-body { font-family: var(--body); font-size: 15px; line-height: 1.6; color: var(--white); }
+  .lp-sync-mid { display: flex; align-items: center; justify-content: center; font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 40px; color: var(--red); text-shadow: 0 0 30px var(--red-glow); }
+
+  /* ── SCROLL-SYNC (Solution centerpiece) — scroll-driven two-way sync viz ── */
+  .lp-syncx { position: relative; height: 280vh; }
+  .lp-syncx-sticky { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 34px; }
+  .lp-syncx-caps { position: relative; height: 44px; width: min(900px,92vw); }
+  .lp-syncx-cap { position: absolute; inset: 0; opacity: 0; font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(22px,3vw,34px); line-height: 1; text-transform: uppercase; letter-spacing: -0.01em; color: var(--white); display: flex; align-items: center; justify-content: center; text-align: center; }
+  .lp-syncx-cap .red { color: var(--red); margin-left: 0.3em; }
+  .lp-syncx-stage { position: relative; width: min(900px,92vw); aspect-ratio: 900 / 480; }
+  .lp-syncx-stage svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; z-index: 0; }
+  .lp-sx-card { position: absolute; z-index: 2; background: var(--bg-card); border: 1.5px solid var(--red-border); border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,0.35); padding: 15px 17px; opacity: 0; }
+  .lp-sx-card.hero { border-color: var(--red); box-shadow: 0 0 30px var(--red-glow), 0 16px 40px rgba(0,0,0,0.35); }
+  .lp-sx-eyebrow { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--red-text); margin-bottom: 9px; }
+  .lp-sx-title { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 19px; line-height: 0.98; text-transform: uppercase; color: var(--white); letter-spacing: -0.01em; }
+  .lp-sx-row { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--white); margin-top: 9px; }
+  .lp-sx-row .v { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 17px; letter-spacing: -0.01em; }
+  .lp-sx-track { height: 5px; border-radius: 3px; background: var(--white-border); overflow: hidden; margin-top: 5px; }
+  .lp-sx-bar { height: 100%; width: 100%; background: var(--red); border-radius: 3px; transform-origin: left center; }
+  .lp-sx-badge { display: inline-block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #fff; background: var(--cm-accent-deep); border-radius: 5px; padding: 3px 8px; margin-top: 11px; opacity: 0; }
+  .lp-sx-tag { display: inline-block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--red-text); border: 1px solid var(--red-border); border-radius: 5px; padding: 3px 8px; margin-top: 8px; opacity: 0; }
+  .lp-sx-delta { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.02em; color: var(--red-text); margin-top: 11px; opacity: 0; line-height: 1.4; }
+  .lp-sx-link { fill: none; stroke: var(--red); stroke-width: 2.6; stroke-linecap: round; }
+  .lp-sx-pulse { fill: var(--red); filter: drop-shadow(0 0 5px var(--red)); opacity: 0; }
+  .lp-syncx-note { font-family: var(--body); font-size: 13px; color: var(--white); opacity: 0.7; text-align: center; }
+  /* static (reduced-motion): diagram in normal flow, final synced state */
+  .lp-syncx.is-static { height: auto; }
+  .lp-syncx.is-static .lp-syncx-sticky { position: static; height: auto; padding: 24px 0 8px; }
+
+  /* ── TRUST / EVIDENCE (verified stat bubbles — NO testimonials until real) ── */
+  .lp-trust { padding: 140px 48px; border-top: 1px solid var(--white-border); }
+  .lp-trust-inner { max-width: 1280px; margin: 0 auto; }
+  .lp-evidence-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; margin-top: 12px; }
+  .lp-evidence { background: var(--bg-card); border: 1px solid var(--red-border); border-radius: 18px; padding: 28px; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.35); }
+  .lp-evidence-claim { font-family: var(--body); font-size: 16px; line-height: 1.55; color: var(--white); margin-bottom: 20px; flex: 1; }
+  .lp-evidence-cite { font-family: var(--mono); font-size: 11px; line-height: 1.5; color: var(--white); letter-spacing: 0.02em; padding-top: 14px; border-top: 1px solid var(--white-border); }
+  .lp-evidence-cite .src { color: var(--red-text); text-transform: uppercase; letter-spacing: 0.12em; font-size: 9px; display: block; margin-bottom: 5px; }
+  .lp-trust-claim { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(28px,3.2vw,48px); line-height: 1.04; letter-spacing: -0.02em; text-transform: uppercase; color: var(--white); text-align: center; margin: 72px auto 0; max-width: 920px; }
+  .lp-trust-claim .red { color: var(--red); }
+  .lp-evidence-stat { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 16px; }
+  .lp-evidence-stat > span:first-child { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 46px; line-height: 0.9; letter-spacing: -0.02em; color: var(--red); }
+  .lp-evidence-stat-lbl { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--white); }
+
+  /* ── PRICING ── */
+  .lp-pricing { padding: 140px 48px; border-top: 1px solid var(--white-border); }
+  .lp-pricing-inner { max-width: 860px; margin: 0 auto; }
+  .lp-price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; align-items: stretch; }
+  .lp-price-card { position: relative; background: var(--bg-card); border: 1px solid var(--white-border); border-radius: 22px; padding: 40px 32px 32px; display: flex; flex-direction: column; }
+  .lp-price-card.featured { border: 1.5px solid var(--red); box-shadow: 0 0 50px var(--red-glow), 0 20px 60px rgba(0,0,0,0.4); }
+  .lp-price-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--cm-accent-deep); color: #fff; font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; padding: 5px 14px; border-radius: 999px; white-space: nowrap; }
+  .lp-price-plan { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--red-text); margin-bottom: 14px; }
+  /* PLAN PRICE = hero of each card: biggest + boldest, Barlow Condensed display face. */
+  .lp-price-amt { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 72px; line-height: 0.88; color: var(--white); letter-spacing: -0.03em; }
+  /* only the /mo · /yr unit suffix is small — scoped to .per so it can't shrink the numeral */
+  .lp-price-amt .per { font-size: 18px; font-style: normal; color: var(--white); font-weight: 600; margin-left: 4px; letter-spacing: 0; }
+  .lp-price-eff { font-family: var(--mono); font-size: 11px; color: var(--red-text); letter-spacing: 0.06em; text-transform: uppercase; margin: 12px 0 22px; min-height: 14px; }
+  /* Annual effective price reads as a confident value statement, not fine print (DM Mono, red-text). */
+  .lp-price-card.featured .lp-price-eff { font-size: 19px; font-weight: 500; letter-spacing: 0.03em; min-height: 24px; margin: 14px 0 24px; }
+  .lp-price-list { list-style: none; margin: 0 0 26px; padding: 0; display: flex; flex-direction: column; gap: 11px; flex: 1; }
+  .lp-price-list li { font-family: var(--body); font-size: 14px; color: var(--white); display: flex; gap: 10px; align-items: flex-start; line-height: 1.4; }
+  .lp-price-list li::before { content: '✓'; color: var(--red); font-weight: 700; flex-shrink: 0; }
+  .lp-price-btn { width: 100%; background: var(--cm-accent-deep); color: #fff; border: none; border-radius: 8px; padding: 15px; font-family: var(--condensed); font-weight: 700; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; box-shadow: 0 0 30px var(--red-glow); transition: transform 0.2s; }
+  .lp-price-btn.ghost { background: transparent; border: 1px solid var(--red-text); color: var(--red-text); box-shadow: none; }
+  .lp-price-btn:hover { transform: translateY(-2px); }
+  .lp-price-fine { text-align: center; font-family: var(--mono); font-size: 11px; color: var(--white); letter-spacing: 0.04em; line-height: 1.7; margin-top: 24px; }
+
+  /* ── PRICING competitor stack (value anchor above the prices) ── */
+  .lp-vs { max-width: 720px; margin: 6px auto 48px; }
+  .lp-vs-head { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(24px,3vw,40px); line-height: 1.02; letter-spacing: -0.02em; text-transform: uppercase; color: var(--white); text-align: center; }
+  .lp-vs-sub { font-family: var(--body); font-size: 15px; line-height: 1.55; color: var(--white); text-align: center; max-width: 540px; margin: 14px auto 28px; }
+  .lp-vs-list { display: flex; flex-direction: column; gap: 8px; }
+  .lp-vs-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 14px 20px; border: 1px solid var(--white-border); border-radius: 12px; }
+  .lp-vs-row.cm { border: 1.5px solid var(--red); background: var(--bg-card); box-shadow: 0 0 30px var(--red-glow); }
+  .lp-vs-name { font-family: var(--condensed); font-style: italic; font-weight: 800; font-size: 18px; text-transform: uppercase; color: var(--white); letter-spacing: -0.01em; }
+  .lp-vs-row.cm .lp-vs-name { color: var(--red); }
+  .lp-vs-cat { font-family: var(--mono); font-size: 10px; font-weight: 500; font-style: normal; letter-spacing: 0.08em; text-transform: uppercase; color: var(--red-text); margin-left: 10px; }
+  .lp-vs-price { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 22px; color: var(--white); letter-spacing: -0.01em; white-space: nowrap; }
+  .lp-vs-price span { font-size: 12px; font-style: normal; font-weight: 600; margin-left: 2px; }
+  .lp-vs-row.cm .lp-vs-price { color: var(--red); }
+  .lp-vs-foot { font-family: var(--mono); font-size: 10px; color: var(--white); text-align: center; margin-top: 18px; letter-spacing: 0.03em; }
+
+  /* ── "Works with" trust strip (Apple Health + Strava — live integrations) ── */
+  .lp-works { padding: 72px 48px; border-top: 1px solid var(--white-border); text-align: center; }
+  .lp-works-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--red-text); margin-bottom: 22px; }
+  .lp-works-row { display: inline-flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+  .lp-works-badge { font-family: var(--body); font-size: 15px; color: var(--white); border: 1px solid var(--lp-border); border-radius: 100px; padding: 12px 22px; display: inline-flex; align-items: center; gap: 9px; }
+  .lp-works-badge strong { font-weight: 700; }
+  .lp-works-glyph { width: 20px; height: 20px; flex-shrink: 0; }
+
+  /* ── FINAL CTA ── */
+  .lp-final { padding: 160px 48px; text-align: center; position: relative; overflow: hidden; background: radial-gradient(ellipse at center, rgba(255,59,48,0.10) 0%, transparent 62%); border-top: 1px solid var(--white-border); }
+  .lp-final-inner { max-width: 820px; margin: 0 auto; position: relative; z-index: 2; }
+  .lp-final-hl { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(56px,8vw,120px); line-height: 0.9; letter-spacing: -0.03em; text-transform: uppercase; color: var(--white); margin-bottom: 24px; }
+  .lp-final-hl .red { color: var(--red); text-shadow: 0 0 60px var(--red-glow); }
+  .lp-final-sub { font-family: var(--body); font-size: 18px; line-height: 1.55; color: var(--white); margin-bottom: 36px; }
+  .lp-final-fine { font-family: var(--mono); font-size: 11px; color: var(--white); letter-spacing: 0.06em; margin-top: 20px; }
+
+  /* ── BRAND SIGNATURE LOCKUP (finale) — logo anchors "YOU SHOW UP. / WE KEEP UP." ── */
+  .lp-sign { padding: 124px 48px 104px; border-top: 1px solid var(--white-border); text-align: center; }
+  .lp-sign-lockup { display: inline-flex; align-items: center; gap: clamp(18px,2.4vw,38px); font-size: clamp(40px,7vw,104px); }
+  .lp-sign-logo { height: 1.88em; width: auto; flex-shrink: 0; display: block; border-radius: 0.16em; box-shadow: 0 0 0.5em rgba(255,59,48,0.35); }
+  .lp-sign-lines { text-align: left; font-family: var(--condensed); font-size: 1em; line-height: 0.92; text-transform: uppercase; letter-spacing: -0.02em; color: var(--white); }
+  .lp-sign-l1 { display: block; font-weight: 400; }
+  .lp-sign-l2 { display: block; font-weight: 900; }
+  .lp-sign-cta { margin-top: 46px; }
+  .lp-sign-link { background: none; border: none; cursor: pointer; font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--red-text); border-bottom: 1px solid var(--red-border); padding: 0 0 5px; transition: color .2s,border-color .2s; }
+  .lp-sign-link:hover { color: var(--red); border-color: var(--red); }
+  .lp-sign-fine { font-family: var(--mono); font-size: 11px; color: var(--white); letter-spacing: 0.04em; margin-top: 16px; }
+  @media (max-width: 560px) {
+    .lp-sign { padding: 88px 24px 76px; }
+    .lp-sign-lockup { font-size: clamp(30px,11vw,54px); gap: 14px; }
+  }
+
+  /* ── FEATURE DUMP (everything it does) — value-overwhelm before pricing ── */
+  .lp-dump { padding: 140px 48px; border-top: 1px solid var(--white-border); }
+  .lp-dump-inner { max-width: 1200px; margin: 0 auto; }
+  .lp-dump-sub { font-family: var(--body); font-size: 18px; line-height: 1.6; color: var(--white); max-width: 660px; margin: -40px 0 4px; }
+  .lp-dump-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 52px; }
+  .lp-dump-group { background: var(--bg-card); border: 1px solid var(--red-border); border-radius: 20px; padding: 32px; box-shadow: 0 20px 60px rgba(0,0,0,0.30); }
+  .lp-dump-group-label { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 22px; line-height: 1; letter-spacing: -0.01em; text-transform: uppercase; color: var(--red); margin-bottom: 22px; }
+  .lp-dump-list { display: flex; flex-direction: column; gap: 18px; }
+  .lp-dump-item { font-family: var(--body); font-size: 15px; line-height: 1.6; color: var(--white); display: flex; gap: 12px; }
+  .lp-dump-item::before { content: ''; flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; background: var(--red); margin-top: 8px; }
+  .lp-dump-item strong { font-weight: 700; color: var(--white); }
+  .lp-dump-close { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 16px 32px; margin-top: 48px; }
+  .lp-dump-close-line { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(28px,3.4vw,44px); text-transform: uppercase; letter-spacing: -0.02em; color: var(--white); }
+  .lp-dump-link { font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--red-text); text-decoration: none; border-bottom: 1px solid var(--red-border); padding-bottom: 4px; transition: color 0.2s, border-color 0.2s; white-space: nowrap; }
+  .lp-dump-link:hover { color: var(--red); border-color: var(--red); }
 
   @media (max-width: 980px) {
     .lp-hero { grid-template-columns: 1fr; gap: 40px; padding: 100px 24px 60px; }
     .lp-phone-wrap { transform: scale(0.85); }
     .lp-float-pill { display: none; }
-    .lp-bento-grid,.lp-how-grid,.lp-proof-stats,.lp-testi-grid { grid-template-columns: 1fr; }
+    .lp-bento-grid,.lp-how-grid,.lp-proof-stats,.lp-testi-grid,.lp-evidence-grid,.lp-price-grid { grid-template-columns: 1fr; }
     .lp-tile.span2,.lp-tile.span3 { grid-column: span 1; }
     .lp-featured,.lp-split-content { grid-template-columns: 1fr; }
+    .lp-sync { grid-template-columns: 1fr; }
+    .lp-sync-mid { transform: rotate(90deg); }
+    .lp-solution,.lp-trust,.lp-pricing,.lp-final,.lp-dump { padding: 100px 24px; }
+    .lp-dump-grid { grid-template-columns: 1fr; }
+    .lp-dump-sub { margin-top: -24px; }
     .lp-split-div { width: 100%; height: 1px; min-height: 0; background: linear-gradient(90deg,transparent,var(--red),transparent); }
     .lp-wl-form { grid-template-columns: 1fr; }
     .lp-compare-table { font-size: 12px; }
@@ -300,7 +473,123 @@ const CSS = `
     .lp-footer { flex-direction: column; text-align: center; padding: 32px 24px; }
     .lp-footer-links { justify-content: center; }
   }
+
+  /* ── THEME TOGGLE (nav) — labeled, not icon-only ── */
+  .lp-theme-toggle { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--white); background: transparent; border: 1px solid var(--lp-border); padding: 8px 13px; border-radius: 4px; cursor: pointer; transition: border-color 0.2s, color 0.2s; white-space: nowrap; }
+  .lp-theme-toggle:hover { border-color: var(--red); color: var(--red); }
+  .lp-theme-toggle svg { display: block; }
+
+  /* ── ACCESSIBILITY ── */
+  /* Visible keyboard focus everywhere (replaces the input outline:none, adds to all controls) */
+  .lp a:focus-visible, .lp button:focus-visible, .lp input:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; border-radius: 4px; }
+  /* Honor reduced-motion — hold all ambient motion still (aurora, phone float, pulses, spinner, reveals) */
+  @media (prefers-reduced-motion: reduce) {
+    .lp-aurora::before, .lp-aurora::after, .lp-phone, .lp-float-pill,
+    .lp-hero-eyebrow::before, .lp-wl-counter::before, .lp-spinner { animation: none !important; }
+    .lp .fade-up { opacity: 1 !important; transform: none !important; transition: none !important; }
+    .lp * { scroll-behavior: auto !important; }
+  }
+
+  /* ── CTA EMPHASIS (build step 3) — restrained idle "breath" + springy hover ── */
+  @keyframes lp-cta-breath { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.015); } }
+  .lp-cta-btn, .lp-price-btn:not(.ghost) {
+    animation: lp-cta-breath 3.2s ease-in-out infinite;
+    transition: transform 0.32s cubic-bezier(0.34,1.42,0.5,1), box-shadow 0.32s ease;
+  }
+  /* hover cancels the idle breath so the spring scale-up takes over cleanly */
+  .lp-cta-btn:hover, .lp-price-btn:not(.ghost):hover { animation: none; transform: scale(1.03); }
+  .lp-cta-btn:hover { box-shadow: 0 0 52px var(--red-glow), 0 18px 46px rgba(0,0,0,0.45); }
+  .lp-cta-btn .arrow, .lp-price-btn .arrow { display: inline-block; transition: transform 0.3s cubic-bezier(0.34,1.5,0.5,1); }
+  .lp-cta-btn:hover .arrow, .lp-price-btn:not(.ghost):hover .arrow { transform: translateX(5px); }
+  @media (prefers-reduced-motion: reduce) {
+    .lp-cta-btn, .lp-price-btn:not(.ghost) { animation: none !important; }
+  }
 `;
+
+// ── Web-side theme wrapper ────────────────────────────────────────────────────
+// Mirrors the light/dark derivation in themeService.js:86-95 but writes to the LANDING
+// container element (the .lp scope) — deliberately NOT .goclub-coupled, so the marketing
+// site themes independently of the app shell. Red accent is CONSTANT across themes
+// (#FF3B30 = --cm-red). NO GREY TEXT: text/dim/faint all resolve to full-contrast
+// ink (#0A0A0A) on paper (#FFFFFF) / paper on ink — hierarchy comes from size/weight/red.
+export function applyLandingTheme(el, mode) {
+  if (!el) return;
+  const light = mode === 'light';
+  const set = (k, v) => el.style.setProperty(k, v);
+  set('--bg',            light ? '#FFFFFF' : '#000000');
+  set('--bg-rgb',        light ? '255,255,255' : '0,0,0');  // for theme-aware translucent nav
+  set('--bg-card',       light ? 'rgba(10,10,10,0.035)' : 'rgba(255,255,255,0.04)');
+  set('--lp-surface',    light ? '#F4F1EC' : '#0E0E10');
+  set('--white',         light ? '#0A0A0A' : '#FFFFFF');   // primary text — full contrast
+  set('--white-dim',     light ? '#0A0A0A' : '#FFFFFF');   // no grey
+  set('--white-faint',   light ? '#0A0A0A' : '#FFFFFF');   // no grey
+  set('--white-border',  light ? 'rgba(10,10,10,0.12)' : 'rgba(255,255,255,0.12)');
+  set('--lp-border',     light ? 'rgba(10,10,10,0.14)' : 'rgba(255,255,255,0.14)');
+  // Accent — bright red is theme-constant for LARGE elements / borders / glows.
+  set('--red',           '#FF3B30');
+  set('--red-glow',      light ? 'rgba(255,59,48,0.28)' : 'rgba(255,59,48,0.40)');
+  set('--red-border',    light ? 'rgba(255,59,48,0.28)' : 'rgba(255,59,48,0.35)');
+  set('--red-border-strong', light ? 'rgba(255,59,48,0.5)' : 'rgba(255,59,48,0.6)');
+  // Small red TEXT: bright on dark (5.9:1), deepened on light (5.0:1) — passes AA both ways.
+  set('--red-text',      light ? '#D13027' : '#FF3B30');
+  // Solid-button background: deepened red both themes so the white label clears AA (5.0:1).
+  set('--cm-accent-deep', '#D13027');
+}
+
+// Initial theme: localStorage cm-site-theme → prefers-color-scheme → dark (default).
+export function getInitialSiteTheme() {
+  try {
+    const s = localStorage.getItem('cm-site-theme');
+    if (s === 'light' || s === 'dark') return s;
+  } catch {}
+  try {
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) return 'light';
+  } catch {}
+  return 'dark';
+}
+
+function ThemeToggleIcon({ mode }) {
+  // Shows the icon for the mode you'll switch TO.
+  return mode === 'dark'
+    ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>;
+}
+
+// ── Number count-up ───────────────────────────────────────────────────────────
+// Animates 0 → `to` the first time it scrolls into view, ease-out cubic, fires ONCE.
+// Lands on the EXACT target on the final frame (prices precise to the cent — $12.99,
+// never $13). Tabular figures so digits don't jump width. Reduced-motion → final value
+// immediately, no count. rAF-driven (no animation lib).
+function CountUp({ to, decimals = 0, prefix = '', suffix = '', duration = 1200 }) {
+  const ref = useRef(null);
+  const reduce = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const [val, setVal] = useState(reduce ? to : 0);
+  useEffect(() => {
+    if (reduce) { setVal(to); return; }
+    const el = ref.current;
+    if (!el) return;
+    let raf = null, t0 = null, done = false;
+    const io = new IntersectionObserver((entries, ob) => {
+      entries.forEach(e => {
+        if (!e.isIntersecting || done) return;
+        done = true;
+        ob.unobserve(e.target);
+        const tick = (now) => {
+          if (t0 == null) t0 = now;
+          const p = Math.min(1, (now - t0) / duration);
+          const eased = 1 - Math.pow(1 - p, 3);   // ease-out (fast, then settle)
+          setVal(p < 1 ? eased * to : to);         // exact landing on the last frame
+          if (p < 1) raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+      });
+    }, { threshold: 0.5 });
+    io.observe(el);
+    return () => { io.disconnect(); if (raf) cancelAnimationFrame(raf); };
+  }, [to, duration, reduce]);
+  const shown = val.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  return <span ref={ref} style={{ fontVariantNumeric: 'tabular-nums' }}>{prefix}{shown}{suffix}</span>;
+}
 
 function useEffects(containerRef) {
   useEffect(() => {
@@ -340,15 +629,43 @@ function useEffects(containerRef) {
       tilts.push({ el, move, leave });
     });
 
-    const obs = new IntersectionObserver(entries => {
-      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
-    }, { threshold: 0.12 });
-    container.querySelectorAll('.fade-up').forEach(el => obs.observe(el));
+    // ── Scroll-triggered SECTION REVEALS ──────────────────────────────────────
+    // One shared IntersectionObserver. Group every .fade-up by its owning <section>,
+    // pre-assign a staggered transition-delay (DOM order), then reveal the whole group
+    // when the section is ~15% into view. Fires ONCE per section (unobserve on reveal).
+    // Transform/opacity only (GPU) so it can't jank the scroll. Reduced-motion → final
+    // state instantly, no transition (belt + the @media rule).
+    const prefersReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const revealEls = [...container.querySelectorAll('.fade-up')];
+    let revObs = null;
+
+    if (prefersReduced) {
+      revealEls.forEach(el => el.classList.add('visible'));
+    } else {
+      const STAGGER = 70; // ms between cascading children — tune to taste
+      const groups = new Map(); // section -> [els in DOM order]
+      revealEls.forEach(el => {
+        const sec = el.closest('section') || container;
+        const arr = groups.get(sec) || [];
+        el.style.setProperty('--rev-delay', (arr.length * STAGGER) + 'ms');
+        arr.push(el);
+        groups.set(sec, arr);
+      });
+      container.classList.add('rev-armed'); // enables the reveal transition (no pre-arm flash)
+      revObs = new IntersectionObserver((entries, ob) => {
+        entries.forEach(e => {
+          if (!e.isIntersecting) return;
+          (groups.get(e.target) || []).forEach(el => el.classList.add('visible'));
+          ob.unobserve(e.target); // fire once
+        });
+      }, { threshold: 0.15 });
+      groups.forEach((_, sec) => revObs.observe(sec));
+    }
 
     return () => {
       window.removeEventListener('mousemove', onMove);
       tilts.forEach(({ el, move, leave }) => { el.removeEventListener('mousemove', move); el.removeEventListener('mouseleave', leave); });
-      obs.disconnect();
+      revObs?.disconnect();
       if (raf) cancelAnimationFrame(raf);
     };
   }, []);
@@ -359,10 +676,10 @@ function MuscleMini() {
     <svg width="80" height="130" viewBox="0 0 60 100" style={{display:'block',margin:'0 auto'}}>
       <ellipse cx="30" cy="8" rx="7" ry="8" fill="rgba(255,255,255,0.1)"/>
       <rect x="26" y="15" width="8" height="5" fill="rgba(255,255,255,0.1)"/>
-      <rect x="14" y="20" width="32" height="26" rx="3" fill="#E8341C"/>
+      <rect x="14" y="20" width="32" height="26" rx="3" fill="#FF3B30"/>
       <rect x="16" y="46" width="28" height="20" rx="2" fill="rgba(255,255,255,0.08)"/>
-      <ellipse cx="11" cy="22" rx="7" ry="6" fill="#E8341C" opacity="0.85"/>
-      <ellipse cx="49" cy="22" rx="7" ry="6" fill="#E8341C" opacity="0.85"/>
+      <ellipse cx="11" cy="22" rx="7" ry="6" fill="#FF3B30" opacity="0.85"/>
+      <ellipse cx="49" cy="22" rx="7" ry="6" fill="#FF3B30" opacity="0.85"/>
       <rect x="3" y="22" width="9" height="22" rx="4" fill="rgba(255,255,255,0.1)"/>
       <rect x="48" y="22" width="9" height="22" rx="4" fill="rgba(255,255,255,0.1)"/>
       <rect x="14" y="66" width="14" height="26" rx="4" fill="rgba(255,255,255,0.08)"/>
@@ -392,7 +709,7 @@ function HeroPhone() {
       <div className="lp-phone-screen">
         <div className="dash-header">
           <div>
-            <div className="dash-eyebrow">// Tuesday, Push Day</div>
+            <div className="dash-eyebrow">Tuesday, Push Day</div>
             <div className="dash-h1">Welcome,<br/>Alex</div>
           </div>
           <div style={{display:'flex',gap:6,alignItems:'center'}}>
@@ -401,13 +718,13 @@ function HeroPhone() {
           </div>
         </div>
         <div className="dash-quote">
-          <div className="dash-quote-l">// Coach</div>
+          <div className="dash-quote-l">Coach</div>
           <div className="dash-quote-t"><strong>Push Day at 5pm.</strong> Carbs are up 65g — hit them in the next 2 meals to fuel the session.</div>
         </div>
         <div className="dash-session">
           <div className="dash-session-row">
             <div>
-              <div style={{fontFamily:'var(--mono)',fontSize:8,letterSpacing:'0.16em',color:'var(--red)',textTransform:'uppercase',marginBottom:5}}>// Today's Session · 5:00 PM</div>
+              <div style={{fontFamily:'var(--mono)',fontSize:8,letterSpacing:'0.16em',color:'var(--red)',textTransform:'uppercase',marginBottom:5}}>Today's Session · 5:00 PM</div>
               <div className="dash-session-title">Upper<br/>Hypertrophy A</div>
             </div>
             <div className="dash-session-tag">Ready</div>
@@ -417,15 +734,15 @@ function HeroPhone() {
             <div><div className="dash-stat-l">Est. Time</div><div className="dash-stat-v">58<span style={{fontSize:9,color:'rgba(245,245,240,0.55)',marginLeft:2}}>min</span></div></div>
             <div><div className="dash-stat-l">PRs Ready</div><div className="dash-stat-v" style={{color:'var(--red)'}}>2</div></div>
           </div>
-          <button className="dash-start-btn">▶ Start Session</button>
+          <button className="dash-start-btn" tabIndex={-1}>▶ Start Session</button>
         </div>
         <div className="dash-rings">
           <div className="dash-ring-card">
-            <div className="dash-ring-l">// Fuel Today</div>
+            <div className="dash-ring-l">Fuel Today</div>
             <div className="dash-ring-wrap">
               <svg width="76" height="76" viewBox="0 0 76 76" style={{transform:'rotate(-90deg)'}}>
                 <circle cx="38" cy="38" r="32" fill="none" stroke="rgba(245,245,240,0.06)" strokeWidth="6"/>
-                <circle cx="38" cy="38" r="32" fill="none" stroke="#e8341c" strokeWidth="6" strokeDasharray="86 201" strokeLinecap="round" style={{filter:'drop-shadow(0 0 4px #e8341c)'}}/>
+                <circle cx="38" cy="38" r="32" fill="none" stroke="#FF3B30" strokeWidth="6" strokeDasharray="86 201" strokeLinecap="round" style={{filter:'drop-shadow(0 0 4px #FF3B30)'}}/>
               </svg>
               <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
                 <div className="dash-ring-num">1,393</div>
@@ -435,7 +752,7 @@ function HeroPhone() {
             <div className="dash-ring-foot" style={{color:'#22c55e'}}>1,847 kcal left</div>
           </div>
           <div className="dash-ring-card">
-            <div className="dash-ring-l">// Train Week</div>
+            <div className="dash-ring-l">Train Week</div>
             <div className="dash-ring-wrap">
               <svg width="76" height="76" viewBox="0 0 76 76" style={{transform:'rotate(-90deg)'}}>
                 <circle cx="38" cy="38" r="32" fill="none" stroke="rgba(245,245,240,0.06)" strokeWidth="6"/>
@@ -452,7 +769,7 @@ function HeroPhone() {
         <div className="dash-week">
           {[
             {d:'M',l:'PULL',bg:'rgba(34,197,94,0.12)',bc:'rgba(34,197,94,0.3)',c:'#22c55e'},
-            {d:'T',l:'PUSH',bg:'rgba(232,52,28,0.18)',bc:'rgba(232,52,28,0.5)',c:'var(--red)'},
+            {d:'T',l:'PUSH',bg:'rgba(255,59,48,0.18)',bc:'rgba(255,59,48,0.5)',c:'var(--red)'},
             {d:'W',l:'PULL',bg:'#0f1628',bc:'rgba(245,245,240,0.08)',c:'rgba(245,245,240,0.6)'},
             {d:'T',l:'LEGS',bg:'#0f1628',bc:'rgba(245,245,240,0.08)',c:'rgba(245,245,240,0.6)'},
             {d:'F',l:'REST',bg:'rgba(245,245,240,0.04)',bc:'rgba(245,245,240,0.08)',c:'rgba(245,245,240,0.4)'},
@@ -473,21 +790,21 @@ function HeroPhone() {
 
 function HowSection() {
   const cards = [
-    {n:'01',step:'Step One',title:'Build Your Profile',body:<>Three minutes. 25 data points. We calculate your <strong>exact metabolic rate</strong> — 8% more accurate than standard equations. This is the foundation everything else builds on.</>},
-    {n:'02',step:'Step Two',title:'App Adapts Daily',body:<>Training day? <strong>Carbs go up.</strong> Rest day? Budget drops. Just finished a workout? Calories adjust in real time. Your plan changes before you even log your first meal.</>},
-    {n:'03',step:'Step Three',title:'Track Everything',body:<>Food. Lifts. Sets. PRs. Recovery. Progress. <strong>One place. One system.</strong> Finally. No more switching between apps that don't know the other exists.</>},
+    {n:'01',step:'Step One',title:'Tell it about you.',body:<>Day one or year ten — your goals and your real schedule. It builds around your life, <strong>not a template.</strong></>},
+    {n:'02',step:'Step Two',title:'Train and eat.',body:<>A photo, a scan, a tap — whatever's fastest. <strong>It does the connecting.</strong></>},
+    {n:'03',step:'Step Three',title:'It adjusts, forever.',body:<>Stronger, run-down, or a week off the rails — the plan moves with you. <strong>You never manage it.</strong></>},
   ];
   return (
     <section className="lp-how" id="how">
       <div style={{maxWidth:1280,margin:'0 auto 64px'}}>
-        <div className="lp-section-eyebrow">// Three Steps</div>
-        <h2 className="lp-section-title">The system.</h2>
+        <div className="lp-section-eyebrow">How it works</div>
+        <h2 className="lp-section-title fade-up">Set it up once.<br/>Then just <span className="accent">show up.</span></h2>
       </div>
       <div className="lp-how-grid">
         {cards.map(card => (
           <div className="lp-how-card fade-up" key={card.n}>
             <div className="lp-how-num">{card.n}</div>
-            <div className="lp-how-step">// {card.step}</div>
+            <div className="lp-how-step">{card.step}</div>
             <div className="lp-how-title">{card.title}</div>
             <div className="lp-how-body">{card.body}</div>
           </div>
@@ -507,8 +824,8 @@ function CompareSection() {
   return (
     <section className="lp-compare" id="compare">
       <div className="lp-compare-inner">
-        <div className="lp-section-eyebrow">// The Difference</div>
-        <h2 className="lp-section-title fade-up">How we<br/>stack up.</h2>
+        <div className="lp-section-eyebrow">How it compares</div>
+        <h2 className="lp-section-title fade-up">One deep app.<br/>Or five <span className="accent">open tabs.</span></h2>
         <table className="lp-compare-table">
           <thead>
             <tr>
@@ -549,7 +866,7 @@ function ScreenPhone({ eyebrow, title, headerRight, children }) {
       <div className="lp-sphone-body">
         <div className="lp-pscr-head">
           <div>
-            <div className="lp-pscr-eye">// {eyebrow}</div>
+            <div className="lp-pscr-eye">{eyebrow}</div>
             <div className="lp-pscr-h1">{title}</div>
           </div>
           {headerRight && <div style={{display:'flex',gap:6,alignItems:'center'}}>{headerRight}</div>}
@@ -577,23 +894,29 @@ function ScreensSection() {
   }, []);
 
   return (
+    // ⚠️ PLACEHOLDER SECTION — the phones below are hand-built SVG mockups, NOT real product
+    // screenshots. Treat like the hero phone image: swap in real /screens/*.png before any live
+    // deploy. Do NOT present these as actual app captures. Marked visibly below.
     <section className="lp-screens">
       <div className="lp-screens-head">
-        <div className="lp-section-eyebrow">// The Product</div>
-        <h2 className="lp-section-title">Built for athletes<br/>who <span className="accent">mean it.</span></h2>
+        <div className="lp-section-eyebrow">The Product</div>
+        <h2 className="lp-section-title fade-up">Built for athletes<br/>who <span className="accent">mean it.</span></h2>
+        <div style={{fontFamily:'var(--mono)',fontSize:11,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--red-text)',border:'1px solid var(--red-border)',borderRadius:6,padding:'8px 12px',display:'inline-block',marginTop:4}}>
+          Placeholder · representative UI — real screenshots pending
+        </div>
       </div>
 
       <div className="lp-featured fade-up">
         <div>
-          <div className="lp-feat-eye">// Featured · Restaurant AI</div>
+          <div className="lp-feat-eye">Featured · Restaurant AI</div>
           <div className="lp-feat-title">Order anything. Stay on plan.</div>
           <div className="lp-feat-body">Snap a menu. The AI tells you exactly what to order to hit your remaining macros. Works at 50,000+ chains and any photographed menu.</div>
           <div className="lp-ai-msg" style={{margin:0}}>
-            <div className="lp-ai-msg-l">// COACH ANALYSIS</div>
+            <div className="lp-ai-msg-l">COACH ANALYSIS</div>
             You're 44g of protein short. Order the grilled salmon — it's 42g. Skip the fries, get the side salad. Stays in budget.
           </div>
         </div>
-        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+        <div style={{display:'flex',flexDirection:'column',gap:8}} aria-hidden="true">
           <div style={{fontFamily:'var(--mono)',fontSize:10,letterSpacing:'0.16em',color:'var(--white-faint)',textTransform:'uppercase',marginBottom:4}}>Detected: Nobu Restaurant</div>
           {[
             {name:'Grilled Salmon',macros:'42P · 0C · 18F',go:true},
@@ -602,7 +925,7 @@ function ScreensSection() {
             {name:'Side Salad',macros:'2P · 6C · 8F',go:true},
             {name:'Truffle Fries',macros:'6P · 58C · 22F',go:false},
           ].map(f => (
-            <div key={f.name} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',background:f.go?'rgba(0,230,118,0.04)':'rgba(255,255,255,0.02)',border:`1px solid ${f.go?'rgba(0,230,118,0.15)':'var(--white-border)'}`,borderRadius:10,opacity:f.go?1:0.5}}>
+            <div key={f.name} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',background:f.go?'rgba(0,230,118,0.04)':'var(--bg-card)',border:`1px solid ${f.go?'rgba(0,230,118,0.15)':'var(--white-border)'}`,borderRadius:10,opacity:f.go?1:0.5}}>
               <div style={{display:'flex',alignItems:'center',gap:10}}>
                 <span style={{color:f.go?'#00E676':'var(--white-faint)',fontFamily:'var(--mono)',fontSize:14}}>{f.go?'✓':'✕'}</span>
                 <span style={{fontSize:13,color:'var(--white)'}}>{f.name}</span>
@@ -613,13 +936,13 @@ function ScreensSection() {
         </div>
       </div>
 
-      <div className="lp-scroll" ref={scrollRef}>
+      <div className="lp-scroll" ref={scrollRef} aria-hidden="true">
         <ScreenPhone eyebrow="Fuel · Tuesday" title={<>Today's<br/>Plate</>} headerRight={<div style={{padding:'4px 8px',background:'rgba(34,197,94,0.18)',borderRadius:5,fontFamily:'var(--mono)',fontSize:8,letterSpacing:'0.12em',color:'#22c55e',textTransform:'uppercase'}}>On Track</div>}>
           <div style={{padding:'4px 18px 14px'}}>
             <div style={{position:'relative',margin:'8px auto 14px',width:160,height:160}}>
               <svg width="160" height="160" viewBox="0 0 160 160" style={{transform:'rotate(-90deg)'}}>
                 <circle cx="80" cy="80" r="64" fill="none" stroke="rgba(245,245,240,0.06)" strokeWidth="10"/>
-                <circle cx="80" cy="80" r="64" fill="none" stroke="#e8341c" strokeWidth="10" strokeDasharray="173 402" strokeLinecap="round" style={{filter:'drop-shadow(0 0 8px #e8341c)'}}/>
+                <circle cx="80" cy="80" r="64" fill="none" stroke="#FF3B30" strokeWidth="10" strokeDasharray="173 402" strokeLinecap="round" style={{filter:'drop-shadow(0 0 8px #FF3B30)'}}/>
               </svg>
               <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
                 <div style={{fontFamily:'var(--mono)',fontSize:8,letterSpacing:'0.16em',color:'rgba(245,245,240,0.55)',textTransform:'uppercase',marginBottom:4}}>Eaten</div>
@@ -645,7 +968,7 @@ function ScreensSection() {
           </div>
         </ScreenPhone>
 
-        <ScreenPhone eyebrow="Train · Push Day" title={<>Upper<br/>Hyper. A</>} headerRight={<div style={{padding:'4px 8px',background:'rgba(232,52,28,0.18)',borderRadius:5,fontFamily:'var(--mono)',fontSize:8,letterSpacing:'0.12em',color:'var(--red)',textTransform:'uppercase'}}>Wk 6 · D2</div>}>
+        <ScreenPhone eyebrow="Train · Push Day" title={<>Upper<br/>Hyper. A</>} headerRight={<div style={{padding:'4px 8px',background:'rgba(255,59,48,0.18)',borderRadius:5,fontFamily:'var(--mono)',fontSize:8,letterSpacing:'0.12em',color:'var(--red)',textTransform:'uppercase'}}>Wk 6 · D2</div>}>
           <div style={{padding:'4px 18px 14px'}}>
             <div style={{display:'flex',justifyContent:'center',margin:'4px 0 10px'}}><MuscleMini/></div>
             <div style={{display:'flex',flexDirection:'column',gap:6}}>
@@ -660,18 +983,18 @@ function ScreensSection() {
                   <span style={{fontFamily:'var(--mono)',fontSize:8,color:'var(--red)',width:14}}>{String(i+1).padStart(2,'0')}</span>
                   <span style={{flex:1,fontSize:11,color:'var(--white)',fontWeight:500}}>{e.name}</span>
                   <span style={{fontFamily:'var(--mono)',fontSize:9,color:'rgba(245,245,240,0.55)'}}>{e.sets}</span>
-                  {e.tag && <span style={{fontFamily:'var(--mono)',fontSize:8,color:e.tagC,padding:'2px 5px',background:e.tagC==='var(--red)'?'rgba(232,52,28,0.18)':'rgba(34,197,94,0.18)',borderRadius:4,letterSpacing:'0.08em'}}>{e.tag}</span>}
+                  {e.tag && <span style={{fontFamily:'var(--mono)',fontSize:8,color:e.tagC,padding:'2px 5px',background:e.tagC==='var(--red)'?'rgba(255,59,48,0.18)':'rgba(34,197,94,0.18)',borderRadius:4,letterSpacing:'0.08em'}}>{e.tag}</span>}
                 </div>
               ))}
             </div>
           </div>
         </ScreenPhone>
 
-        <ScreenPhone eyebrow="Active · Set 3 of 4" title="Bench Press" headerRight={<div style={{display:'flex',alignItems:'center',gap:5,padding:'4px 8px',background:'rgba(232,52,28,0.18)',borderRadius:5,border:'1px solid rgba(232,52,28,0.4)'}}><span style={{width:5,height:5,borderRadius:'50%',background:'var(--red)',boxShadow:'0 0 6px var(--red)',animation:'lp-pulse 1.5s infinite'}}/><span style={{fontFamily:'var(--mono)',fontSize:8,color:'var(--white)',letterSpacing:'0.1em'}}>LIVE</span></div>}>
+        <ScreenPhone eyebrow="Active · Set 3 of 4" title="Bench Press" headerRight={<div style={{display:'flex',alignItems:'center',gap:5,padding:'4px 8px',background:'rgba(255,59,48,0.18)',borderRadius:5,border:'1px solid rgba(255,59,48,0.4)'}}><span style={{width:5,height:5,borderRadius:'50%',background:'var(--red)',boxShadow:'0 0 6px var(--red)',animation:'lp-pulse 1.5s infinite'}}/><span style={{fontFamily:'var(--mono)',fontSize:8,color:'var(--white)',letterSpacing:'0.1em'}}>LIVE</span></div>}>
           <div style={{padding:'4px 18px 14px'}}>
             <div style={{textAlign:'center',padding:'14px 0 16px',borderBottom:'1px solid rgba(245,245,240,0.06)',marginBottom:14}}>
               <div style={{fontFamily:'var(--mono)',fontSize:9,color:'rgba(245,245,240,0.55)',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:6}}>Target</div>
-              <div style={{fontFamily:'var(--condensed)',fontStyle:'italic',fontWeight:900,fontSize:48,color:'var(--white)',lineHeight:1,textShadow:'0 0 14px rgba(232,52,28,0.4)'}}>100<span style={{fontSize:24,color:'rgba(245,245,240,0.55)',fontStyle:'normal'}}>kg</span> × 8</div>
+              <div style={{fontFamily:'var(--condensed)',fontStyle:'italic',fontWeight:900,fontSize:48,color:'var(--white)',lineHeight:1,textShadow:'0 0 14px rgba(255,59,48,0.4)'}}>100<span style={{fontSize:24,color:'rgba(245,245,240,0.55)',fontStyle:'normal'}}>kg</span> × 8</div>
               <div style={{fontFamily:'var(--mono)',fontSize:9,color:'#22c55e',marginTop:6,letterSpacing:'0.1em'}}>RPE 8.0 · 1RM est. 127kg</div>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
@@ -682,7 +1005,7 @@ function ScreensSection() {
                 </div>
               ))}
             </div>
-            <button style={{width:'100%',padding:12,background:'var(--red)',color:'var(--white)',border:'none',borderRadius:10,fontFamily:'var(--condensed)',fontWeight:700,fontSize:13,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer'}}>Log Set ✓</button>
+            <button tabIndex={-1} style={{width:'100%',padding:12,background:'var(--red)',color:'var(--white)',border:'none',borderRadius:10,fontFamily:'var(--condensed)',fontWeight:700,fontSize:13,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer'}}>Log Set ✓</button>
             <div style={{marginTop:10,textAlign:'center',fontFamily:'var(--mono)',fontSize:9,color:'rgba(245,245,240,0.45)',letterSpacing:'0.1em'}}>Rest timer · 1:42 / 2:30</div>
           </div>
         </ScreenPhone>
@@ -696,7 +1019,7 @@ function ScreensSection() {
               </div>
               <div style={{display:'flex',alignItems:'flex-end',gap:3,height:78}}>
                 {[40,52,48,60,55,68,75,82,78,88,92,95].map((h,i) => (
-                  <div key={i} style={{flex:1,height:`${h}%`,background:i>8?'#e8341c':'rgba(232,52,28,0.35)',borderRadius:'2px 2px 0 0',boxShadow:i>8?'0 0 6px #e8341c':'none'}}/>
+                  <div key={i} style={{flex:1,height:`${h}%`,background:i>8?'#FF3B30':'rgba(255,59,48,0.35)',borderRadius:'2px 2px 0 0',boxShadow:i>8?'0 0 6px #FF3B30':'none'}}/>
                 ))}
               </div>
             </div>
@@ -718,13 +1041,13 @@ function ScreensSection() {
           <div style={{padding:'4px 18px 14px'}}>
             <div style={{textAlign:'center',padding:'10px 0 16px'}}>
               <div style={{fontFamily:'var(--mono)',fontSize:9,color:'rgba(245,245,240,0.55)',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:6}}>Total Daily Burn</div>
-              <div style={{fontFamily:'var(--condensed)',fontStyle:'italic',fontWeight:900,fontSize:44,color:'var(--red)',lineHeight:1,textShadow:'0 0 16px rgba(232,52,28,0.5)'}}>3,240</div>
+              <div style={{fontFamily:'var(--condensed)',fontStyle:'italic',fontWeight:900,fontSize:44,color:'var(--red)',lineHeight:1,textShadow:'0 0 16px rgba(255,59,48,0.5)'}}>3,240</div>
               <div style={{fontFamily:'var(--mono)',fontSize:9,color:'rgba(245,245,240,0.55)',marginTop:4}}>kcal · adjusted for Push Day</div>
             </div>
             {[
               {l:'BMR',v:'1,820',pct:56,c:'rgba(245,245,240,0.45)'},
               {l:'NEAT',v:'520',pct:16,c:'#60a5fa'},
-              {l:'Workout',v:'632',pct:20,c:'#e8341c'},
+              {l:'Workout',v:'632',pct:20,c:'#FF3B30'},
               {l:'TEF (Food)',v:'268',pct:8,c:'#fbbf24'},
             ].map(r => (
               <div key={r.l} style={{marginBottom:11}}>
@@ -745,40 +1068,345 @@ function ScreensSection() {
   );
 }
 
-function ProofSection() {
+// ── SOLUTION — the two-way food↔training sync, framed as outcome ──────────────
+// Scroll-driven two-way sync: scrubs with scroll position (forward/back). Stage A =
+// workout adjusts your food (numbers climb); Stage B = recovery eases tomorrow's training.
+// Transform/opacity + textContent only (GPU-friendly), one rAF-throttled scroll handler.
+// Reduced-motion → static final synced state, no scrubbing.
+function SolutionSection() {
+  const trackRef = useRef(null);
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const q = s => track.querySelector(s);
+    const l1 = q('#sx-l1'), l2 = q('#sx-l2');
+    const len1 = l1.getTotalLength(), len2 = l2.getTotalLength();
+    l1.style.strokeDasharray = len1; l2.style.strokeDasharray = len2;
+    const caps = track.querySelectorAll('[data-cap]');
+
+    const cl = t => t < 0 ? 0 : t > 1 ? 1 : t;
+    const ease = t => { t = cl(t); return t*t*(3-2*t); };
+    const seg = (p, a, b) => ease((p - a) / (b - a));
+    const band = (p, a, b, c, d) => Math.max(0, Math.min(ease((p-a)/(b-a)), ease((d-p)/(d-c))));
+    const setPulse = (dot, path, len, t, vis) => {
+      const pt = path.getPointAtLength(cl(t) * len);
+      dot.setAttribute('transform', `translate(${pt.x.toFixed(1)} ${pt.y.toFixed(1)})`);
+      dot.style.opacity = vis;
+    };
+    const render = (p) => {
+      const intro = seg(p, 0, 0.12);
+      const A = seg(p, 0.16, 0.48);      // workout → food
+      const recIn = seg(p, 0.44, 0.56);
+      const B = seg(p, 0.56, 0.86);      // recovery → training
+      // cards intro
+      const train = q('[data-card="train"]'), fuel = q('[data-card="fuel"]'), recov = q('[data-card="recov"]');
+      train.style.opacity = intro; train.style.transform = `translateY(${(1-intro)*22}px)`;
+      fuel.style.opacity = intro;  fuel.style.transform = `translateY(${(1-intro)*22}px)`;
+      recov.style.opacity = recIn; recov.style.transform = `translateY(${(1-recIn)*18}px)`;
+      // stage A — train logs, pulse flows, food climbs
+      q('[data-log]').style.opacity = seg(p, 0.16, 0.24);
+      l1.style.strokeDashoffset = (1 - A) * len1;
+      setPulse(q('[data-pulse="1"]'), l1, len1, A, (A > 0.03 && A < 0.985) ? 1 : 0);
+      q('[data-num="cal"]').textContent = Math.round(2400 + 500 * A).toLocaleString();
+      q('[data-num="carb"]').textContent = Math.round(240 + 65 * A);
+      q('[data-bar="carb"]').style.transform = `scaleX(${(0.55 + 0.35 * A).toFixed(3)})`;
+      q('[data-delta]').style.opacity = A;
+      // stage B — recovery eases tomorrow's training
+      l2.style.strokeDashoffset = (1 - B) * len2;
+      setPulse(q('[data-pulse="2"]'), l2, len2, B, (B > 0.03 && B < 0.985) ? 1 : 0);
+      q('[data-bar="load"]').style.transform = `scaleX(${(1 - 0.34 * B).toFixed(3)})`;
+      q('[data-eased]').style.opacity = B;
+      // captions crossfade
+      caps[0].style.opacity = band(p, 0, 0.02, 0.13, 0.19);
+      caps[1].style.opacity = band(p, 0.17, 0.25, 0.46, 0.53);
+      caps[2].style.opacity = band(p, 0.55, 0.63, 0.83, 0.89);
+      caps[3].style.opacity = band(p, 0.87, 0.93, 1.2, 1.4);
+    };
+
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { track.classList.add('is-static'); render(1); return; }
+
+    let raf = null;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = null;
+        const total = track.offsetHeight - window.innerHeight;
+        const p = cl(-track.getBoundingClientRect().top / Math.max(1, total));
+        render(p);
+      });
+    };
+    render(0);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, []);
+
   return (
-    <section className="lp-proof">
-      <div style={{maxWidth:1280,margin:'0 auto 64px'}}>
-        <div className="lp-section-eyebrow">// Athlete Results</div>
-        <h2 className="lp-section-title fade-up">The numbers<br/>don't lie.</h2>
+    <section className="lp-solution" id="solution">
+      <div className="lp-solution-inner">
+        <div className="lp-section-eyebrow">The difference</div>
+        <h2 className="lp-section-title fade-up">Everyone connects them now.<br/>Almost no one <span className="accent">goes deep.</span></h2>
+        <p className="lp-solution-lead fade-up">"Connected" is table stakes in 2026. The hard part — the part most all-in-ones quietly skip — is being genuinely good at each piece once you've connected them.</p>
       </div>
-      <div className="lp-proof-stats">
-        {[
-          {label:'Founding member access'},
-          {num:'12',suffix:'wk',label:'data window per profile'},
-          {num:'$0',red:true,label:'charged in trial · ever'},
-        ].map((s, i) => (
-          <div className="lp-proof-stat fade-up" key={i}>
-            <div className="lp-proof-num">
-              <span className={s.red?'red':''}>{s.num}</span>
-              {s.suffix && <span style={{fontSize:'0.5em',color:'var(--red)'}}>{s.suffix}</span>}
+
+      <div className="lp-syncx" ref={trackRef} aria-hidden="true">
+        <div className="lp-syncx-sticky">
+          <div className="lp-syncx-caps">
+            <div className="lp-syncx-cap" data-cap>Two systems. Watch them talk.</div>
+            <div className="lp-syncx-cap" data-cap>Your heavy day just earned <span className="red">more food.</span></div>
+            <div className="lp-syncx-cap" data-cap>And recovery <span className="red">eases tomorrow.</span></div>
+            <div className="lp-syncx-cap" data-cap>One system. <span className="red">Everything talks.</span></div>
+          </div>
+          <div className="lp-syncx-stage">
+            <svg viewBox="0 0 900 480" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+              <path id="sx-l1" className="lp-sx-link" d="M 300 150 Q 460 92 588 128"/>
+              <path id="sx-l2" className="lp-sx-link" d="M 452 312 Q 300 300 196 232"/>
+              <circle className="lp-sx-pulse" data-pulse="1" r="5.5"/>
+              <circle className="lp-sx-pulse" data-pulse="2" r="4.5"/>
+            </svg>
+            <div className="lp-sx-card" data-card="train" style={{ left: '2%', top: '13%', width: '31%' }}>
+              <div className="lp-sx-eyebrow">Training · Today</div>
+              <div className="lp-sx-title">Heavy<br/>Leg Day</div>
+              <div className="lp-sx-row"><span>Load</span><span className="v">Hard</span></div>
+              <div className="lp-sx-track"><div className="lp-sx-bar" data-bar="load"/></div>
+              <div><span className="lp-sx-badge" data-log>✓ Logged</span></div>
+              <div><span className="lp-sx-tag" data-eased>Tomorrow: eased</span></div>
             </div>
-            <div className="lp-proof-lbl">{s.label}</div>
+            <div className="lp-sx-card hero" data-card="fuel" style={{ left: '64%', top: '6%', width: '34%' }}>
+              <div className="lp-sx-eyebrow">Fuel · Today's target</div>
+              <div className="lp-sx-row"><span>Calories</span><span className="v" data-num="cal">2,400</span></div>
+              <div className="lp-sx-row"><span>Carbs</span><span className="v"><span data-num="carb">240</span>g</span></div>
+              <div className="lp-sx-track"><div className="lp-sx-bar" data-bar="carb"/></div>
+              <div className="lp-sx-row"><span>Protein</span><span className="v">190g</span></div>
+              <div className="lp-sx-delta" data-delta>+500 kcal · +65g carbs — from today's session</div>
+            </div>
+            <div className="lp-sx-card" data-card="recov" style={{ left: '33%', top: '62%', width: '34%' }}>
+              <div className="lp-sx-eyebrow">Recovery · Last night</div>
+              <div className="lp-sx-title">Sleep short. HRV down.</div>
+            </div>
           </div>
-        ))}
+          <div className="lp-syncx-note">Scroll — the systems talk in real time.</div>
+        </div>
       </div>
-      <div className="lp-testi-grid">
-        {[
-          {text:"I've been using MyFitnessPal for 4 years. This is what MFP should have been the whole time. My macros actually match what I'm doing in the gym.",name:'Marcus T.',role:'Powerlifter · 4 years training'},
-          {text:"Training for Hyrox. Calorie adjustment on hard run days vs strength days is the exact thing I needed. I'm not underfueling for the first time in two years.",name:'Jess L.',role:'Hyrox Athlete · 3x finisher'},
-          {text:"The muscle recovery map made me realize I was training the same muscles three days in a row. My progress exploded once I actually programmed around recovery.",name:'Ryan K.',role:'Hybrid Athlete · 5 days/wk'},
-        ].map(t => (
-          <div className="lp-testi fade-up" key={t.name}>
-            <div className="lp-testi-text">"{t.text}"</div>
-            <div className="lp-testi-name">{t.name}</div>
-            <div className="lp-testi-role">{t.role}</div>
+
+      <div className="lp-solution-inner">
+        <p className="lp-solution-lead">So: your heavy day earns you more food, automatically. Your trashed legs won't get a brutal session stacked on them. Your run paces come from your actual fitness, not a generic chart. And you get a coach that actually fits you — a nervous beginner and a seasoned lifter don't need the same voice, so some days it's encouragement, and some days it pushes you harder than you'd push yourself. <strong>Real depth, on every side</strong> — not "good enough for one app."</p>
+        <p className="lp-solution-lead" style={{ marginTop: 20 }}>You've been told you have to choose: everything in one place, or everything done well. <strong>You don't.</strong></p>
+      </div>
+    </section>
+  );
+}
+
+// ── TRUST / EVIDENCE — verified peer-reviewed stat bubbles only. ──────────────
+// ⚠️ NO fabricated testimonials, star counts, or install numbers. Every claim below
+// is traced to a real source (see onboarding-stat-bubbles-verified.md) and framed to
+// match what the study actually found. Real peer testimonials slot into the commented
+// region at the bottom once we have consented, verifiable users.
+function TrustSection() {
+  const evidence = [
+    { claim: "People following a structured, guided program see significantly greater gains in strength and physical function than those training on their own.",
+      src: "Peer-reviewed · Meta-analysis", cite: "Gómez-Redondo et al., Sports Medicine (2024). 34 RCTs, n=2,830.",
+      stat: { to: 2830, label: "participants across 34 studies" } },
+    { claim: "Across decades of studies, the people who consistently track what they eat lose more weight than those who don't. Tracking isn't busywork — it's the strongest predictor of success.",
+      src: "Peer-reviewed · Systematic review", cite: "Burke et al., J. Am. Diet. Assoc. (2011)." },
+    { claim: "In one study, people who logged more frequently lost noticeably more weight — the habit of logging, not the perfect diet, tracked with success.",
+      src: "Peer-reviewed · Clinical trial", cite: "Harvey et al., Obesity (2019). n=142." },
+  ];
+  return (
+    <section className="lp-trust" id="evidence">
+      <div className="lp-trust-inner">
+        <div className="lp-section-eyebrow">The evidence</div>
+        <h2 className="lp-section-title fade-up">This isn't<br/>a <span className="accent">hunch.</span></h2>
+        <p className="lp-lede fade-up">The approach is built on what the research keeps showing — about training with structure, and about what actually makes it stick.</p>
+        <div className="lp-evidence-grid">
+          {evidence.map((e,i) => (
+            <div className="lp-evidence fade-up" key={i}>
+              {e.stat && (
+                <div className="lp-evidence-stat"><CountUp to={e.stat.to}/><span className="lp-evidence-stat-lbl">{e.stat.label}</span></div>
+              )}
+              <div className="lp-evidence-claim">{e.claim}</div>
+              <div className="lp-evidence-cite"><span className="src">{e.src}</span>{e.cite}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ───────────────────────────────────────────────────────────────────────
+            REAL PEER TESTIMONIALS SLOT IN HERE — do NOT fabricate.
+            When we have verified users (real name, role, and ideally a photo or
+            consented before/after), render them as a `.lp-testi-grid` of `.lp-testi`
+            cards right below this comment (those styles already exist and are unused).
+            Until then this region stays empty BY DESIGN. No invented quotes, no star
+            counts, no "trusted by N" numbers. A fabricated claim in a health product
+            is a credibility + liability risk.
+            ─────────────────────────────────────────────────────────────────────── */}
+      </div>
+    </section>
+  );
+}
+
+// ── FEATURE DUMP — "everything it does" value-overwhelm before pricing. ───────
+// Curated from feature-dump-section.md. Honesty-checked against the real shipped
+// features (no gated/stubbed overclaims): "hundreds" of recipes (not 299), no
+// Garmin/Whoop, food vision "checks itself against a nutrition database", personas
+// selectable via settings. Links to the full /features page.
+const DUMP_GROUPS = [
+  { label: "The Nutrition Brain", items: [
+    { lead: "Photograph your plate.", body: "It identifies the food, estimates the portions, and checks itself against a nutrition database — so logging a meal takes a photo, not a search." },
+    { lead: "Your macros move with your training.", body: "Train hard today and your targets adjust — more fuel on heavy days, less on rest days. You don't recalculate anything." },
+    { lead: "Eating out? It finds your best options.", body: "Tell it where you're going and it works out what fits your day — the meals, the macros, the smart swaps — so a restaurant isn't the thing that derails you." },
+    { lead: "Hundreds of guided recipes", body: "with step-by-step cooking mode, batch-prep plans, and grocery lists grouped by aisle." },
+  ]},
+  { label: "The Training Engine", items: [
+    { lead: "Programs built for how you actually train", body: "— strength, running, hybrid, or Hyrox — not a generic template." },
+    { lead: "Progression that thinks.", body: "It tracks your lifts and adjusts the load as you get stronger, so you're always training at the right weight." },
+    { lead: "A week editor that respects your life", body: "— move your training days around and it keeps the plan sound instead of breaking." },
+  ]},
+  { label: "The Run Engine", items: [
+    { lead: "Real pace zones from your actual fitness", body: "— easy days stay easy, hard days are calibrated to you, so you train the right way instead of guessing." },
+    { lead: "It won't stack a hard run on tired legs.", body: "If yesterday hammered your quads, today's run adjusts — because that's how you avoid injury and actually improve." },
+    { lead: "Race predictions grounded in your real runs", body: "— honest projections, not fantasy numbers." },
+  ]},
+  { label: "Recovery Intelligence", items: [
+    { lead: "One recovery score from the whole picture", body: "— it reads your sleep, your heart-rate variability, and your training load together, so you know when to push and when to back off." },
+    { lead: "The coach knows when you're fried.", body: "On the days your body needs rest, it tells you — because the strongest move is sometimes not training." },
+  ]},
+  { label: "The Coach", items: [
+    { lead: "A coach that adapts to you", body: "— gentle and encouraging, straight and steady, or no-excuses intense. You choose the voice that actually helps you." },
+    { lead: "It speaks to your day, not a script", body: "— a good week, a rough patch, a personal best, a plateau. It notices, and it says the right thing." },
+    { lead: "Everything connects.", body: "Your training shapes your nutrition. Your recovery shapes your training. One system, working together — so you're not the one holding it all in your head." },
+  ]},
+];
+
+function FeatureDumpSection() {
+  return (
+    <section className="lp-dump" id="everything">
+      <div className="lp-dump-inner">
+        <div className="lp-section-eyebrow">Everything it does</div>
+        <h2 className="lp-section-title fade-up">The part other<br/>apps <span className="accent">skip.</span></h2>
+        <p className="lp-dump-sub fade-up">Connecting things is easy. Being deep on all of them is the work. Here's the work.</p>
+        <div className="lp-dump-grid">
+          {DUMP_GROUPS.map(g => (
+            <div className="lp-dump-group fade-up" key={g.label}>
+              <h3 className="lp-dump-group-label">{g.label}</h3>
+              <div className="lp-dump-list">
+                {g.items.map((it, i) => (
+                  <div className="lp-dump-item" key={i}><span><strong>{it.lead}</strong> {it.body}</span></div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="lp-dump-close fade-up">
+          <div className="lp-dump-close-line">And that's the short version.</div>
+          <a className="lp-dump-link" href="/features">See the full feature list →</a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── "WORKS WITH" trust strip — Apple Health + Strava (both live integrations). ──
+// ⚠️ COMPLIANCE: official brand assets required BEFORE DEPLOY. Do NOT recreate the Apple
+// Health icon (Apple trademark) — drop in Apple's downloadable "Works with Apple Health"
+// badge per Apple's marketing guidelines. Same for Strava's mark per the Strava Brand
+// Guidelines. The wording below ("Works with Apple Health" / "Compatible with Strava") is
+// each vendor's APPROVED phrasing; only the icon artwork must be their own asset.
+function WorksWithSection() {
+  return (
+    <section className="lp-works">
+      <div className="lp-works-eyebrow">Works with</div>
+      <div className="lp-works-row fade-up">
+        <div className="lp-works-badge">Works with <strong>Apple&nbsp;Health</strong></div>
+        <div className="lp-works-badge">Compatible with <strong>Strava</strong></div>
+      </div>
+    </section>
+  );
+}
+
+// ── PRICING — trial-led, annual anchored vs monthly, one plan emphasized ──────
+function PricingSection({ onStart }) {
+  return (
+    <section className="lp-pricing" id="pricing">
+      <div className="lp-pricing-inner">
+        <div className="lp-section-eyebrow">Pricing</div>
+        <h2 className="lp-section-title fade-up">One price.<br/>Nothing <span className="accent">locked.</span></h2>
+        <p className="lp-lede fade-up">No tiers, no upsells, no paying five apps to do what one should. Free for 7 days.</p>
+
+        <div className="lp-vs fade-up">
+          <div className="lp-vs-head">One app. Less than any single piece costs on its own.</div>
+          <div className="lp-vs-sub">Every one of those apps does a slice of it. Coach Macro does all of it — for less than the cheapest single-purpose one.</div>
+          <div className="lp-vs-list">
+            {[
+              {name:'RP Strength', cat:'Training only', price:'$34.99'},
+              {name:'STNDRD',       cat:'Training only', price:'~$15'},
+              {name:'Runna',        cat:'Running only',  price:'~$18'},
+              {name:'MacroFactor',  cat:'Nutrition only', price:'$11.99'},
+            ].map(a => (
+              <div className="lp-vs-row" key={a.name}>
+                <span className="lp-vs-name">{a.name}<span className="lp-vs-cat">{a.cat}</span></span>
+                <span className="lp-vs-price">{a.price}<span>/mo</span></span>
+              </div>
+            ))}
+            <div className="lp-vs-row cm">
+              <span className="lp-vs-name">→ Coach Macro<span className="lp-vs-cat">All of it</span></span>
+              <span className="lp-vs-price">$12.99<span>/mo</span></span>
+            </div>
           </div>
-        ))}
+          <div className="lp-vs-foot">Competitor prices as of July 2026; check each app for current pricing.</div>
+        </div>
+
+        <div className="lp-price-grid">
+          <div className="lp-price-card fade-up">
+            <div className="lp-price-plan">Monthly</div>
+            <div className="lp-price-amt"><CountUp to={12.99} decimals={2} prefix="$"/><span className="per">/mo</span></div>
+            <div className="lp-price-eff">Billed monthly</div>
+            <ul className="lp-price-list">
+              <li>Every feature in Coach Macro</li>
+              <li>Adaptive macros + training</li>
+              <li>AI coach, morning brief & photo logging</li>
+              <li>Cancel anytime</li>
+            </ul>
+            <button className="lp-price-btn ghost" onClick={onStart}>Start Free Trial</button>
+          </div>
+          <div className="lp-price-card featured fade-up">
+            <div className="lp-price-badge">Most Popular · Save <CountUp to={68} suffix="%"/></div>
+            <div className="lp-price-plan">Annual</div>
+            <div className="lp-price-amt"><CountUp to={49.99} decimals={2} prefix="$"/><span className="per">/yr</span></div>
+            <div className="lp-price-eff">Just <CountUp to={4.17} decimals={2} prefix="$"/>/mo — billed yearly</div>
+            <ul className="lp-price-list">
+              <li>Everything in Monthly</li>
+              <li>Two-thirds off the month-to-month price</li>
+              <li>Locked-in founding rate</li>
+              <li>Cancel anytime</li>
+            </ul>
+            <button className="lp-price-btn" data-tilt onClick={onStart}>Start Your 7-Day Free Trial <span className="arrow">→</span></button>
+          </div>
+        </div>
+        <div className="lp-price-fine">
+          {/* ⚠️ AUTO-RENEWAL DISCLOSURE — placeholder copy; billing/legal must finalize the exact
+              wording (and the card-step disclosure) before this goes live. */}
+          7 days free, then your plan renews automatically ($12.99/mo or $49.99/yr) unless you cancel at least 24 hours before the trial ends. Manage or cancel anytime in your account settings.
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── FINAL CTA — restate the offer, one button, minimal escape routes ──────────
+function FinalCtaSection({ onStart }) {
+  return (
+    <section className="lp-sign" id="start">
+      <div className="lp-sign-lockup fade-up">
+        <img className="lp-sign-logo" src="/coach-macro-logo.png" alt=""/>
+        <h2 className="lp-sign-lines">
+          <span className="lp-sign-l1">You show up.</span>
+          <span className="lp-sign-l2">We keep up.</span>
+        </h2>
+      </div>
+      <div className="lp-sign-cta fade-up">
+        <button className="lp-sign-link" onClick={onStart}>Start your 7-day free trial →</button>
+        <div className="lp-sign-fine">then $12.99/mo or $49.99/yr · cancel anytime</div>
       </div>
     </section>
   );
@@ -789,17 +1417,17 @@ function FaqSection() {
   const faqs = [
     {q:'How is this different from just using MyFitnessPal and a workout app together?',a:"Those apps run in isolation. Coach Macro's intelligence sits in the connection — when you log a workout, your macros change automatically. When you're in a deficit, your training load adjusts. No manual re-entry. No guesswork. One system that knows the full picture."},
     {q:'Do I need to be advanced to use this?',a:"Not at all. Whether you're just starting your fitness journey or you've been training for years, Coach Macro adapts to where you are. The system handles the complex math behind the scenes — you just log your meals and workouts, and we do the rest. No PhD in nutrition required."},
-    {q:'How accurate is the metabolic rate calculation?',a:"We use 25 data inputs — body composition estimates, training history, activity patterns, and biometric data — to build a metabolic profile that is 8% more accurate than standard equations like Harris-Benedict or Mifflin-St Jeor. This compounds over time as the model learns your patterns."},
+    {q:'How accurate is the metabolic rate calculation?',a:"Instead of dropping you into a one-size-fits-all formula, it builds your metabolic profile from your body stats, your training history, your activity, and your biometrics — and keeps refining it as it learns your patterns. The point isn't a magic number; it's a target that's actually tuned to you, and gets sharper the longer you use it."},
     {q:'What does "training day adjustment" actually mean?',a:"On a training day, your carbohydrate targets increase proportionally to session volume and intensity. After you log a completed workout, your remaining calorie and carb budgets update in real time. Rest days have a reduced carb and calorie target. It's automatic — you don't touch a setting."},
-    {q:'Does it work for runners and endurance athletes, or just lifters?',a:"Both. The system handles volume-based endurance work the same way it handles resistance training. Hybrid athletes and Hyrox competitors are some of our most active users."},
-    {q:'Can I connect my wearable or smartwatch?',a:"Garmin, Whoop, Apple Watch, and Polar integrations are in active development. For now, the app uses manual session logging and its own METs-based energy calculation. Integration with wearables will make the system even more accurate when available."},
+    {q:'Does it work for runners and endurance athletes, or just lifters?',a:"Both — and that's the whole idea. Running, hybrid, and Hyrox get the same depth as lifting: real pace zones from your own fitness, mileage that ramps safely, and recovery that keeps a hard run off tired legs. Endurance isn't an afterthought bolted onto a lifting app."},
+    {q:'Can I connect my wearable or smartwatch?',a:"Apple Health and Strava connect today — your sleep, heart-rate variability, steps, and activities flow straight in, and your workouts sync back out. Garmin, Whoop, and more are on the way. Until then, a quick manual log works everywhere, with the app's own energy calculation behind it."},
     {q:'What happens after the 7-day trial?',a:"You choose a plan or you stop. No charge, no dark patterns. If you want to continue, you select monthly or annual. If not, your account downgrades to read-only — your data stays, you just can't log new entries."},
     {q:'Is my data private?',a:"Your data is never sold. Never shared with third parties. We use it only to run your personalized model. You can export or delete everything at any time from within the app."},
   ];
   return (
     <section className="lp-faq" id="faq">
-      <div className="lp-section-eyebrow">// FAQ</div>
-      <h2 className="lp-section-title fade-up">Got questions.</h2>
+      <div className="lp-section-eyebrow">Questions</div>
+      <h2 className="lp-section-title fade-up">Fair <span className="accent">questions.</span></h2>
       <div className="lp-faq-list">
         {faqs.map((f,i) => (
           <div className={`lp-faq-item${open===i?' open':''}`} key={i}>
@@ -815,75 +1443,20 @@ function FaqSection() {
   );
 }
 
-function WaitlistSection() {
-  const [firstName, setFirstName] = useState('');
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState('');
-
-  // Counter animation removed — no fake social proof numbers.
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!email) return;
-    setLoading(true);
-    setError('');
-    try {
-      const res = await fetch('/api/waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, firstName }),
-      });
-      if (res.ok) {
-        setSubmitted(true);
-      } else {
-        const d = await res.json().catch(()=>({}));
-        if (res.status === 429) setError('Too many sign-up attempts. Please wait a few minutes and try again.');
-        else setError(d.error || 'Unable to join waitlist right now. Please try again.');
-      }
-    } catch {
-      setError('No connection. Check your internet and try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <section className="lp-waitlist" id="waitlist">
-      <div className="lp-waitlist-inner">
-        {submitted ? (
-          <div style={{padding:'48px 32px',background:'rgba(255,255,255,0.02)',border:'1px solid var(--red-border-strong)',borderRadius:14,boxShadow:'0 0 60px rgba(232,52,28,0.2)'}}>
-            <div style={{fontFamily:'var(--mono)',fontSize:11,letterSpacing:'0.16em',color:'var(--red)',textTransform:'uppercase',marginBottom:16}}>// CONFIRMED</div>
-            <div style={{fontFamily:'var(--condensed)',fontStyle:'italic',fontWeight:900,fontSize:'clamp(48px,6vw,72px)',color:'var(--white)',textTransform:'uppercase',lineHeight:0.95,marginBottom:16}}>
-              You're on the list{firstName?`, ${firstName}`:''}<span style={{color:'var(--red)'}}>.</span>
-            </div>
-            <div style={{color:'var(--white-dim)',fontSize:15,lineHeight:1.65}}>You're on the list. Check your inbox — the email is on its way. We'll reach out the moment Coach Macro launches.</div>
-          </div>
-        ) : (
-          <>
-            <h2 className="lp-wl-hl">Be First.</h2>
-            <p className="lp-wl-sub">Join the waitlist. Get <strong>30 days free at launch</strong>. No credit card ever.</p>
-            <div className="lp-wl-counter">Founding member access</div>
-            <form className="lp-wl-form" onSubmit={handleSubmit}>
-              <input className="lp-wl-input" type="text" placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} autoComplete="given-name"/>
-              <input className="lp-wl-input" type="email" placeholder="you@email.com" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email"/>
-              <button type="submit" className="lp-wl-btn" data-tilt disabled={loading}>
-                {loading ? <span className="lp-spinner"/> : <>Secure My Spot <span>→</span></>}
-              </button>
-            </form>
-            {error && <div className="lp-wl-err">{error}</div>}
-            <div className="lp-wl-fine">Email sent instantly. No spam. Ever.</div>
-          </>
-        )}
-      </div>
-    </section>
-  );
-}
-
 export function LandingPage({ onSignUp }) {
   const containerRef = useRef(null);
   useEffects(containerRef);
+
+  const [theme, setTheme] = useState(getInitialSiteTheme);
+  useEffect(() => {
+    applyLandingTheme(containerRef.current, theme);
+    try { localStorage.setItem('cm-site-theme', theme); } catch {}
+  }, [theme]);
+  const toggleTheme = () => setTheme(t => (t === 'dark' ? 'light' : 'dark'));
+
+  // Pause/stop control for looping ambient animations (WCAG 2.2.2). Persists across visits.
+  const [motionOff, setMotionOff] = useState(() => { try { return localStorage.getItem('cm-reduce-motion') === '1'; } catch { return false; } });
+  useEffect(() => { try { localStorage.setItem('cm-reduce-motion', motionOff ? '1' : '0'); } catch {} }, [motionOff]);
 
   const [waitlistBanner, setWaitlistBanner] = useState(null);
   useEffect(() => {
@@ -893,24 +1466,27 @@ export function LandingPage({ onSignUp }) {
     else if (w === 'invalid') setWaitlistBanner('invalid');
   }, []);
 
-  const scrollToWaitlist = () => document.getElementById('waitlist')?.scrollIntoView({behavior:'smooth'});
+  // Primary conversion action — start the trial. Until the web signup flow is wired,
+  // fall back to scrolling to Pricing (the standalone waitlist section was removed per spec).
+  const startTrial = () => { if (onSignUp) onSignUp(); else document.getElementById('pricing')?.scrollIntoView({behavior:'smooth'}); };
 
   return (
-    <div className={`lp${waitlistBanner?' has-banner':''}`} ref={containerRef}>
+    <div className={`lp${waitlistBanner?' has-banner':''}${motionOff?' motion-off':''}`} data-theme={theme} ref={containerRef}>
       <style>{CSS}</style>
+      <a href="#main" className="lp-skip">Skip to content</a>
       <div className="lp-aurora"/>
       <div className="lp-cursor-glow"/>
 
       {waitlistBanner === 'confirmed' && (
         <div className="lp-banner lp-banner-success">
           <span>Your spot is secured. See you at launch.</span>
-          <button className="lp-banner-close" onClick={() => setWaitlistBanner(null)}>✕</button>
+          <button className="lp-banner-close" aria-label="Dismiss notification" onClick={() => setWaitlistBanner(null)}>✕</button>
         </div>
       )}
       {waitlistBanner === 'invalid' && (
         <div className="lp-banner lp-banner-warning">
           <span>That link has expired. Enter your email again.</span>
-          <button className="lp-banner-close" onClick={() => setWaitlistBanner(null)}>✕</button>
+          <button className="lp-banner-close" aria-label="Dismiss notification" onClick={() => setWaitlistBanner(null)}>✕</button>
         </div>
       )}
 
@@ -920,44 +1496,47 @@ export function LandingPage({ onSignUp }) {
           <div className="lp-logo-text"><span className="lp-logo-coach">Coach</span><span className="lp-logo-macro">Macro</span></div>
         </button>
         <div className="lp-nav-links">
-          <a href="#features" className="lp-nav-link">Features</a>
+          <a href="#everything" className="lp-nav-link">Features</a>
           <a href="#how" className="lp-nav-link">How It Works</a>
           <a href="#compare" className="lp-nav-link">Compare</a>
           <a href="#faq" className="lp-nav-link">FAQ</a>
           <a href="/about" className="lp-nav-link">About</a>
-          <button className="lp-nav-cta" data-tilt onClick={scrollToWaitlist}>Join Waitlist</button>
+          <button className="lp-theme-toggle" onClick={toggleTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} aria-pressed={theme === 'light'}>
+            <ThemeToggleIcon mode={theme}/>{theme === 'dark' ? 'Light' : 'Dark'}
+          </button>
+          <button className="lp-nav-cta" data-tilt onClick={startTrial}>Start Free Trial</button>
         </div>
       </nav>
 
+      <main id="main">
       <section className="lp-hero">
         <div className="lp-hero-content">
-          <div className="lp-hero-eyebrow">Founding access — opening soon</div>
           <h1 className="lp-hero-headline">
             Your food and<br/>
             your training<br/>
             finally <span className="red">talk.</span>
           </h1>
           <p className="lp-hero-sub">
-            The only app where your <strong>workout changes your nutrition</strong> — and your nutrition changes your workout. Every day. Automatically.
+            Train hard, and your food knows. Skip a meal, and your training knows. One app, <strong>deep on all of it</strong> — instead of five that each see a third of you.
           </p>
           <div className="lp-hero-cta-group">
-            <button className="lp-cta-btn" data-tilt onClick={scrollToWaitlist}>
-              Join the Waitlist <span className="arrow">→</span>
+            <button className="lp-cta-btn" data-tilt onClick={startTrial}>
+              Start Your 7-Day Free Trial <span className="arrow">→</span>
             </button>
             <span className="lp-hero-proof">
-              <strong>Founding member access</strong> · $49.99/yr · locked for life
+              then $12.99/mo or $49.99/yr · cancel anytime
             </span>
           </div>
         </div>
 
-        <div className="lp-phone-wrap">
+        <div className="lp-phone-wrap" aria-hidden="true">
           <HeroPhone/>
           <div className="lp-float-pill tl">
             <span className="dot" style={{background:'#00E676',color:'#00E676'}}/>
             <span><strong>+312 calories earned</strong> today</span>
           </div>
           <div className="lp-float-pill tr">
-            <span className="dot" style={{background:'#E8341C',color:'#E8341C'}}/>
+            <span className="dot" style={{background:'#FF3B30',color:'#FF3B30'}}/>
             <span>Push Day · <strong>847 kcal left</strong></span>
           </div>
           <div className="lp-float-pill bl">
@@ -968,32 +1547,31 @@ export function LandingPage({ onSignUp }) {
       </section>
 
       <section className="lp-problem">
-        <div className="lp-problem-grid">
-          <div className="lp-problem-block fade-up">
-            <div className="lp-problem-label">// The Disconnect</div>
-            <div className="lp-problem-text">YOUR GARMIN KNOWS<br/>YOU SLEPT 5 HOURS.</div>
-            <div className="lp-problem-text dim">YOUR TRAINING APP<br/>DOESN'T.</div>
+        <div className="lp-problem-grid" style={{maxWidth:1000,alignItems:'flex-start'}}>
+          <div className="lp-problem-block fade-up" style={{textAlign:'left'}}>
+            <div className="lp-problem-label">The real problem</div>
+            <h2 className="lp-problem-lead">You're the app<br/>connecting all<br/>the <span className="red">other apps.</span></h2>
           </div>
-          <div className="lp-problem-divider"/>
-          <div className="lp-problem-block fade-up">
-            <div className="lp-problem-text">YOUR NUTRITION APP<br/>GIVES YOU 2,000 CALORIES.</div>
-            <div className="lp-problem-text dim">WHETHER YOU LIFTED<br/>OR NOT.</div>
-          </div>
-          <div className="lp-problem-divider"/>
-          <div className="lp-problem-block fade-up">
-            <div className="lp-problem-text dim">NOBODY CONNECTED<br/>THE TWO.</div>
-            <div className="lp-problem-resolution">UNTIL <span className="red">NOW.</span></div>
+          <div className="lp-problem-block fade-up" style={{textAlign:'left'}}>
+            <p className="lp-problem-body">Recovery in one. Training in another. Food in a third. And every day, you're the one stitching it together in your head — push or rest, ate enough or didn't, is this even working.</p>
+            <p className="lp-problem-body">You became the integration layer. That's not a job you signed up for. It's the whole reason this exists.</p>
           </div>
         </div>
       </section>
 
-      <FeaturesSection />
+      {/* Conversion sequence: Hero → Problem → Solution → How → Trust → Features → Screens → Compare → Pricing → FAQ → Final CTA */}
+      <SolutionSection/>
       <HowSection/>
-      <CompareSection/>
+      <TrustSection/>
       <ScreensSection/>
-      <ProofSection/>
+      <CompareSection/>
+      <FeatureDumpSection/>
+      <WorksWithSection/>
+      <PricingSection onStart={startTrial}/>
       <FaqSection/>
-      <WaitlistSection/>
+      <FinalCtaSection onStart={startTrial}/>
+
+      </main>
 
       <footer className="lp-footer">
         <button className="lp-logo" onClick={() => window.scrollTo({top:0,behavior:'smooth'})}>
@@ -1006,6 +1584,7 @@ export function LandingPage({ onSignUp }) {
           ))}
         </div>
         <div className="lp-footer-copy">© 2026 Coach Macro LLC. All rights reserved.</div>
+        <button className="lp-motion-btn" onClick={() => setMotionOff(m => !m)} aria-pressed={motionOff}>{motionOff ? 'Motion: off' : 'Reduce motion'}</button>
       </footer>
     </div>
   );

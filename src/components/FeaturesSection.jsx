@@ -156,13 +156,13 @@ export default function FeaturesSection() {
 
       <div className="cmf-hero cmf-reveal">
         <div>
-          <div className="cmf-eyebrow">// the whole system</div>
+          <div className="cmf-eyebrow">the whole system</div>
           <h2 className="cmf-title">One app.<br />Not <span className="hot">five.</span></h2>
           <p className="cmf-sub">
             Nutrition, training, and recovery live in <b>one brain that talks to itself</b> - your lifting moves your macros, your sleep moves your plan. It reads <b>14 signals a day</b> and coaches you off all of them.
           </p>
           <div className="cmf-lens">
-            <div className="cmf-lens-label">// built for how you train</div>
+            <div className="cmf-lens-label">built for how you train</div>
             <div className="cmf-pills">
               {PILLS.map((p) => (<span className="cmf-pill" key={p}>{p}</span>))}
             </div>
@@ -194,7 +194,7 @@ export default function FeaturesSection() {
         <div className="cmf-col cmf-col-core">
           <div className="cmf-col-head cmf-reveal">
             <div>
-              <div className="cmf-col-tag">// tracks every input</div>
+              <div className="cmf-col-tag">tracks every input</div>
               <div className="cmf-col-label">The Core</div>
             </div>
             <div style={{ textAlign: "right" }}>
@@ -204,7 +204,7 @@ export default function FeaturesSection() {
           </div>
           {CORE.map((f, i) => (
             <div className="cmf-tile cmf-reveal" key={f.name} style={{ transitionDelay: (i * 70) + "ms" }}>
-              <div className="cmf-tile-head"><span className="cmf-tile-eye"><span className="slash">//</span>{f.name}</span></div>
+              <div className="cmf-tile-head"><span className="cmf-tile-eye">{f.name}</span></div>
               <p className="cmf-tile-desc">{f.desc}</p>
             </div>
           ))}
@@ -216,7 +216,7 @@ export default function FeaturesSection() {
         <div className="cmf-col cmf-col-ai">
           <div className="cmf-col-head cmf-reveal">
             <div>
-              <div className="cmf-col-tag">// reads 14 signals, adapts daily</div>
+              <div className="cmf-col-tag">reads 14 signals, adapts daily</div>
               <div className="cmf-col-label">The Coach</div>
               <div className="cmf-sheen" />
             </div>
@@ -228,7 +228,7 @@ export default function FeaturesSection() {
           {COACH.map((f, i) => (
             <div className="cmf-tile cmf-reveal" key={f.name} style={{ transitionDelay: (i * 70) + "ms" }}>
               <div className="cmf-tile-head">
-                <span className="cmf-tile-eye"><span className="slash">//</span>{f.name}</span>
+                <span className="cmf-tile-eye">{f.name}</span>
                 <span className="cmf-badge">AI</span>
               </div>
               <p className="cmf-tile-desc">{f.desc}</p>
