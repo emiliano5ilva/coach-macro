@@ -361,6 +361,8 @@ const CSS = `
   .lp-evidence-stat { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 16px; }
   .lp-evidence-stat > span:first-child { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 46px; line-height: 0.9; letter-spacing: -0.02em; color: var(--red); }
   .lp-evidence-stat-lbl { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--white); }
+  /* Qualitative lead for review-type evidence (no participant count) — red DM Mono, matches the section's cited tone. */
+  .lp-evidence-headline { font-family: var(--mono); font-weight: 500; font-size: 26px; line-height: 1.05; letter-spacing: 0.03em; text-transform: uppercase; color: var(--red); margin-bottom: 16px; min-height: 41px; display: flex; align-items: flex-end; }
 
   /* ── PRICING ── */
   .lp-pricing { padding: 140px 48px; border-top: 1px solid var(--white-border); }
@@ -1121,9 +1123,9 @@ function TrustSection() {
     { claim: "People following a structured, guided program see significantly greater gains in strength and physical function than those training on their own.",
       src: "Peer-reviewed · Meta-analysis", cite: "Gómez-Redondo et al., Sports Medicine (2024). 34 RCTs, 2,830 participants.",
       stat: { to: 2830, label: "participants across 34 studies" } },
-    { claim: "Across decades of studies, the people who consistently track what they eat lose more weight than those who don't. Tracking isn't busywork — it's the strongest predictor of success.",
-      src: "Peer-reviewed · Systematic review", cite: "Burke et al., J. Am. Diet. Assoc. (2011).",
-      stat: { to: 15, label: "studies on food tracking" } },
+    { headline: "How you lift",
+      claim: "Proper training technique — range of motion, tempo, controlled execution — is what maximizes muscle growth. That's why Coach Macro coaches technique with form cues, not just weights and reps.",
+      src: "Peer-reviewed · Research review", cite: "Piñero, Nippard & Schoenfeld, J. Funct. Morphol. Kinesiol. (2024)." },
     { claim: "In one study, people who logged more frequently lost noticeably more weight — the habit of logging, not the perfect diet, tracked with success.",
       src: "Peer-reviewed · Clinical trial", cite: "Harvey et al., Obesity (2019). 142 participants.",
       stat: { to: 142, label: "participants tracked" } },
@@ -1139,6 +1141,9 @@ function TrustSection() {
             <div className="lp-evidence fade-up" key={i}>
               {e.stat && (
                 <div className="lp-evidence-stat"><CountUp to={e.stat.to}/><span className="lp-evidence-stat-lbl">{e.stat.label}</span></div>
+              )}
+              {e.headline && (
+                <div className="lp-evidence-headline">{e.headline}</div>
               )}
               <div className="lp-evidence-claim">{e.claim}</div>
               <div className="lp-evidence-cite"><span className="src">{e.src}</span>{e.cite}</div>
