@@ -287,7 +287,7 @@ export default function FeaturesPage() {
 
       <nav className="fp-nav">
         <button className="fp-logo" onClick={() => go('/')}>
-          <img src="/coach-macro-logo.png" alt="Coach Macro"/>
+          <img src="/whistle-logo.svg" alt="Coach Macro"/>
           <span><span className="coach">Coach</span> Macro</span>
         </button>
         <div className="fp-nav-right">

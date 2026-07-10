@@ -1412,7 +1412,7 @@ function FinalCtaSection({ onStart }) {
   return (
     <section className="lp-sign" id="start">
       <div className="lp-sign-lockup fade-up">
-        <img className="lp-sign-logo" src="/coach-macro-logo.png" alt=""/>
+        <img className="lp-sign-logo" src="/whistle-logo.svg" alt=""/>
         <h2 className="lp-sign-lines">
           <span className="lp-sign-l1">You show up.</span>
           <span className="lp-sign-l2">We keep up.</span>
@@ -1506,7 +1506,7 @@ export function LandingPage({ onSignUp }) {
 
       <nav className="lp-nav">
         <button className="lp-logo" onClick={() => window.scrollTo({top:0,behavior:'smooth'})}>
-          <img src="/coach-macro-logo.png" alt="Coach Macro" className="lp-logo-mark" />
+          <img src="/whistle-logo.svg" alt="Coach Macro" className="lp-logo-mark" />
           <div className="lp-logo-text"><span className="lp-logo-coach">Coach</span><span className="lp-logo-macro">Macro</span></div>
         </button>
         <div className="lp-nav-links">
@@ -1588,7 +1588,7 @@ export function LandingPage({ onSignUp }) {
 
       <footer className="lp-footer">
         <button className="lp-logo" onClick={() => window.scrollTo({top:0,behavior:'smooth'})}>
-          <img src="/coach-macro-logo.png" alt="Coach Macro" className="lp-logo-mark" />
+          <img src="/whistle-logo.svg" alt="Coach Macro" className="lp-logo-mark" />
           <div className="lp-logo-text"><span className="lp-logo-coach">Coach</span><span className="lp-logo-macro">Macro</span></div>
         </button>
         <div className="lp-footer-links">
