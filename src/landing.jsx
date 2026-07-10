@@ -335,6 +335,7 @@ const CSS = `
   .lp-solution-inner { max-width: 1100px; margin: 0 auto; }
   .lp-solution-lead { font-family: var(--body); font-size: 18px; line-height: 1.6; color: var(--white); max-width: 620px; }
   .lp-solution-lead strong { font-weight: 600; }
+  .lp-solution-lead .lp-hook { color: var(--red-text); font-weight: 600; }
   .lp-solution-split { display: flex; align-items: center; gap: 56px; margin-top: 8px; }
   .lp-solution-split-text { flex: 1 1 58%; min-width: 0; }
   .lp-solution-split-text .lp-solution-lead { max-width: 560px; }
@@ -1078,7 +1079,7 @@ function SolutionSection() {
       <div className="lp-solution-inner">
         <div className="lp-solution-split fade-up">
           <div className="lp-solution-split-text">
-            <p className="lp-solution-lead">So: your heavy day earns you more food, automatically. Your trashed legs won't get a brutal session stacked on them. Your run paces come from your actual fitness, not a generic chart. And you get a coach that actually fits you — a nervous beginner and a seasoned lifter don't need the same voice, so some days it's encouragement, and some days it pushes you harder than you'd push yourself. <strong>Real depth, on every side</strong> — not "good enough for one app."</p>
+            <p className="lp-solution-lead">So: your <strong>heavy day earns you more food</strong>, automatically. Your <strong>trashed legs won't get a brutal session</strong> stacked on them. Your <strong>run paces come from your actual fitness</strong>, not a generic chart. And you get a coach that <span className="lp-hook">actually fits you</span> — a nervous beginner and a seasoned lifter don't need the same voice, so some days it's encouragement, and some days it <strong>pushes you harder than you'd push yourself</strong>. <span className="lp-hook">Real depth, on every side</span> — not "good enough for one app."</p>
           </div>
           <div className="lp-solution-split-phone">
             <div className="lp-sphone">
