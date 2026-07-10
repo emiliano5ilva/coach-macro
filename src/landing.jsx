@@ -245,6 +245,9 @@ const CSS = `
   .lp-sphone-bar { position: absolute; top: 0; left: 0; right: 0; height: 42px; z-index: 40; display: flex; align-items: center; justify-content: space-between; padding: 14px 24px 0; font-family: -apple-system,sans-serif; font-weight: 600; font-size: 12px; color: var(--white); }
   .lp-sphone-home { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); width: 100px; height: 4px; background: rgba(245,245,240,0.85); border-radius: 3px; z-index: 60; }
   .lp-sphone-body { padding: 42px 0 22px; height: 100%; overflow: hidden; background-image: radial-gradient(ellipse at 30% 0%,rgba(255,59,48,0.05),transparent 50%); }
+  .lp-sphone-shot { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; z-index: 1; }
+  .lp-feat-shot-wrap { display: flex; justify-content: center; }
+  .lp-feat-shot-wrap .lp-sphone { width: 264px; height: 546px; }
   .lp-pscr-head { padding: 12px 18px 8px; display: flex; align-items: flex-end; justify-content: space-between; }
   .lp-pscr-eye { font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em; color: var(--red); text-transform: uppercase; margin-bottom: 4px; }
   .lp-pscr-h1 { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 26px; line-height: 1; color: var(--white); text-transform: uppercase; letter-spacing: -0.01em; }
@@ -796,6 +799,19 @@ function ScreenPhone({ eyebrow, title, headerRight, children }) {
   );
 }
 
+// Real product screenshot inside the phone frame (full-res 1284x2778 → optimized 800w WebP+JPEG).
+function RealScreen({ src, alt }) {
+  return (
+    <div className="lp-sphone">
+      <picture>
+        <source srcSet={`/screens/${src}.webp`} type="image/webp" />
+        <img className="lp-sphone-shot" src={`/screens/${src}.jpg`} alt={alt} width="800" height="1731" loading="lazy" decoding="async" />
+      </picture>
+      <div className="lp-sphone-notch"/>
+    </div>
+  );
+}
+
 function ScreensSection() {
   const scrollRef = useRef(null);
   useEffect(() => {
@@ -812,9 +828,6 @@ function ScreensSection() {
   }, []);
 
   return (
-    // ⚠️ PLACEHOLDER SECTION — the phones below are hand-built SVG mockups, NOT real product
-    // screenshots. Treat like the hero phone image: swap in real /screens/*.png before any live
-    // deploy. Do NOT present these as actual app captures. Marked visibly below.
     <section className="lp-screens">
       <div className="lp-screens-head">
         <div className="lp-section-eyebrow">The Product</div>
@@ -831,152 +844,16 @@ function ScreensSection() {
             You're 44g of protein short. Order the grilled salmon — it's 42g. Skip the fries, get the side salad. Stays in budget.
           </div>
         </div>
-        <div style={{display:'flex',flexDirection:'column',gap:8}} aria-hidden="true">
-          <div style={{fontFamily:'var(--mono)',fontSize:10,letterSpacing:'0.16em',color:'var(--white-faint)',textTransform:'uppercase',marginBottom:4}}>Detected: Nobu Restaurant</div>
-          {[
-            {name:'Grilled Salmon',macros:'42P · 0C · 18F',go:true},
-            {name:'Edamame',macros:'11P · 8C · 5F',go:true},
-            {name:'Miso Soup',macros:'3P · 4C · 1F',go:true},
-            {name:'Side Salad',macros:'2P · 6C · 8F',go:true},
-            {name:'Truffle Fries',macros:'6P · 58C · 22F',go:false},
-          ].map(f => (
-            <div key={f.name} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',background:f.go?'rgba(0,230,118,0.04)':'var(--bg-card)',border:`1px solid ${f.go?'rgba(0,230,118,0.15)':'var(--white-border)'}`,borderRadius:10,opacity:f.go?1:0.5}}>
-              <div style={{display:'flex',alignItems:'center',gap:10}}>
-                <span style={{color:f.go?'#00E676':'var(--white-faint)',fontFamily:'var(--mono)',fontSize:14}}>{f.go?'✓':'✕'}</span>
-                <span style={{fontSize:13,color:'var(--white)'}}>{f.name}</span>
-              </div>
-              <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--white-dim)',letterSpacing:'0.04em'}}>{f.macros}</span>
-            </div>
-          ))}
+        <div className="lp-feat-shot-wrap">
+          <RealScreen src="restaurant-ai" alt="Coach Macro Restaurant AI recommending a meal that fits your macros" />
         </div>
       </div>
 
-      <div className="lp-scroll" ref={scrollRef} aria-hidden="true">
-        <ScreenPhone eyebrow="Fuel · Tuesday" title={<>Today's<br/>Plate</>} headerRight={<div style={{padding:'4px 8px',background:'rgba(34,197,94,0.18)',borderRadius:5,fontFamily:'var(--mono)',fontSize:8,letterSpacing:'0.12em',color:'#22c55e',textTransform:'uppercase'}}>On Track</div>}>
-          <div style={{padding:'4px 18px 14px'}}>
-            <div style={{position:'relative',margin:'8px auto 14px',width:160,height:160}}>
-              <svg width="160" height="160" viewBox="0 0 160 160" style={{transform:'rotate(-90deg)'}}>
-                <circle cx="80" cy="80" r="64" fill="none" stroke="rgba(245,245,240,0.06)" strokeWidth="10"/>
-                <circle cx="80" cy="80" r="64" fill="none" stroke="#FF3B30" strokeWidth="10" strokeDasharray="173 402" strokeLinecap="round" style={{filter:'drop-shadow(0 0 8px #FF3B30)'}}/>
-              </svg>
-              <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
-                <div style={{fontFamily:'var(--mono)',fontSize:8,letterSpacing:'0.16em',color:'rgba(245,245,240,0.55)',textTransform:'uppercase',marginBottom:4}}>Eaten</div>
-                <div style={{fontFamily:'var(--condensed)',fontStyle:'italic',fontWeight:900,fontSize:34,color:'var(--white)',lineHeight:1}}>1,393</div>
-                <div style={{fontFamily:'var(--mono)',fontSize:9,color:'rgba(245,245,240,0.55)',marginTop:4}}>of 3,240 kcal</div>
-              </div>
-            </div>
-            {[
-              {l:'Protein',val:'142',target:'195g',c:'#60a5fa',pct:73},
-              {l:'Carbs',val:'186',target:'320g',c:'#22c55e',pct:58},
-              {l:'Fat',val:'58',target:'78g',c:'#fbbf24',pct:74},
-            ].map(m => (
-              <div key={m.l} style={{marginBottom:9}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:4,fontFamily:'var(--mono)',fontSize:9,letterSpacing:'0.1em',textTransform:'uppercase'}}>
-                  <span style={{color:m.c}}>{m.l}</span>
-                  <span style={{color:'var(--white)'}}>{m.val}<span style={{color:'rgba(245,245,240,0.45)'}}>/{m.target}</span></span>
-                </div>
-                <div style={{height:4,background:'rgba(245,245,240,0.06)',borderRadius:2,overflow:'hidden'}}>
-                  <div style={{height:'100%',width:`${m.pct}%`,background:m.c,boxShadow:`0 0 6px ${m.c}`}}/>
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScreenPhone>
-
-        <ScreenPhone eyebrow="Train · Push Day" title={<>Upper<br/>Hyper. A</>} headerRight={<div style={{padding:'4px 8px',background:'rgba(255,59,48,0.18)',borderRadius:5,fontFamily:'var(--mono)',fontSize:8,letterSpacing:'0.12em',color:'var(--red)',textTransform:'uppercase'}}>Wk 6 · D2</div>}>
-          <div style={{padding:'4px 18px 14px'}}>
-            <div style={{display:'flex',justifyContent:'center',margin:'4px 0 10px'}}><MuscleMini/></div>
-            <div style={{display:'flex',flexDirection:'column',gap:6}}>
-              {[
-                {name:'Bench Press',sets:'4×8',tag:'PR',tagC:'var(--red)'},
-                {name:'Incline DB Press',sets:'3×10',tag:'+5kg',tagC:'#22c55e'},
-                {name:'Cable Fly',sets:'3×12',tag:null},
-                {name:'Overhead Press',sets:'4×8',tag:'PR',tagC:'var(--red)'},
-                {name:'Lateral Raise',sets:'3×15',tag:null},
-              ].map((e,i) => (
-                <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',background:'rgba(245,245,240,0.03)',borderRadius:9,border:'1px solid rgba(245,245,240,0.06)'}}>
-                  <span style={{fontFamily:'var(--mono)',fontSize:8,color:'var(--red)',width:14}}>{String(i+1).padStart(2,'0')}</span>
-                  <span style={{flex:1,fontSize:11,color:'var(--white)',fontWeight:500}}>{e.name}</span>
-                  <span style={{fontFamily:'var(--mono)',fontSize:9,color:'rgba(245,245,240,0.55)'}}>{e.sets}</span>
-                  {e.tag && <span style={{fontFamily:'var(--mono)',fontSize:8,color:e.tagC,padding:'2px 5px',background:e.tagC==='var(--red)'?'rgba(255,59,48,0.18)':'rgba(34,197,94,0.18)',borderRadius:4,letterSpacing:'0.08em'}}>{e.tag}</span>}
-                </div>
-              ))}
-            </div>
-          </div>
-        </ScreenPhone>
-
-        <ScreenPhone eyebrow="Active · Set 3 of 4" title="Bench Press" headerRight={<div style={{display:'flex',alignItems:'center',gap:5,padding:'4px 8px',background:'rgba(255,59,48,0.18)',borderRadius:5,border:'1px solid rgba(255,59,48,0.4)'}}><span style={{width:5,height:5,borderRadius:'50%',background:'var(--red)',boxShadow:'0 0 6px var(--red)',animation:'lp-pulse 1.5s infinite'}}/><span style={{fontFamily:'var(--mono)',fontSize:8,color:'var(--white)',letterSpacing:'0.1em'}}>LIVE</span></div>}>
-          <div style={{padding:'4px 18px 14px'}}>
-            <div style={{textAlign:'center',padding:'14px 0 16px',borderBottom:'1px solid rgba(245,245,240,0.06)',marginBottom:14}}>
-              <div style={{fontFamily:'var(--mono)',fontSize:9,color:'rgba(245,245,240,0.55)',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:6}}>Target</div>
-              <div style={{fontFamily:'var(--condensed)',fontStyle:'italic',fontWeight:900,fontSize:48,color:'var(--white)',lineHeight:1,textShadow:'0 0 14px rgba(255,59,48,0.4)'}}>100<span style={{fontSize:24,color:'rgba(245,245,240,0.55)',fontStyle:'normal'}}>kg</span> × 8</div>
-              <div style={{fontFamily:'var(--mono)',fontSize:9,color:'#22c55e',marginTop:6,letterSpacing:'0.1em'}}>RPE 8.0 · 1RM est. 127kg</div>
-            </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
-              {[{l:'Last Set',v:'100kg × 9'},{l:'Volume',v:'3,240 kg'}].map(s => (
-                <div key={s.l} style={{padding:10,background:'rgba(245,245,240,0.03)',border:'1px solid rgba(245,245,240,0.06)',borderRadius:9}}>
-                  <div style={{fontFamily:'var(--mono)',fontSize:8,color:'rgba(245,245,240,0.55)',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:4}}>{s.l}</div>
-                  <div style={{fontFamily:'var(--condensed)',fontWeight:800,fontSize:14,color:'var(--white)'}}>{s.v}</div>
-                </div>
-              ))}
-            </div>
-            <button tabIndex={-1} style={{width:'100%',padding:12,background:'var(--red)',color:'var(--white)',border:'none',borderRadius:10,fontFamily:'var(--condensed)',fontWeight:700,fontSize:13,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer'}}>Log Set ✓</button>
-            <div style={{marginTop:10,textAlign:'center',fontFamily:'var(--mono)',fontSize:9,color:'rgba(245,245,240,0.45)',letterSpacing:'0.1em'}}>Rest timer · 1:42 / 2:30</div>
-          </div>
-        </ScreenPhone>
-
-        <ScreenPhone eyebrow="Progress · 12 weeks" title={<>You're<br/>Trending Up</>}>
-          <div style={{padding:'4px 18px 14px'}}>
-            <div style={{padding:12,background:'rgba(245,245,240,0.03)',border:'1px solid rgba(245,245,240,0.06)',borderRadius:12,marginBottom:12}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:10}}>
-                <span style={{fontFamily:'var(--mono)',fontSize:9,color:'rgba(245,245,240,0.55)',letterSpacing:'0.12em',textTransform:'uppercase'}}>Volume Load</span>
-                <span style={{fontFamily:'var(--mono)',fontSize:9,color:'#22c55e'}}>+18% / 12wk</span>
-              </div>
-              <div style={{display:'flex',alignItems:'flex-end',gap:3,height:78}}>
-                {[40,52,48,60,55,68,75,82,78,88,92,95].map((h,i) => (
-                  <div key={i} style={{flex:1,height:`${h}%`,background:i>8?'#FF3B30':'rgba(255,59,48,0.35)',borderRadius:'2px 2px 0 0',boxShadow:i>8?'0 0 6px #FF3B30':'none'}}/>
-                ))}
-              </div>
-            </div>
-            {[
-              {l:'Bodyweight',v:'+1.2 kg',c:'#22c55e'},
-              {l:'Strength Index',v:'+8.4%',c:'#22c55e'},
-              {l:'Adherence',v:'94%',c:'var(--white)'},
-              {l:'Avg Sleep',v:'7h 22m',c:'var(--white)'},
-            ].map(s => (
-              <div key={s.l} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid rgba(245,245,240,0.06)',fontFamily:'var(--mono)',fontSize:10}}>
-                <span style={{color:'rgba(245,245,240,0.6)',letterSpacing:'0.06em',textTransform:'uppercase'}}>{s.l}</span>
-                <span style={{color:s.c,fontWeight:600}}>{s.v}</span>
-              </div>
-            ))}
-          </div>
-        </ScreenPhone>
-
-        <ScreenPhone eyebrow="TDEE · Today" title={<>Energy<br/>Balance</>}>
-          <div style={{padding:'4px 18px 14px'}}>
-            <div style={{textAlign:'center',padding:'10px 0 16px'}}>
-              <div style={{fontFamily:'var(--mono)',fontSize:9,color:'rgba(245,245,240,0.55)',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:6}}>Total Daily Burn</div>
-              <div style={{fontFamily:'var(--condensed)',fontStyle:'italic',fontWeight:900,fontSize:44,color:'var(--red)',lineHeight:1,textShadow:'0 0 16px rgba(255,59,48,0.5)'}}>3,240</div>
-              <div style={{fontFamily:'var(--mono)',fontSize:9,color:'rgba(245,245,240,0.55)',marginTop:4}}>kcal · adjusted for Push Day</div>
-            </div>
-            {[
-              {l:'BMR',v:'1,820',pct:56,c:'rgba(245,245,240,0.45)'},
-              {l:'NEAT',v:'520',pct:16,c:'#60a5fa'},
-              {l:'Workout',v:'632',pct:20,c:'#FF3B30'},
-              {l:'TEF (Food)',v:'268',pct:8,c:'#fbbf24'},
-            ].map(r => (
-              <div key={r.l} style={{marginBottom:11}}>
-                <div style={{display:'flex',justifyContent:'space-between',marginBottom:4,fontFamily:'var(--mono)',fontSize:10}}>
-                  <span style={{color:'rgba(245,245,240,0.6)',letterSpacing:'0.06em',textTransform:'uppercase'}}>{r.l}</span>
-                  <span style={{color:'var(--white)'}}>{r.v} <span style={{color:'rgba(245,245,240,0.45)',fontSize:8}}>kcal · {r.pct}%</span></span>
-                </div>
-                <div style={{height:4,background:'rgba(245,245,240,0.06)',borderRadius:2,overflow:'hidden'}}>
-                  <div style={{height:'100%',width:`${r.pct}%`,background:r.c,borderRadius:2,boxShadow:r.c.startsWith('#')?`0 0 6px ${r.c}`:'none'}}/>
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScreenPhone>
+      <div className="lp-scroll" ref={scrollRef}>
+        <RealScreen src="meal-plan" alt="Coach Macro meal plan for the day, built around your macros" />
+        <RealScreen src="grocery-list" alt="Coach Macro grocery list grouped by aisle" />
+        <RealScreen src="coaching-technique" alt="Coach Macro exercise form coaching with technique cues" />
+        <RealScreen src="coaching-cues" alt="Coach Macro exercise coaching with form tips" />
       </div>
       <div style={{padding:'8px 48px 0',color:'var(--white-faint)',fontFamily:'var(--mono)',fontSize:10,letterSpacing:'0.16em',textTransform:'uppercase'}}>← Drag to explore →</div>
     </section>
