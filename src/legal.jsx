@@ -8,7 +8,7 @@ const LEGAL_CSS = `
   .legal-wrap { max-width: 800px; margin: 0 auto; padding: 80px 24px; font-family: 'Inter', sans-serif; font-size: 16px; line-height: 1.8; color: #fff; }
   .legal-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; margin-bottom: 56px; cursor: pointer; }
   .legal-logo-text { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 22px; letter-spacing: 0.06em; text-transform: uppercase; color: #fff; }
-  .legal-logo-text span { color: #e53935; }
+  .legal-logo-text span { color: #FF3B30; }
   .legal-tag { font-family: 'DM Mono', monospace; font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 12px; }
   .legal-title { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 52px; line-height: 1; text-transform: uppercase; margin-bottom: 8px; }
   .legal-updated { font-family: 'DM Mono', monospace; font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 56px; }
@@ -17,7 +17,7 @@ const LEGAL_CSS = `
   .legal-p { color: rgba(255,255,255,0.8); margin-bottom: 14px; }
   .legal-ul { color: rgba(255,255,255,0.8); padding-left: 24px; margin-bottom: 14px; }
   .legal-ul li { margin-bottom: 8px; }
-  .legal-highlight { background: rgba(229,57,53,0.08); border-left: 3px solid #e53935; padding: 16px 20px; border-radius: 0 8px 8px 0; margin-bottom: 20px; }
+  .legal-highlight { background: rgba(255,59,48,0.08); border-left: 3px solid #FF3B30; padding: 16px 20px; border-radius: 0 8px 8px 0; margin-bottom: 20px; }
   .legal-highlight p { color: rgba(255,255,255,0.9); margin: 0; }
   .legal-footer { margin-top: 72px; padding-top: 32px; border-top: 1px solid rgba(255,255,255,0.08); }
   .legal-footer-title { font-family: 'DM Mono', monospace; font-size: 11px; color: rgba(255,255,255,0.3); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 16px; }
@@ -25,10 +25,10 @@ const LEGAL_CSS = `
   .legal-footer-link { font-family: 'DM Mono', monospace; font-size: 12px; color: rgba(255,255,255,0.4); text-decoration: none; cursor: pointer; background: none; border: none; padding: 0; transition: color 0.2s; }
   .legal-footer-link:hover { color: #fff; }
   .legal-footer-sep { font-family: 'DM Mono', monospace; font-size: 12px; color: rgba(255,255,255,0.2); padding: 0 10px; }
-  .legal-email { color: #e53935; text-decoration: none; }
+  .legal-email { color: #FF3B30; text-decoration: none; }
   .legal-email:hover { text-decoration: underline; }
-  .legal-warning { background: rgba(229,57,53,0.06); border: 1px solid rgba(229,57,53,0.2); border-radius: 12px; padding: 24px; margin-bottom: 32px; }
-  .legal-warning-title { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 18px; text-transform: uppercase; color: #e53935; margin-bottom: 8px; letter-spacing: 0.06em; }
+  .legal-warning { background: rgba(255,59,48,0.06); border: 1px solid rgba(255,59,48,0.2); border-radius: 12px; padding: 24px; margin-bottom: 32px; }
+  .legal-warning-title { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 18px; text-transform: uppercase; color: #FF3B30; margin-bottom: 8px; letter-spacing: 0.06em; }
 `;
 
 const LEGAL_LINKS = [
@@ -843,8 +843,8 @@ export function SupportPage() {
       <style>{LEGAL_CSS}{`
         .support-label { display: block; font-family: 'DM Mono', monospace; font-size: 11px; color: rgba(255,255,255,0.5); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 8px; }
         .support-field { margin-bottom: 20px; }
-        .support-input:focus { border-color: #e53935 !important; }
-        .support-btn { width: 100%; padding: 16px; background: #e53935; color: #fff; font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 18px; letter-spacing: 0.08em; text-transform: uppercase; border: none; border-radius: 12px; cursor: pointer; transition: opacity .2s; margin-top: 8px; }
+        .support-input:focus { border-color: #FF3B30 !important; }
+        .support-btn { width: 100%; padding: 16px; background: #FF3B30; color: #fff; font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 18px; letter-spacing: 0.08em; text-transform: uppercase; border: none; border-radius: 12px; cursor: pointer; transition: opacity .2s; margin-top: 8px; }
         .support-btn:hover { opacity: 0.9; }
         .support-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .faq-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 20px 24px; margin-bottom: 12px; }
@@ -902,7 +902,7 @@ export function SupportPage() {
               </div>
 
               {status === "error" && (
-                <div style={{ background: "rgba(229,57,53,0.1)", border: "1px solid rgba(229,57,53,0.3)", borderRadius: 10, padding: "12px 16px", marginBottom: 16, color: "rgba(255,255,255,0.8)", fontSize: 14 }}>
+                <div style={{ background: "rgba(255,59,48,0.1)", border: "1px solid rgba(255,59,48,0.3)", borderRadius: 10, padding: "12px 16px", marginBottom: 16, color: "rgba(255,255,255,0.8)", fontSize: 14 }}>
                   Something went wrong. Email us directly at <a className="legal-email" href="mailto:support@coach-macro.com">support@coach-macro.com</a>
                 </div>
               )}
