@@ -5,6 +5,7 @@ import { PrivacyPolicy, TermsOfService, HealthDisclaimer, HealthDataNotice,
 import AboutPage from './pages/AboutPage.jsx';
 import FAQPage from './pages/FAQPage.jsx';
 import FeaturesPage from './pages/FeaturesPage.jsx';
+import { Analytics } from '@vercel/analytics/react';
 
 const NativeApp = lazy(() => import('./NativeApp.jsx'));
 const isNative = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.() === true;
@@ -71,5 +72,12 @@ export default function App() {
       </Suspense>
     );
   }
-  return <WebApp />;
+  // Web only: Vercel Web Analytics (cookieless, privacy-first) — measures the
+  // public marketing/landing pages. NOT loaded in the native app (returns above).
+  return (
+    <>
+      <WebApp />
+      <Analytics />
+    </>
+  );
 }

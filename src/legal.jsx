@@ -86,7 +86,7 @@ export function PrivacyPolicy() {
         <LegalLogo />
         <div className="legal-tag">Legal</div>
         <h1 className="legal-title">Privacy Policy</h1>
-        <div className="legal-updated">Last Updated: July 6, 2026</div>
+        <div className="legal-updated">Last Updated: July 9, 2026</div>
 
         <div className="legal-section">
           <h2 className="legal-h2">1. Information We Collect</h2>
@@ -170,7 +170,7 @@ export function PrivacyPolicy() {
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">7. Local Device Storage</h2>
+          <h2 className="legal-h2">7. Local Storage, Cookies &amp; Analytics</h2>
           <p className="legal-p">Coach Macro stores certain data locally on your device to:</p>
           <ul className="legal-ul">
             <li>Enable offline functionality in the gym</li>
@@ -178,6 +178,7 @@ export function PrivacyPolicy() {
             <li>Store your app preferences and settings</li>
           </ul>
           <p className="legal-p">Local data is encrypted by your device's security system and is deleted when you uninstall the app or clear app data.</p>
+          <p className="legal-p"><strong>Our website (coach-macro.com)</strong> does not use advertising or cross-site tracking cookies, and we do not sell or share your information for advertising. To understand aggregate traffic — such as page views and general country-level location — we use <strong>Vercel Web Analytics, a privacy-friendly, cookieless analytics tool that sets no cookies, does not track you across sites, and does not build a personal profile of you</strong>. Our website also saves small preferences in your browser's local storage (for example, your light/dark theme and reduced-motion choices); these stay on your device and are not used for tracking.</p>
         </div>
 
         <div className="legal-section">
