@@ -365,6 +365,9 @@ const CSS = `
   /* ── PRICING ── */
   .lp-pricing { padding: 140px 48px; border-top: 1px solid var(--white-border); }
   .lp-pricing-inner { max-width: 860px; margin: 0 auto; }
+  /* Pricing = one consistently-centered section (headline + subhead join the already-centered table/lines/cards). */
+  .lp-pricing .lp-section-title { text-align: center; }
+  .lp-pricing .lp-lede { text-align: center; max-width: 620px; margin: -40px auto 0; }
   .lp-price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; align-items: stretch; }
   .lp-price-card { position: relative; background: var(--bg-card); border: 1px solid var(--white-border); border-radius: 22px; padding: 40px 32px 32px; display: flex; flex-direction: column; }
   .lp-price-card.featured { border: 1.5px solid var(--red); box-shadow: 0 0 50px var(--red-glow), 0 20px 60px rgba(0,0,0,0.4); }
@@ -399,6 +402,25 @@ const CSS = `
   .lp-vs-price span { font-size: 12px; font-style: normal; font-weight: 600; margin-left: 2px; }
   .lp-vs-row.cm .lp-vs-price { color: var(--red); }
   .lp-vs-foot { font-family: var(--mono); font-size: 10px; color: var(--white); text-align: center; margin-top: 18px; letter-spacing: 0.03em; }
+
+  /* Consolidated comparison ladder — price + coverage checks in one table (lives inside Pricing). */
+  .lp-ladder-wrap { max-width: 880px; margin: 0 auto 28px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .lp-ladder { width: 100%; min-width: 620px; border-collapse: separate; border-spacing: 0; border: 1px solid var(--red-border); border-radius: 16px; overflow: hidden; background: var(--bg); }
+  .lp-ladder th, .lp-ladder td { padding: 15px 12px; border-bottom: 1px solid var(--white-border); vertical-align: middle; }
+  .lp-ladder tbody tr:last-child th, .lp-ladder tbody tr:last-child td { border-bottom: none; }
+  .lp-ladder thead th { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--red-text); background: var(--lp-surface); text-align: center; }
+  .lp-ladder thead th.lp-ladder-appcol { text-align: left; }
+  .lp-ladder thead th.lp-ladder-pricecol { text-align: right; }
+  .lp-ladder-app { text-align: left; white-space: nowrap; }
+  .lp-ladder-name { font-family: var(--condensed); font-style: italic; font-weight: 800; font-size: 17px; text-transform: uppercase; color: var(--white); letter-spacing: -0.01em; }
+  .lp-ladder-cat { display: block; font-family: var(--mono); font-size: 9px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--red-text); margin-top: 3px; }
+  .lp-ladder-cell { text-align: center; }
+  .lp-ladder-cell .lp-check { font-size: 17px; }
+  .lp-ladder-no { color: var(--white); opacity: 0.32; font-size: 15px; }
+  .lp-ladder-price { text-align: right; font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 21px; color: var(--white); letter-spacing: -0.01em; white-space: nowrap; }
+  .lp-ladder-price span { font-size: 11px; font-style: normal; font-weight: 600; margin-left: 1px; }
+  .lp-ladder tr.cm th, .lp-ladder tr.cm td { background: var(--bg-card); border-top: 1.5px solid var(--red); box-shadow: inset 0 0 30px var(--red-glow); }
+  .lp-ladder tr.cm .lp-ladder-name, .lp-ladder tr.cm .lp-ladder-price { color: var(--red); }
 
   /* ── "Works with" trust strip (Apple Health + Strava — live integrations) ── */
   .lp-works { padding: 72px 48px; border-top: 1px solid var(--white-border); text-align: center; }
@@ -814,44 +836,6 @@ function HowSection() {
   );
 }
 
-function CompareSection() {
-  const features = [
-    'Adapts macros to training day','Adjusts calories post-workout','Muscle recovery tracking',
-    'Unified food + lifting log','Real-time TDEE calculation','AI restaurant & food scan',
-    'Periodized training plans','RPE-based load adjustment','Sleep & recovery integration',
-    'Progress + body comp tracking',
-  ];
-  return (
-    <section className="lp-compare" id="compare">
-      <div className="lp-compare-inner">
-        <div className="lp-section-eyebrow">How it compares</div>
-        <h2 className="lp-section-title fade-up">One deep app.<br/>Or five <span className="accent">open tabs.</span></h2>
-        <table className="lp-compare-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th className="col-other">MyFitnessPal /<br/>Cronometer</th>
-              <th className="col-other">Strong /<br/>Hevy</th>
-              <th className="col-cm">CoachMacro</th>
-            </tr>
-          </thead>
-          <tbody>
-            {features.map((f,i) => (
-              <tr key={i}>
-                <td>{f}</td>
-                <td className="col-other"><span className="lp-cross">✕</span></td>
-                <td className="col-other"><span className="lp-cross">✕</span></td>
-                <td className="col-cm"><span className="lp-check">✓</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="lp-compare-note">Based on publicly available information · 2026</div>
-      </div>
-    </section>
-  );
-}
-
 function ScreenPhone({ eyebrow, title, headerRight, children }) {
   return (
     <div className="lp-sphone">
@@ -900,10 +884,7 @@ function ScreensSection() {
     <section className="lp-screens">
       <div className="lp-screens-head">
         <div className="lp-section-eyebrow">The Product</div>
-        <h2 className="lp-section-title fade-up">Built for athletes<br/>who <span className="accent">mean it.</span></h2>
-        <div style={{fontFamily:'var(--mono)',fontSize:11,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--red-text)',border:'1px solid var(--red-border)',borderRadius:6,padding:'8px 12px',display:'inline-block',marginTop:4}}>
-          Placeholder · representative UI — real screenshots pending
-        </div>
+        <h2 className="lp-section-title fade-up">Cheat Day,<br/>the <span className="accent">Right Way.</span></h2>
       </div>
 
       <div className="lp-featured fade-up">
@@ -1147,7 +1128,7 @@ function SolutionSection() {
       <div className="lp-solution-inner">
         <div className="lp-section-eyebrow">The difference</div>
         <h2 className="lp-section-title fade-up">Everyone connects them now.<br/>Almost no one <span className="accent">goes deep.</span></h2>
-        <p className="lp-solution-lead fade-up">"Connected" is table stakes in 2026. The hard part — the part most all-in-ones quietly skip — is being genuinely good at each piece once you've connected them.</p>
+        <p className="lp-solution-lead fade-up">Plenty of apps can connect your training, your food, and your recovery. Almost none are actually good at all three. That's the hard part — and it's the whole reason Coach Macro exists.</p>
       </div>
 
       <div className="lp-syncx" ref={trackRef} aria-hidden="true">
@@ -1326,34 +1307,67 @@ function WorksWithSection() {
 
 // ── PRICING — trial-led, annual anchored vs monthly, one plan emphasized ──────
 function PricingSection({ onStart }) {
+  const CATS = ['Training','Nutrition','Running','Recovery','Coaching'];
+  const rivals = [
+    { name:'RP Strength', cat:'Training only',  price:'$34.99', covers:['Training'] },
+    { name:'STNDRD',      cat:'Training + nutrition', price:'~$15', covers:['Training','Nutrition'] },
+    { name:'Runna',       cat:'Running only',   price:'~$18',   covers:['Running'] },
+    { name:'MacroFactor', cat:'Nutrition only', price:'$11.99', covers:['Nutrition'] },
+  ];
   return (
     <section className="lp-pricing" id="pricing">
       <div className="lp-pricing-inner">
         <div className="lp-section-eyebrow">Pricing</div>
-        <h2 className="lp-section-title fade-up">One price.<br/>Nothing <span className="accent">locked.</span></h2>
-        <p className="lp-lede fade-up">No tiers, no upsells, no paying five apps to do what one should. Free for 7 days.</p>
+        <h2 className="lp-section-title fade-up">Everything.<br/>For less than <span className="accent">any one app.</span></h2>
+        <p className="lp-lede fade-up">No tiers, no upsells, no paying five apps to do what one should. Free for 7&nbsp;days.</p>
 
-        <div className="lp-vs fade-up">
+        {/* Consolidated comparison — competitor price ladder WITH coverage checks, one table. */}
+        <div className="lp-ladder-wrap fade-up">
+          <table className="lp-ladder">
+            <thead>
+              <tr>
+                <th scope="col" className="lp-ladder-appcol">App</th>
+                {CATS.map(c => <th scope="col" key={c}>{c}</th>)}
+                <th scope="col" className="lp-ladder-pricecol">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rivals.map(a => (
+                <tr key={a.name}>
+                  <th scope="row" className="lp-ladder-app">
+                    <span className="lp-ladder-name">{a.name}</span>
+                    <span className="lp-ladder-cat">{a.cat}</span>
+                  </th>
+                  {CATS.map(c => (
+                    <td className="lp-ladder-cell" key={c}>
+                      {a.covers.includes(c)
+                        ? <span className="lp-check" role="img" aria-label={`${c}: yes`}>✓</span>
+                        : <span className="lp-ladder-no" role="img" aria-label={`${c}: no`}>–</span>}
+                    </td>
+                  ))}
+                  <td className="lp-ladder-price">{a.price}<span>/mo</span></td>
+                </tr>
+              ))}
+              <tr className="cm">
+                <th scope="row" className="lp-ladder-app">
+                  <span className="lp-ladder-name">Coach Macro</span>
+                  <span className="lp-ladder-cat">All of it</span>
+                </th>
+                {CATS.map(c => (
+                  <td className="lp-ladder-cell" key={c}>
+                    <span className="lp-check" role="img" aria-label={`${c}: yes`}>✓</span>
+                  </td>
+                ))}
+                <td className="lp-ladder-price">$12.99<span>/mo</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Payoff line — moved to BELOW the comparison table. */}
+        <div className="lp-vs fade-up" style={{ margin: '0 auto 42px' }}>
           <div className="lp-vs-head">One app. Less than any single piece costs on its own.</div>
           <div className="lp-vs-sub">Every one of those apps does a slice of it. Coach Macro does all of it — for less than the cheapest single-purpose one.</div>
-          <div className="lp-vs-list">
-            {[
-              {name:'RP Strength', cat:'Training only', price:'$34.99'},
-              {name:'STNDRD',       cat:'Training only', price:'~$15'},
-              {name:'Runna',        cat:'Running only',  price:'~$18'},
-              {name:'MacroFactor',  cat:'Nutrition only', price:'$11.99'},
-            ].map(a => (
-              <div className="lp-vs-row" key={a.name}>
-                <span className="lp-vs-name">{a.name}<span className="lp-vs-cat">{a.cat}</span></span>
-                <span className="lp-vs-price">{a.price}<span>/mo</span></span>
-              </div>
-            ))}
-            <div className="lp-vs-row cm">
-              <span className="lp-vs-name">→ Coach Macro<span className="lp-vs-cat">All of it</span></span>
-              <span className="lp-vs-price">$12.99<span>/mo</span></span>
-            </div>
-          </div>
-          <div className="lp-vs-foot">Competitor prices as of July 2026; check each app for current pricing.</div>
         </div>
 
         <div className="lp-price-grid">
@@ -1388,6 +1402,7 @@ function PricingSection({ onStart }) {
               wording (and the card-step disclosure) before this goes live. */}
           7 days free, then your plan renews automatically ($12.99/mo or $49.99/yr) unless you cancel at least 24 hours before the trial ends. Manage or cancel anytime in your account settings.
         </div>
+        <div className="lp-vs-foot">Competitor prices as of July 2026; check each app for current pricing.</div>
       </div>
     </section>
   );
@@ -1517,7 +1532,7 @@ export function LandingPage({ onSignUp }) {
             finally <span className="red">talk.</span>
           </h1>
           <p className="lp-hero-sub">
-            Train hard, and your food knows. Skip a meal, and your training knows. One app, <strong>deep on all of it</strong> — instead of five that each see a third of you.
+            Everything you need: training that programs itself, nutrition that moves with it, recovery that knows when to pull you back. <strong>All in one app.</strong>
           </p>
           <div className="lp-hero-cta-group">
             <button className="lp-cta-btn" data-tilt onClick={startTrial}>
@@ -1559,12 +1574,11 @@ export function LandingPage({ onSignUp }) {
         </div>
       </section>
 
-      {/* Conversion sequence: Hero → Problem → Solution → How → Trust → Features → Screens → Compare → Pricing → FAQ → Final CTA */}
+      {/* Conversion sequence: Hero → Problem → Solution → How → Trust → Screens → Features → Works → Pricing (comparison table now consolidated inside Pricing) → FAQ → Final CTA */}
       <SolutionSection/>
       <HowSection/>
       <TrustSection/>
       <ScreensSection/>
-      <CompareSection/>
       <FeatureDumpSection/>
       <WorksWithSection/>
       <PricingSection onStart={startTrial}/>
