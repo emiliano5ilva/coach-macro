@@ -248,6 +248,23 @@ const CSS = `
   .lp-sphone-shot { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; z-index: 1; }
   .lp-feat-shot-wrap { display: flex; justify-content: center; }
   .lp-feat-shot-wrap .lp-sphone { width: 264px; height: 546px; }
+  /* ── Restaurant AI showcase — angled-phone scroll reveal (big + readable) ──── */
+  .lp-ra-showcase { margin: 0 48px 40px 0; }
+  .lp-ra-copy { max-width: 600px; margin: 0 auto 36px; text-align: center; }
+  .lp-ra-copy .lp-feat-title { font-size: clamp(30px,4vw,48px); }
+  .lp-ra-copy .lp-feat-body { color: var(--white); margin-bottom: 0; }
+  .lp-ra-msg { max-width: 460px; margin: 18px auto 0; text-align: left; }
+  .lp-ra-stage { perspective: 1500px; display: flex; justify-content: center; padding: 30px 0 10px; }
+  .lp-ra-phone { position: relative; width: 400px; height: 866px; border-radius: 56px; overflow: hidden; background: #0a0e1a; box-shadow: 0 0 0 11px #14141a, 0 0 0 12px #2a2a30, 0 40px 90px rgba(0,0,0,0.55), 0 0 110px rgba(255,59,48,0.14); transform-origin: center center; transform: perspective(1500px); will-change: transform; backface-visibility: hidden; transition: transform 0.12s cubic-bezier(0.33,1,0.68,1); }
+  .lp-ra-phone img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+  .lp-ra-notch { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); width: 128px; height: 34px; background: #000; border-radius: 18px; z-index: 5; }
+  .lp.motion-off .lp-ra-phone { transform: none !important; transition: none; }
+  @media (max-width: 760px) {
+    .lp-ra-showcase { margin: 0 0 28px; }
+    .lp-ra-stage { perspective: none; padding: 18px 0 0; }
+    .lp-ra-phone { width: 280px; height: 606px; border-radius: 42px; transform: none; box-shadow: 0 0 0 8px #14141a, 0 0 0 9px #2a2a30, 0 24px 60px rgba(0,0,0,0.55), 0 0 70px rgba(255,59,48,0.14); }
+    .lp-ra-notch { width: 92px; height: 24px; top: 10px; }
+  }
   .lp-pscr-head { padding: 12px 18px 8px; display: flex; align-items: flex-end; justify-content: space-between; }
   .lp-pscr-eye { font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em; color: var(--red); text-transform: uppercase; margin-bottom: 4px; }
   .lp-pscr-h1 { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 26px; line-height: 1; color: var(--white); text-transform: uppercase; letter-spacing: -0.01em; }
@@ -847,6 +864,33 @@ function RealScreen({ src, alt }) {
 
 function ScreensSection() {
   const scrollRef = useRef(null);
+  const stageRef = useRef(null);
+  const phoneRef = useRef(null);
+  // Angled-phone scroll reveal: starts tilted in 3D, straightens to face-on as it scrolls up,
+  // then holds LARGE + face-on + still (readability is the payoff). Desktop only — mobile &
+  // reduced-motion get a big, static, face-on phone (no 3D jank). Transform/opacity only (GPU).
+  useEffect(() => {
+    const stage = stageRef.current, phone = phoneRef.current;
+    if (!stage || !phone) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      || document.querySelector('.lp')?.classList.contains('motion-off');
+    const mobile = window.matchMedia('(max-width: 760px)').matches;
+    if (reduce || mobile) { phone.style.transform = 'none'; return; }
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const r = stage.getBoundingClientRect();
+      const vh = window.innerHeight || 1;
+      const p = Math.max(0, Math.min(1, (vh - r.top) / (vh * 0.62)));  // 0 angled → 1 face-on, holds at 1
+      const inv = 1 - p;
+      phone.style.transform = `perspective(1500px) rotateY(${(-18*inv).toFixed(2)}deg) rotateX(${(8*inv).toFixed(2)}deg) scale(${(0.9+0.1*p).toFixed(3)})`;
+    };
+    update();
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, []);
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -867,18 +911,24 @@ function ScreensSection() {
         <h2 className="lp-section-title fade-up">Cheat Day,<br/>the <span className="accent">Right Way.</span></h2>
       </div>
 
-      <div className="lp-featured fade-up">
-        <div>
+      <div className="lp-ra-showcase">
+        <div className="lp-ra-copy fade-up">
           <div className="lp-feat-eye">Featured · Restaurant AI</div>
           <div className="lp-feat-title">Order anything. Stay on plan.</div>
           <div className="lp-feat-body">Snap a menu. The AI tells you exactly what to order to hit your remaining macros. Works at 50,000+ chains and any photographed menu.</div>
-          <div className="lp-ai-msg" style={{margin:0}}>
+          <div className="lp-ai-msg lp-ra-msg">
             <div className="lp-ai-msg-l">COACH ANALYSIS</div>
             You're 44g of protein short. Order the grilled salmon — it's 42g. Skip the fries, get the side salad. Stays in budget.
           </div>
         </div>
-        <div className="lp-feat-shot-wrap">
-          <RealScreen src="restaurant-ai" alt="Coach Macro Restaurant AI recommending a meal that fits your macros" />
+        <div className="lp-ra-stage" ref={stageRef}>
+          <div className="lp-ra-phone" ref={phoneRef}>
+            <picture>
+              <source srcSet="/screens/restaurant-ai-lg.webp" type="image/webp" />
+              <img src="/screens/restaurant-ai-lg.jpg" alt="Coach Macro Restaurant AI recommending a meal that fits your macros" width="1080" height="2337" loading="eager" decoding="async" />
+            </picture>
+            <div className="lp-ra-notch"/>
+          </div>
         </div>
       </div>
 
