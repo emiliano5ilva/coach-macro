@@ -24,11 +24,13 @@ import {
   PrimaryBtn, UnitToggle, Rolodex, Logo,
   calcTDEE, getDayMacros,
 } from "./components.jsx";
+import { Icon } from "@iconify/react";
+import "./iconData.js"; // registers the offline fluent-emoji-flat pack (goal-card glyphs)
 import { getAge } from "./utils/safety.js";
-import { purchaseAnnual, purchaseMonthly } from "./services/purchaseService.js";
-import { validateReferralCode, applyReferralCode } from "./services/referralService.js";
+import { purchaseAnnual, purchaseMonthly, devUnlockEntitlement } from "./services/purchaseService.js";
 import { sb } from "./supabase.js";
 import { showToast } from "./utils/toast.js";
+import { TermsOfService, PrivacyPolicy } from "./legal.jsx";
 
 // ─── Feature flag ─────────────────────────────────────────────────────────────
 export const NEW_ONBOARDING = true;
@@ -475,14 +477,15 @@ export function NewOnboarding({ onComplete, user, signupName }) {
   const [d, setD] = useState(() => initData(user, signupName));
   const [ageWarning, setAgeWarning] = useState(null);
   const [parentalConfirmed, setParentalConfirmed] = useState(false);
-  const [referralApplied, setReferralApplied] = useState(false);
   const savedRef = useRef(false); // ensures onComplete fires exactly once
 
   const upd = (k, v) => setD(p => ({ ...p, [k]: v }));
   const auto = (k, v) => { upd(k, v); setTimeout(next, 260); };
 
   const isFemale = d.sex === "female";
-  const trialDays = referralApplied ? 14 : 7;
+  // Single source of truth: the trial is 7 days everywhere — matches the paywall
+  // disclosure ("7-day free trial") and the Apple intro offer. No 14-day path exists.
+  const trialDays = 7;
 
   // FIX 1 + 4: removed screens 1 (name ask) and 2 (Apple Health).
   // FIX 2: goalWeight (25) moved to immediately after current weight (6).
@@ -564,7 +567,7 @@ export function NewOnboarding({ onComplete, user, signupName }) {
     // ── Crescendo screens (29-31) ─────────────────────────────────────────────
     if (sc === 29) return <BuildScreen d={d} getMapped={getMappedProfile} onDone={next} />;
     if (sc === 30) return <RevealScreen d={d} getMapped={getMappedProfile} onNext={next} />;
-    if (sc === 31) return <NewPaywall referralApplied={referralApplied} setReferralApplied={setReferralApplied} trialDays={trialDays} />;
+    if (sc === 31) return <NewPaywall trialDays={trialDays} />;
 
     switch (sc) {
       // ── 1 — Welcome + name ─────────────────────────────────────────────────
@@ -1098,10 +1101,10 @@ export function NewOnboarding({ onComplete, user, signupName }) {
           <Sub>Based on your answers, we'll set the right approach and tell you exactly why.</Sub>
           <div style={{ display: "flex", gap: 10 }}>
             {[
-              { v: "cut", l: "Lose Fat", e: "🔥", sub: "Fat loss" },
-              { v: "maintain", l: "Maintain", e: "⚖️", sub: "Hold weight" },
-              { v: "bulk", l: "Build Muscle", e: "💪", sub: "Lean bulk" },
-              { v: "recomp", l: "Recomp", e: "🔄", sub: "Both" },
+              { v: "cut", l: "Lose Fat", icon: "fluent-emoji-flat:fire", sub: "Fat loss" },
+              { v: "maintain", l: "Maintain", icon: "fluent-emoji-flat:balance-scale", sub: "Hold weight" },
+              { v: "bulk", l: "Build Muscle", icon: "fluent-emoji-flat:flexed-biceps", sub: "Lean bulk" },
+              { v: "recomp", l: "Recomp", icon: "fluent-emoji-flat:counterclockwise-arrows-button", sub: "Both" },
             ].map(o => (
               <div key={o.v} onClick={() => auto("goal", o.v)} style={{
                 flex: 1, background: d.goal === o.v ? "rgba(var(--accent-rgb),0.08)" : "#0d0d0d",
@@ -1109,7 +1112,9 @@ export function NewOnboarding({ onComplete, user, signupName }) {
                 borderRadius: 12, padding: "16px 6px", textAlign: "center",
                 cursor: "pointer", transition: "all 0.2s",
               }}>
-                <div style={{ fontSize: 24, marginBottom: 6 }}>{o.e}</div>
+                <div style={{ marginBottom: 6, display: "flex", justifyContent: "center" }}>
+                  <Icon icon={o.icon} width={26} height={26} />
+                </div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: d.goal === o.v ? "var(--accent)" : "var(--white)" }}>{o.l}</div>
                 <div style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 2 }}>{o.sub}</div>
               </div>
@@ -1304,8 +1309,8 @@ function BuildScreen({ d, getMapped, onDone }) {
                 fontSize: 14, fontWeight: resolved ? 600 : 400,
                 color: resolved ? "#FFFFFF" : active ? "var(--white)" : "rgba(245,245,240,0.4)",
                 transition: "color 0.4s ease, font-weight 0.3s ease",
-                fontFamily: i === 3 ? "var(--mono)" : "var(--body)",
-                letterSpacing: i === 3 ? "0.04em" : 0,
+                fontFamily: "var(--body)",
+                letterSpacing: 0,
               }}>
                 {line}
               </div>
@@ -1470,14 +1475,12 @@ function RevealScreen({ d, getMapped, onNext }) {
 
 // ─── Screen 31 — PAYWALL (Apple Pay trial start) §6 ──────────────────────────
 
-function NewPaywall({ referralApplied, setReferralApplied, trialDays }) {
+function NewPaywall({ trialDays }) {
   const [plan, setPlan] = useState("annual");  // 'annual' | 'monthly'
   const [purchasing, setPurchasing] = useState(false);
-  const [showPromo, setShowPromo] = useState(false);
-  const [promoCode, setPromoCode] = useState("");
-  const [promoStatus, setPromoStatus] = useState(null); // null | 'checking' | 'valid' | 'invalid'
+  const [legalModal, setLegalModal] = useState(null); // null | 'terms' | 'privacy'
 
-  const eyebrow = trialDays === 14 ? "// your two weeks" : "// start your 7 days";
+  const eyebrow = "// start your 7 days";
 
   async function handlePurchase() {
     if (purchasing) return;
@@ -1485,51 +1488,50 @@ function NewPaywall({ referralApplied, setReferralApplied, trialDays }) {
     try {
       const { data: { user: u } } = await sb.auth.getUser().catch(() => ({ data: { user: null } }));
       if (!u) { showToast("Please sign in to continue.", "error"); return; }
+
+      // ── DEV-TEST BYPASS (build:sim → MODE!=="production") ──────────────────
+      // There is no configured RevenueCat offering in dev/sim, so the real IAP
+      // can't complete — the button would appear dead. Instead, VISIBLY simulate
+      // a successful unlock so the post-paywall flow is testable end-to-end.
+      // MODE-gated → terser-stripped from production `vite build` (never ships).
+      if (import.meta.env.MODE !== "production") {
+        const unlocked = await devUnlockEntitlement(u.id);
+        if (unlocked) {
+          showToast("Dev unlock — subscription simulated. Loading your app…", "success");
+          setTimeout(() => window.location.reload(), 800);
+        } else {
+          showToast("Dev unlock failed — check the console.", "error");
+        }
+        return;
+      }
+
+      // ── REAL PURCHASE (production) ─────────────────────────────────────────
+      // Calls purchasePackage on the selected offering package; on entitlement
+      // granted purchaseService returns true, on user-cancel it returns false.
       const ok = plan === "annual"
         ? await purchaseAnnual(u.id)
         : await purchaseMonthly(u.id);
       if (ok) window.location.reload();
-      else showToast("Purchase failed. Try again.", "error");
-    } catch { showToast("Purchase failed. Try again.", "error"); }
+      else showToast("Purchase cancelled or not completed.", "error");
+    } catch (e) {
+      // Surface the real reason instead of swallowing it. The most common
+      // pre-launch failure is an empty RevenueCat offering (App Store products
+      // not yet created/approved) → purchaseService throws "…package not found".
+      console.warn("[paywall] purchase failed:", e?.message, e);
+      showToast(
+        /package not found/i.test(e?.message || "")
+          ? "Subscriptions aren’t available yet. Please try again later."
+          : "Purchase failed. Try again.",
+        "error",
+      );
+    }
     finally { setPurchasing(false); }
   }
 
-  async function handlePromo() {
-    if (!promoCode.trim() || promoStatus === "checking") return;
-    setPromoStatus("checking");
-    try {
-      const ok = await validateReferralCode(promoCode.trim());
-      if (ok) {
-        const { data: { user: u } } = await sb.auth.getUser().catch(() => ({ data: { user: null } }));
-        if (u) await applyReferralCode(u.id, promoCode.trim());
-        setReferralApplied(true);
-        setPromoStatus("valid");
-      } else {
-        setPromoStatus("invalid");
-      }
-    } catch { setPromoStatus("invalid"); }
-  }
 
   return (
     <div style={{ animation: "fadeIn 0.35s ease" }}>
-      {/* Logo */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
-        <svg width={52} height={22} viewBox="0 0 52 22">
-          <rect x={0}  y={0}  width={14} height={22} rx={3} fill={T.prot} />
-          <rect x={19} y={5}  width={14} height={17} rx={3} fill={T.carb} />
-          <rect x={38} y={10} width={14} height={12} rx={3} fill={T.fat}  />
-        </svg>
-        <div style={{ fontFamily: "var(--condensed)", fontWeight: 900, letterSpacing: 3, fontSize: 16, lineHeight: 1.1 }}>
-          <div style={{ color: "#fff" }}>COACH</div>
-          <div>
-            <span style={{ color: T.prot }}>M</span>
-            <span style={{ color: T.carb }}>A</span>
-            <span style={{ color: T.fat  }}>C</span>
-            <span style={{ color: "#fff" }}>RO</span>
-          </div>
-        </div>
-      </div>
-
+      {/* Logo removed here — the screen-level ProgressHeader (<Logo/>) already shows the mark. */}
       <Eyebrow>{eyebrow}</Eyebrow>
       <div style={{
         fontFamily: "var(--condensed)", fontStyle: "italic", fontWeight: 900,
@@ -1538,9 +1540,48 @@ function NewPaywall({ referralApplied, setReferralApplied, trialDays }) {
       }}>
         Meet the coach <span style={{ color: "var(--accent)" }}>that knows you.</span>
       </div>
-      <p style={{ color: "#FFFFFF", fontSize: 14, lineHeight: 1.65, marginBottom: 20 }}>
+      <p style={{ color: "#FFFFFF", fontSize: 14, lineHeight: 1.65, marginBottom: 18 }}>
         Your plan is built. Try the full coach free for <b>{trialDays} days</b> — adaptive targets, AI logging, your daily brief.
       </p>
+
+      {/* Feature showcase — what you unlock (value before price). Compact 2-col list on a
+          dark card with accent checks; no imagery behind text so the price + disclosure below
+          stay fully legible. Fixed brand-dark surface → identical in both themes. */}
+      <div style={{
+        background: "#0d0d0d",
+        border: "1px solid rgba(var(--accent-rgb),0.15)",
+        borderRadius: 14, padding: "15px 16px 13px", marginBottom: 16,
+      }}>
+        <div style={{
+          fontFamily: "var(--mono)", fontSize: 9, fontWeight: 800,
+          letterSpacing: "0.16em", textTransform: "uppercase",
+          color: "var(--accent)", marginBottom: 12,
+        }}>
+          Everything you unlock
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "9px 12px" }}>
+          {[
+            "Adaptive daily macros",
+            "Meal planning",
+            "Auto grocery lists",
+            "Restaurant AI",
+            "Recovery scoring",
+            "Run tracking",
+            "AI coach + daily brief",
+            "Progress & photos",
+          ].map(f => (
+            <div key={f} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{
+                flexShrink: 0, width: 15, height: 15, borderRadius: "50%",
+                background: "rgba(var(--accent-rgb),0.15)", color: "var(--accent)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 9, fontWeight: 900, lineHeight: 1,
+              }}>✓</span>
+              <span style={{ fontSize: 12, color: "#FFFFFF", fontWeight: 500, lineHeight: 1.15 }}>{f}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Plan toggle */}
       <div style={{ display: "flex", background: "#0d0d0d", border: "1px solid rgba(var(--accent-rgb),0.08)", borderRadius: 10, padding: 4, marginBottom: 16, gap: 4 }}>
@@ -1563,15 +1604,6 @@ function NewPaywall({ referralApplied, setReferralApplied, trialDays }) {
         border: "1.5px solid rgba(var(--accent-rgb),0.25)",
         borderRadius: 16, padding: "22px 20px", marginBottom: 14, position: "relative",
       }}>
-        <div style={{
-          position: "absolute", top: -11, left: "50%", transform: "translateX(-50%)",
-          background: "var(--accent)", color: "#fff",
-          fontFamily: "var(--mono)", fontSize: 9, fontWeight: 800,
-          padding: "4px 14px", borderRadius: 9, letterSpacing: 1.5, whiteSpace: "nowrap",
-        }}>
-          FOUNDING · LOCKED FOR LIFE
-        </div>
-
         {plan === "annual" ? (
           <>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
@@ -1595,6 +1627,34 @@ function NewPaywall({ referralApplied, setReferralApplied, trialDays }) {
           </>
         )}
 
+        {/* ── Auto-renewal disclosure — legal requirement (FTC / state auto-renewal
+              law / Apple 3.1.2). Must be legible and BEFORE the purchase button. ── */}
+        <div style={{
+          textAlign: "left", marginBottom: 16,
+          fontFamily: "var(--body)", fontSize: 12, lineHeight: 1.55,
+          color: "rgba(245,245,240,0.92)",
+        }}>
+          <div style={{ marginBottom: 7, fontWeight: 700, fontSize: 13, color: "#FFFFFF" }}>
+            {trialDays}-day free trial, then {plan === "annual" ? "$49.99/year" : "$12.99/month"}.
+          </div>
+          Your Coach Macro subscription automatically renews at {plan === "annual" ? "$49.99/year" : "$12.99/month"} unless
+          it is cancelled at least 24 hours before the end of the current period. Payment is charged to your Apple ID
+          account at confirmation of purchase. Your account is charged for renewal within 24 hours before the current
+          period ends. You can manage or cancel your subscription anytime in your App Store account settings.
+          Any unused portion of the free trial is forfeited when you purchase a subscription.
+          <div style={{ marginTop: 9 }}>
+            <button type="button" onClick={() => setLegalModal("terms")} style={{
+              background: "none", border: "none", padding: 0, cursor: "pointer",
+              fontFamily: "var(--body)", fontSize: 12, color: "var(--accent)", textDecoration: "underline",
+            }}>Terms of Use</button>
+            <span style={{ opacity: 0.45, margin: "0 7px" }}>·</span>
+            <button type="button" onClick={() => setLegalModal("privacy")} style={{
+              background: "none", border: "none", padding: 0, cursor: "pointer",
+              fontFamily: "var(--body)", fontSize: 12, color: "var(--accent)", textDecoration: "underline",
+            }}>Privacy Policy</button>
+          </div>
+        </div>
+
         {/* Purchase CTA */}
         <button onClick={handlePurchase} disabled={purchasing} style={{
           display: "block", width: "100%", textAlign: "center",
@@ -1607,80 +1667,21 @@ function NewPaywall({ referralApplied, setReferralApplied, trialDays }) {
         }}>
           {purchasing ? "Processing…" : `Start Free — $0.00 Today →`}
         </button>
-
-        {/* Trust line */}
-        <div style={{
-          textAlign: "center", marginTop: 12,
-          fontFamily: "var(--mono)", fontSize: 10,
-          color: "#FFFFFF", letterSpacing: "0.08em",
-        }}>
-          {trialDays} days free · then {plan === "annual" ? "$49.99/yr" : "$12.99/mo"} · cancel anytime
-        </div>
       </div>
 
-      {/* Founding foot */}
-      <div style={{
-        textAlign: "center", marginBottom: 14,
-        fontFamily: "var(--mono)", fontSize: 9,
-        color: "var(--accent)", letterSpacing: "0.14em",
-      }}>
-        FOUNDING PRICE LOCKED FOR LIFE — ONLY AT LAUNCH.
-      </div>
 
-      {/* Referral code link */}
-      {!referralApplied && !showPromo && (
-        <button onClick={() => setShowPromo(true)} style={{
-          display: "block", width: "100%", textAlign: "center",
-          background: "none", border: "none", cursor: "pointer",
-          fontFamily: "var(--mono)", fontSize: 10,
-          color: "rgba(245,245,240,0.4)", letterSpacing: "0.1em",
-          padding: "4px 0",
-        }}>
-          Have a referral code?
-        </button>
-      )}
-
-      {!referralApplied && showPromo && (
-        <div style={{ marginTop: 8 }}>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input
-              value={promoCode}
-              onChange={e => { setPromoCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8)); setPromoStatus(null); }}
-              placeholder="Enter code"
-              maxLength={8}
-              style={{
-                flex: 1, background: "#0d0d0d",
-                border: `1px solid ${promoStatus === "valid" ? "#22c55e" : promoStatus === "invalid" ? "rgba(239,68,68,0.5)" : "rgba(var(--accent-rgb),0.12)"}`,
-                borderRadius: 9, padding: "12px 14px",
-                fontFamily: "var(--mono)", fontSize: 13,
-                color: "#fff", letterSpacing: "0.1em", textTransform: "uppercase", outline: "none",
-              }}
-            />
-            <button onClick={handlePromo} disabled={promoCode.length < 4 || promoStatus === "checking" || promoStatus === "valid"} style={{
-              padding: "12px 16px", borderRadius: 9,
-              background: "rgba(var(--accent-rgb),0.12)",
-              border: "1px solid rgba(var(--accent-rgb),0.2)",
-              color: "var(--accent)", fontWeight: 700, fontSize: 12,
-              cursor: "pointer", fontFamily: "var(--body)",
-            }}>
-              {promoStatus === "checking" ? "…" : "Apply"}
-            </button>
-          </div>
-          {promoStatus === "invalid" && (
-            <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(239,68,68,0.8)", marginTop: 6, letterSpacing: "0.1em" }}>
-              Code not found
-            </div>
-          )}
-        </div>
-      )}
-
-      {referralApplied && (
-        <div style={{
-          textAlign: "center", padding: "8px",
-          fontFamily: "var(--mono)", fontSize: 10,
-          color: "#22c55e", letterSpacing: "0.1em",
-        }}>
-          ✓ Referral applied — {trialDays} days free
+      {/* In-app legal viewer (Terms / Privacy) — mirrors NativeApp's bundled legal modal
+          so the disclosure links open without leaving the native app. */}
+      {legalModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#000", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+          <button onClick={() => setLegalModal(null)} style={{
+            position: "sticky", top: 0, zIndex: 1, display: "flex", alignItems: "center", gap: 8,
+            background: "rgba(0,0,0,0.92)", border: "none", borderBottom: "1px solid rgba(245,245,240,0.1)",
+            color: "var(--accent)", cursor: "pointer", fontFamily: "var(--mono)", fontSize: 12,
+            letterSpacing: "0.1em", textTransform: "uppercase",
+            padding: "calc(env(safe-area-inset-top, 0px) + 14px) 20px 14px", width: "100%",
+          }}>← Close</button>
+          {legalModal === "terms" ? <TermsOfService /> : <PrivacyPolicy />}
         </div>
       )}
     </div>

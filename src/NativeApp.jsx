@@ -77,29 +77,6 @@ const GoogleSVG=()=>(
 );
 
 // ── Auth Screen ───────────────────────────────────────────────────────────────
-// DEBUG overlay — remove before production
-function DebugOverlay() {
-  const [lines,setLines]=useState([]);
-  useEffect(()=>{
-    const orig=window.__debugPush;
-    window.__debugPush=(msg)=>{
-      const line=`[${new Date().toISOString().slice(11,19)}] ${msg}`;
-      window.__debugLog=window.__debugLog||[];
-      window.__debugLog.push(line);
-      console.log('[DEBUG]',line);
-      setLines(prev=>[...prev,line].slice(-25));
-    };
-    setLines((window.__debugLog||[]).slice(-25));
-    return()=>{window.__debugPush=orig;};
-  },[]);
-  if(!lines.length)return null;
-  return(
-    <div style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(0,0,0,0.92)",color:"#0f0",fontFamily:"monospace",fontSize:10,padding:"6px 8px",zIndex:99999,maxHeight:"40vh",overflowY:"auto",whiteSpace:"pre-wrap",wordBreak:"break-all"}}>
-      {lines.join('\n')}
-    </div>
-  );
-}
-
 function AuthScreen({onAuth, startView="welcome"}) {
   // view: welcome | signin | signup | forgot | forgot-sent | reset
   const [view,setView]=useState(startView);
@@ -111,23 +88,8 @@ function AuthScreen({onAuth, startView="welcome"}) {
   const [oauthLoading,setOauthLoading]=useState("");
   const [error,setError]=useState("");
   const [resetSent,setResetSent]=useState(false);
-  const [rawDebugError,setRawDebugError]=useState(""); // DEBUG — remove before production
   const [termsAccepted,setTermsAccepted]=useState(false);
   const [showLegalModal,setShowLegalModal]=useState(null); // null | "terms" | "privacy"
-
-  // DEBUG — remove before production
-  useEffect(()=>{
-    const dbg=window.__debugPush||((m)=>console.log('[AUTH]',m));
-    dbg(`AuthScreen mounted view=${startView}`);
-    try{
-      const inv=localStorage.getItem("coachMacroInvite");
-      dbg(`localStorage ok invite=${inv?"present":"none"}`);
-    }catch(e){dbg(`localStorage error: ${e.message}`);}
-  },[]);
-  useEffect(()=>{
-    const dbg=window.__debugPush||((m)=>console.log('[AUTH]',m));
-    dbg(`view changed to: ${view}`);
-  },[view]);
 
   async function handleEmailAuth(){
     if(view==="signup"&&!name.trim()){setError("Please enter your name.");return;}
@@ -135,45 +97,23 @@ function AuthScreen({onAuth, startView="welcome"}) {
     if(!email.trim()){setError("Please enter your email.");return;}
     if(password.length<8){setError("Password must be at least 8 characters.");return;}
     setLoading(true);setError("");
-    const dbg = window.__debugPush || ((m)=>console.log('[AUTH]',m));
-    // DEBUG LOG — remove before production
     try{
       if(view==="signup"){
-        dbg(`S1: signup started email=${email} pwdLen=${password.length}`);
-        if(!sb){dbg("CRASH: sb is null");setLoading(false);return;}
-        dbg("S2: sb exists");
-        dbg(`S3: url=${import.meta.env.VITE_SUPABASE_URL?"set":"MISSING"} key=${import.meta.env.VITE_SUPABASE_ANON_KEY?"set":"MISSING"}`);
-        dbg("S4: calling signUp...");
+        if(!sb){setLoading(false);return;}
         const{data,error:e}=await sb.auth.signUp({email,password});
-        dbg(`S5: err=${e?.message||"none"} code=${e?.code||"none"} user=${data?.user?.id?"ok":"missing"} session=${data?.session?"yes":"no"}`);
-        if(e){dbg(`S6 AUTH ERROR: ${e.message} ${e.code||""}`);throw e;}
-        if(!data?.user?.id){dbg("S6: no user returned");throw new Error("Sign up succeeded but no account was returned. Please try signing in.");}
-        dbg(`S7: user created id=${data.user.id} confirmed=${!!data.user.email_confirmed_at}`);
+        if(e)throw e;
+        if(!data?.user?.id)throw new Error("Sign up succeeded but no account was returned. Please try signing in.");
         track(EVENTS.USER_SIGNUP,{method:"email"},data.user.id);
-        dbg("S8: going to verify-email");
         setView("verify-email");
       }else{
-        dbg(`S1: signIn email=${email} pwdLen=${password.length}`);
-        dbg(`S3: url=${import.meta.env.VITE_SUPABASE_URL?"set":"MISSING"}`);
-        dbg("S4: calling signInWithPassword...");
         const{data,error:e}=await sb.auth.signInWithPassword({email,password});
-        dbg(`S5: err=${e?.message||"none"} user=${data?.user?.id||"missing"}`);
-        if(e){dbg(`S6 SIGN IN ERROR: ${e.message}`);throw e;}
+        if(e)throw e;
         if(!data?.user?.id)throw new Error("Sign in succeeded but no session was returned. Please try again.");
         track(EVENTS.USER_LOGIN,{method:"email"},data.user.id);
-        dbg("S7: login success calling onAuth");
         onAuth(data.user,null);
       }
     }catch(e){
-      const info={
-        message:e?.message,code:e?.code,status:e?.status,
-        name:e?.name,hint:e?.hint,details:e?.details,
-        type:typeof e,stack:String(e?.stack||"").slice(0,300),
-        json:(()=>{try{return JSON.stringify(e);}catch{return "unstringifiable";}})(),
-      };
-      dbg(`SX: msg=${info.message} code=${info.code} status=${info.status} name=${info.name} type=${info.type}`);
-      console.error("[SIGNUP ERROR]",info);
-      setRawDebugError(`MSG: ${info.message||"(none)"}\nCODE: ${info.code||"—"} | STATUS: ${info.status||"—"} | NAME: ${info.name||"—"}\nTYPE: ${info.type}\nJSON: ${info.json?.slice(0,200)}\nSTACK: ${info.stack?.slice(0,200)}`);
+      console.error("[signup]",e);
       setError(getErrorMessage(e));
     }
     setLoading(false);
@@ -428,7 +368,6 @@ function AuthScreen({onAuth, startView="welcome"}) {
     <>
     <div style={outer}>
       <style>{GLOBAL_CSS}</style>
-      <DebugOverlay/>
       <div style={{width:"100%",maxWidth:420,position:"relative",zIndex:1}}>
         <button onClick={()=>{setView("welcome");setError("");}} style={{background:"none",border:"none",color:"var(--white-dim)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:32,display:"flex",alignItems:"center",gap:6,padding:0}}>
           <svg width={14} height={14} viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
@@ -486,7 +425,7 @@ function AuthScreen({onAuth, startView="welcome"}) {
     </div>
     {showLegalModal&&(
       <div style={{position:"fixed",inset:0,zIndex:99999,background:"#000",overflowY:"auto"}}>
-        <button onClick={()=>setShowLegalModal(null)} style={{position:"sticky",top:0,zIndex:1,display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.9)",border:"none",borderBottom:"1px solid rgba(245,245,240,0.1)",color:"var(--red)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",padding:"14px 20px",width:"100%"}}>
+        <button onClick={()=>setShowLegalModal(null)} style={{position:"sticky",top:0,zIndex:1,display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.9)",border:"none",borderBottom:"1px solid rgba(245,245,240,0.1)",color:"var(--red)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",padding:"calc(env(safe-area-inset-top,0px) + 14px) 20px 14px",width:"100%"}}>
           <svg width={16} height={16} viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
           Back
         </button>
@@ -663,7 +602,7 @@ export default function NativeApp() {
     if(name)setSignupName(name);
     if (Capacitor.isNativePlatform()) {
       try {
-        await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
+        if (import.meta.env.MODE !== "production") await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
         await Purchases.configure({
           apiKey: 'appl_aaBsADfHAbKGkrQPVgOETrpJMdV',
           appUserID: authUser.id,
@@ -713,7 +652,7 @@ export default function NativeApp() {
         liftExp:od.liftExp||od.experience||"",
         cardioExp:od.cardioExp||od.experience||"",
         why:od.why||"",
-        trialEndsAt:new Date(Date.now()+14*86400000).toISOString(),
+        trialEndsAt:new Date(Date.now()+7*86400000).toISOString(),
         trialStartAt:new Date().toISOString(),
       });
     }
@@ -771,7 +710,7 @@ export default function NativeApp() {
       }
     }catch{}
     if(!finalProf.trialEndsAt){
-      finalProf.trialEndsAt=new Date(Date.now()+14*86400000).toISOString();
+      finalProf.trialEndsAt=new Date(Date.now()+7*86400000).toISOString();
       finalProf.trialStartAt=new Date().toISOString();
     }
     let sch;

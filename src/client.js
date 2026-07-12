@@ -78,11 +78,12 @@ export async function ai(prompt, max = 900, feature = "default") {
     "Authorization": `Bearer ${session.access_token}`,
   };
   const _url = `${API_BASE}/api/claude`;
-  console.log('[ai] POST', _url, '| feature:', feature, '| max:', max);
+  const _dev = import.meta.env.MODE !== "production";
+  _dev && console.log('[ai] POST', _url, '| feature:', feature, '| max:', max);
   const response = await fetch(_url, { method: "POST", headers, body });
-  console.log('[ai] response status:', response.status, '| feature:', feature);
+  _dev && console.log('[ai] response status:', response.status, '| feature:', feature);
   const text = await response.text();
-  console.log('[ai] response body (first 300):', text.slice(0, 300));
+  _dev && console.log('[ai] response body (first 300):', text.slice(0, 300));
   const d = JSON.parse(text);
   if (response.status === 402) {
     window.dispatchEvent(new CustomEvent("cm:subscription-required", { detail: d }));

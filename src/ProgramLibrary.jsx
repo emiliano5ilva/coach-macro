@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { T, getDayMacros, Spinner, WDAYS, PaperCard, Pill } from "./components.jsx";
+import { T, getDayMacros, WDAYS, PaperCard, Pill } from "./components.jsx";
 import { sb } from "./client.js";
 import { PROGRAM_LIBRARY } from "./programs.js";
 import { getProgramImage } from "./data/programImages.js";
@@ -398,168 +398,6 @@ function Section({ title, children }) {
   );
 }
 
-// ─── CUSTOM ROUTINE BUILDER ───────────────────────────────────────────────────
-const MUSCLE_GROUPS = [
-  { key:"chest",    label:"Chest",     emoji:"💪" },
-  { key:"back",     label:"Back",      emoji:"🏋️" },
-  { key:"shoulders",label:"Shoulders", emoji:"🔺" },
-  { key:"biceps",   label:"Biceps",    emoji:"💪" },
-  { key:"triceps",  label:"Triceps",   emoji:"💪" },
-  { key:"legs",     label:"Legs",      emoji:"🦵" },
-  { key:"glutes",   label:"Glutes",    emoji:"🍑" },
-  { key:"core",     label:"Core",      emoji:"🎯" },
-  { key:"calves",   label:"Calves",    emoji:"🦵" },
-  { key:"full_body",label:"Full Body", emoji:"⚡" },
-];
-
-export function CustomRoutineBuilder({ user, setTrainScreen, editRoutine, onSaved }) {
-  const [name, setName] = useState(editRoutine?.name || "");
-  const [exercises, setExercises] = useState(editRoutine?.exercises || []);
-  const [notes, setNotes] = useState(editRoutine?.notes || "");
-  const [activeGroup, setActiveGroup] = useState("chest");
-  const [saving, setSaving] = useState(false);
-  const [step, setStep] = useState("build"); // build | review
-
-  const groupExercises = MUSCLE_GROUP_POOL[activeGroup] || [];
-
-  function addExercise(exName) {
-    if (exercises.some(e => e.name === exName)) return;
-    setExercises(prev => [...prev, { name: exName, sets: 3, repsMin: 8, repsMax: 12, restSecs: 90, rpe: 8 }]);
-  }
-  function removeExercise(idx) { setExercises(prev => prev.filter((_, i) => i !== idx)); }
-  function moveUp(idx) { if (idx === 0) return; setExercises(prev => { const a = [...prev]; [a[idx-1], a[idx]] = [a[idx], a[idx-1]]; return a; }); }
-  function moveDown(idx) { if (idx === exercises.length - 1) return; setExercises(prev => { const a = [...prev]; [a[idx], a[idx+1]] = [a[idx+1], a[idx]]; return a; }); }
-  function updateEx(idx, field, val) { setExercises(prev => prev.map((e, i) => i === idx ? { ...e, [field]: val } : e)); }
-
-  async function saveRoutine() {
-    if (!name.trim()) { showToast("Add a routine name", "error"); return; }
-    if (!exercises.length) { showToast("Add at least one exercise", "error"); return; }
-    setSaving(true);
-    try {
-      const payload = { user_id: user?.id, name: name.trim(), exercises, notes, updated_at: new Date().toISOString() };
-      if (editRoutine?.id) {
-        await sb.from("custom_routines").update(payload).eq("id", editRoutine.id);
-      } else {
-        await sb.from("custom_routines").insert(payload);
-      }
-      showToast("Routine saved!", "success");
-      onSaved?.();
-      setTrainScreen("library");
-    } catch (e) {
-      showToast("Save failed", "error");
-      console.error("[CustomRoutineBuilder] save error:", e);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div style={{ minHeight:"100vh" }}>
-      {/* Header */}
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"20px 20px 16px", borderBottom:"1px solid rgba(255,255,255,.07)" }}>
-        <button onClick={() => setTrainScreen("library")} style={{ background:"none", border:"none", color:T.mu, cursor:"pointer", fontSize:13, fontFamily:"inherit" }}>← Back</button>
-        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:20, fontWeight:900 }}>{editRoutine ? "Edit Routine" : "Build Routine"}</div>
-        <div style={{ width:60 }} />
-      </div>
-
-      <div style={{ padding:"20px 20px 80px" }}>
-        {/* Routine name */}
-        <div style={{ marginBottom:24 }}>
-          <div style={{ fontSize:11, fontWeight:700, letterSpacing:".1em", color:T.dim, textTransform:"uppercase", marginBottom:8, fontFamily:"'Barlow Condensed',sans-serif" }}>Routine Name</div>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Monday Push Day" maxLength={50}
-            style={{ width:"100%", background:"rgba(255,255,255,.05)", border:"1px solid rgba(255,255,255,.12)", borderRadius:10, padding:"12px 14px", color:"#fff", fontSize:15, fontFamily:"inherit", outline:"none", boxSizing:"border-box" }} />
-        </div>
-
-        {/* Muscle group tabs */}
-        <div style={{ marginBottom:16 }}>
-          <div style={{ fontSize:11, fontWeight:700, letterSpacing:".1em", color:T.dim, textTransform:"uppercase", marginBottom:10, fontFamily:"'Barlow Condensed',sans-serif" }}>Add Exercises</div>
-          <div style={{ display:"flex", gap:6, overflowX:"auto", paddingBottom:8 }}>
-            {MUSCLE_GROUPS.map(g => (
-              <button key={g.key} onClick={() => setActiveGroup(g.key)} style={{ flexShrink:0, padding:"6px 14px", borderRadius:20, border:`1.5px solid ${activeGroup===g.key?"var(--cm-red)":"rgba(255,255,255,.1)"}`, background:activeGroup===g.key?"rgba(var(--cm-red-rgb),.12)":"rgba(255,255,255,.03)", color:activeGroup===g.key?"var(--cm-red)":T.mu, fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>
-                {g.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Exercise grid */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6, marginBottom:24 }}>
-          {groupExercises.map(exName => {
-            const added = exercises.some(e => e.name === exName);
-            return (
-              <button key={exName} onClick={() => added ? null : addExercise(exName)}
-                style={{ padding:"10px 12px", borderRadius:9, border:`1.5px solid ${added?"rgba(52,211,153,.3)":"rgba(255,255,255,.08)"}`, background:added?"rgba(52,211,153,.06)":"rgba(255,255,255,.03)", color:added?"#34D399":"rgba(245,245,240,.75)", fontSize:11, fontWeight:600, cursor:added?"default":"pointer", fontFamily:"inherit", textAlign:"left", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                <span>{exName}</span>
-                {added ? <span style={{ fontSize:14 }}>✓</span> : <span style={{ fontSize:14, color:T.dim }}>+</span>}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Selected exercises */}
-        {exercises.length > 0 && (
-          <div style={{ marginBottom:24 }}>
-            <div style={{ fontSize:11, fontWeight:700, letterSpacing:".1em", color:T.dim, textTransform:"uppercase", marginBottom:10, fontFamily:"'Barlow Condensed',sans-serif" }}>
-              Your Routine ({exercises.length} exercises)
-            </div>
-            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-              {exercises.map((ex, idx) => (
-                <div key={idx} style={{ background:"rgba(255,255,255,.04)", border:"1px solid rgba(255,255,255,.09)", borderRadius:12, padding:"12px 14px" }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-                    <div style={{ fontSize:14, fontWeight:700, color:"#fff" }}>{ex.name}</div>
-                    <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-                      <button onClick={() => moveUp(idx)} disabled={idx===0} style={{ background:"none", border:"1px solid rgba(255,255,255,.1)", borderRadius:6, color:idx===0?T.bd:T.mu, fontSize:11, cursor:idx===0?"default":"pointer", padding:"2px 6px", fontFamily:"inherit" }}>↑</button>
-                      <button onClick={() => moveDown(idx)} disabled={idx===exercises.length-1} style={{ background:"none", border:"1px solid rgba(255,255,255,.1)", borderRadius:6, color:idx===exercises.length-1?T.bd:T.mu, fontSize:11, cursor:idx===exercises.length-1?"default":"pointer", padding:"2px 6px", fontFamily:"inherit" }}>↓</button>
-                      <button onClick={() => removeExercise(idx)} style={{ background:"none", border:"1px solid rgba(255,77,109,.2)", borderRadius:6, color:"rgba(255,77,109,.6)", fontSize:11, cursor:"pointer", padding:"2px 8px", fontFamily:"inherit" }}>✕</button>
-                    </div>
-                  </div>
-                  <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:6 }}>
-                    {[
-                      { label:"Sets", field:"sets", type:"number", min:1, max:10, val:ex.sets },
-                      { label:"Reps min", field:"repsMin", type:"number", min:1, max:50, val:ex.repsMin },
-                      { label:"Reps max", field:"repsMax", type:"number", min:1, max:50, val:ex.repsMax },
-                      { label:"Rest (s)", field:"restSecs", type:"number", min:30, max:300, step:15, val:ex.restSecs },
-                    ].map(({ label, field, type, min, max, step:st, val }) => (
-                      <div key={field}>
-                        <div style={{ fontSize:9, color:T.mu, fontWeight:700, letterSpacing:".06em", textTransform:"uppercase", marginBottom:4 }}>{label}</div>
-                        <input type={type} value={val} min={min} max={max} step={st||1} onChange={e => updateEx(idx, field, Number(e.target.value))}
-                          style={{ width:"100%", background:"rgba(255,255,255,.06)", border:"1px solid rgba(255,255,255,.1)", borderRadius:7, padding:"6px 8px", color:"#fff", fontSize:12, fontFamily:"inherit", outline:"none", textAlign:"center", boxSizing:"border-box" }} />
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ marginTop:8 }}>
-                    <div style={{ fontSize:9, color:T.mu, fontWeight:700, letterSpacing:".06em", textTransform:"uppercase", marginBottom:4 }}>RPE (1–10)</div>
-                    <div style={{ display:"flex", gap:4 }}>
-                      {[6,7,8,9,10].map(v => (
-                        <button key={v} onClick={() => updateEx(idx, "rpe", v)}
-                          style={{ flex:1, padding:"5px 0", borderRadius:7, border:`1.5px solid ${ex.rpe===v?"var(--cm-red)":"rgba(255,255,255,.1)"}`, background:ex.rpe===v?"rgba(var(--cm-red-rgb),.15)":"rgba(255,255,255,.03)", color:ex.rpe===v?"var(--cm-red)":T.mu, fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
-                          {v}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Notes */}
-        <div style={{ marginBottom:28 }}>
-          <div style={{ fontSize:11, fontWeight:700, letterSpacing:".1em", color:T.dim, textTransform:"uppercase", marginBottom:8, fontFamily:"'Barlow Condensed',sans-serif" }}>Notes (optional)</div>
-          <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Coach notes, tempo, rest periods..." rows={3} maxLength={300}
-            style={{ width:"100%", background:"rgba(255,255,255,.05)", border:"1px solid rgba(255,255,255,.1)", borderRadius:10, padding:"10px 12px", color:"#fff", fontSize:13, fontFamily:"inherit", outline:"none", resize:"none", boxSizing:"border-box" }} />
-        </div>
-
-        <button onClick={saveRoutine} disabled={saving || !name.trim() || !exercises.length}
-          style={{ width:"100%", padding:16, background:name.trim()&&exercises.length?T.prot:"rgba(255,255,255,.06)", color:name.trim()&&exercises.length?"#fff":T.mu, fontWeight:700, fontSize:15, border:"none", borderRadius:14, cursor:name.trim()&&exercises.length?"pointer":"not-allowed", fontFamily:"'Barlow Condensed',sans-serif", textTransform:"uppercase", letterSpacing:1 }}>
-          {saving ? "Saving…" : editRoutine ? "Save Changes" : "Save Routine →"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 // ─── PROGRAM TYPE ICON ───────────────────────────────────────────────────────
 function ProgIcon({prog, size=28, color="rgba(245,245,240,0.75)"}) {
   const sw = "1.8";
@@ -660,16 +498,12 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
   const [switching, setSwitching] = useState(false);
   const [ratings, setRatings] = useState({});
   const [userRatings, setUserRatings] = useState({});
-  const [customRoutines, setCustomRoutines] = useState([]);
-  const [routinesLoading, setRoutinesLoading] = useState(true);
-  const [editRoutine, setEditRoutine] = useState(null);
-  const [deletingId, setDeletingId] = useState(null);
   const [mpPendingProg, setMpPendingProg] = useState(null);
   const [setupProgram, setSetupProgram] = useState(null);
 
   const currentId = wPrefs._libraryId || null;
 
-  // Load ratings and custom routines
+  // Load program ratings
   useEffect(() => {
     async function load() {
       try {
@@ -693,16 +527,6 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
           }
         }
       } catch {}
-
-      try {
-        const { data: { user: me } } = await sb.auth.getUser();
-        if (me) {
-          const { data } = await sb.from("custom_routines").select("*").eq("user_id", me.id).order("updated_at", { ascending: false });
-          setCustomRoutines(data || []);
-        }
-      } catch {} finally {
-        setRoutinesLoading(false);
-      }
     }
     load();
   }, []);
@@ -847,16 +671,6 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
     await doActualSwitch(prog);
   }
 
-  async function deleteRoutine(id) {
-    setDeletingId(id);
-    try {
-      await sb.from("custom_routines").delete().eq("id", id);
-      setCustomRoutines(prev => prev.filter(r => r.id !== id));
-      showToast("Routine deleted", "success");
-    } catch { showToast("Delete failed", "error"); }
-    finally { setDeletingId(null); }
-  }
-
   async function handleSetupConfirm(prog) {
     setSetupProgram(null);
     setDetailProg(null);
@@ -865,17 +679,6 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
 
   function handleSetupCancel() {
     setSetupProgram(null);
-  }
-
-  async function startCustomRoutine(routine) {
-    // Navigate to active session with custom routine exercises
-    const activeEx = (routine.exercises || []).map(ex => ({
-      name: ex.name, notes: ex.notes || `${ex.sets}×${ex.repsMin}-${ex.repsMax} @ RPE ${ex.rpe}`, restSecs: ex.restSecs || 90,
-      sets: Array.from({ length: ex.sets || 3 }, () => ({ weight: "", reps: String(ex.repsMin || 10), done: false })),
-    }));
-    // Store in sessionStorage for TrainSection to pick up
-    try { sessionStorage.setItem("cm_custom_routine_session", JSON.stringify({ title: routine.name, exercises: activeEx })); } catch {}
-    setTrainScreen("active");
   }
 
   const MpSwitchWarnModal = mpPendingProg ? (
@@ -1037,55 +840,6 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
         <div style={{ textAlign:"center", padding:"32px 0", color:"rgba(var(--cm-ink-rgb),.55)", fontSize:13 }}>No programs match these filters.</div>
       )}
 
-      {/* My Custom Routines */}
-      <div style={{ borderTop:"1px solid rgba(var(--cm-ink-rgb),.10)", paddingTop:24 }}>
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
-          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:18, fontWeight:800, color:"var(--cm-ink)" }}>My Custom Routines</div>
-          <button onClick={() => setTrainScreen("routine-builder")} style={{ padding:"8px 16px", background:T.prot, color:"#fff", border:"none", borderRadius:10, fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
-            + Build
-          </button>
-        </div>
-
-        {routinesLoading ? (
-          <div style={{ textAlign:"center", padding:20 }}><Spinner size={20} /></div>
-        ) : customRoutines.length === 0 ? (
-          <div style={{ background:"var(--cm-paper)", border:"1px dashed rgba(var(--cm-ink-rgb),.15)", borderRadius:14, padding:"28px 20px", textAlign:"center" }}>
-            <div style={{ marginBottom:10, display:"flex", justifyContent:"center" }}>
-              <svg width={36} height={36} viewBox="0 0 24 24" fill="none" stroke="rgba(var(--cm-ink-rgb),0.35)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="8" y="2" width="8" height="4" rx="1"/>
-                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-                <line x1="12" y1="11" x2="16" y2="11"/>
-                <line x1="12" y1="16" x2="16" y2="16"/>
-                <circle cx="8" cy="11" r=".5" fill="rgba(245,245,240,0.35)"/>
-                <circle cx="8" cy="16" r=".5" fill="rgba(245,245,240,0.35)"/>
-              </svg>
-            </div>
-            <div style={{ fontSize:14, fontWeight:600, color:"var(--cm-ink)", marginBottom:6 }}>No custom routines yet</div>
-            <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.55)", marginBottom:16 }}>Build a personalized workout with your favorite exercises.</div>
-            <button onClick={() => setTrainScreen("routine-builder")} style={{ padding:"10px 20px", background:"var(--cm-red)", border:"none", borderRadius:10, color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
-              Build First Routine →
-            </button>
-          </div>
-        ) : (
-          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-            {customRoutines.map(r => (
-              <div key={r.id} className="plib-routine">
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:15, fontWeight:700, color:"var(--cm-ink)", marginBottom:4 }}>{r.name}</div>
-                  <div style={{ fontSize:11, color:"rgba(var(--cm-ink-rgb),.6)" }}>{(r.exercises||[]).length} exercises{r.notes ? ` · ${r.notes.slice(0,40)}${r.notes.length>40?"…":""}` : ""}</div>
-                </div>
-                <div style={{ display:"flex", gap:6, flexShrink:0 }}>
-                  <button onClick={() => startCustomRoutine(r)} style={{ padding:"7px 12px", background:"var(--cm-red)", border:"none", borderRadius:8, color:"#fff", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>▶</button>
-                  <button onClick={() => { setEditRoutine(r); setTrainScreen("routine-builder"); }} style={{ padding:"7px 10px", background:"rgba(var(--cm-ink-rgb),.06)", border:"1px solid rgba(var(--cm-ink-rgb),.12)", borderRadius:8, color:"var(--cm-ink)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>Edit</button>
-                  <button onClick={() => deleteRoutine(r.id)} disabled={deletingId===r.id} style={{ padding:"7px 10px", background:"rgba(255,77,109,.06)", border:"1px solid rgba(255,77,109,.2)", borderRadius:8, color:"rgba(255,77,109,.7)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
-                    {deletingId===r.id?"…":"✕"}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
       {/* Fuel awareness modal over the list */}
       {confirmProg && (()=>{ const {modeChange,newModeLabel}=getModeInfo(confirmProg); return (

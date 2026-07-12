@@ -181,6 +181,12 @@ FLUENT_NAMES.push(
 FLUENT_NAMES.push(
   "sleeping-face"            // rest/recovery card (flat-set equivalent of the 😴 rest-day glyph)
 );
+// Onboarding goal-card glyphs (ob_new.jsx case 24). flexed-biceps already pushed above (Build Muscle).
+FLUENT_NAMES.push(
+  "fire",                             // Lose Fat  (was 🔥)
+  "balance-scale",                    // Maintain  (was ⚖️)
+  "counterclockwise-arrows-button"    // Recomp    (was 🔄)
+);
 
 const TWEMOJI_NAMES = collectNames(TWEMOJI_FALLBACK_MAP, "twemoji");
 

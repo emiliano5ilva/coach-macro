@@ -264,14 +264,76 @@ _Consolidated 2026-07-06. THIS is the single source of truth for "what must be r
    2026-07-07 — no code references it anymore (0 hits in the live bundle). *(Claude Code couldn't self-verify: the stored Vercel CLI
    token was expired (`invalidToken`) and no CLI was installed; deletion confirmed by owner.)*
    → **Entire RapidAPI-key arc CLOSED: leak vector + rotation + dead-var cleanup all DONE.**
+5. **🔴 goclub→main MERGE COORDINATION — flip 7-day trial + founding removal TOGETHER at merge.** `goclub-redesign` (the App
+   Store build) is now fully **7-day trial** + **founding-free**; `main` (serves coach-macro.com + is the older app) still shows the
+   old state. At the goclub→main merge, land ALL of the below in the **SAME change** so `main` never advertises something its app
+   doesn't grant: **(a) 7-day trial flip** — `main`'s app grant (`NativeApp.jsx`, 14→7 days), `legal.jsx`, `FAQPage.jsx` all to 7
+   (goclub copies already done; `main` still says 14 and its app still GRANTS 14, so it's self-consistent until the merge); **(b)
+   founding removal** — `main`'s `landing.jsx` (4 spots), `FAQPage.jsx`, `legal.jsx` "founding member / locked-for-life" copy dropped
+   (goclub copies already done + staged). ⚠️ Do NOT flip `main`'s marketing/legal alone before the app ships — that would advertise a
+   trial length / price the live `main` app doesn't offer. App-side on goclub (paywalls + in-app Terms) is already correct.
+   **(c) FNDDS food-search proxy** — `api/food-search-usda.js` now requests `dataType=Survey (FNDDS),Foundation,SR Legacy` (FNDDS
+   covers prepared dishes like "fettuccine alfredo"). The app hits the DEPLOYED proxy (`VITE_API_BASE` = coach-macro.com), so this only
+   takes effect once it deploys to `main`/Vercel. Additive + low-risk → deploy with the merge. (Client-side search relevance ranking +
+   `lc=en` already ship in the app bundle and work on-device now; only the FNDDS dataset expansion awaits the proxy deploy.)
+   **(d) USDA detail proxy — NEW `api/food-detail-usda.js`** (household/count measures). Hits USDA `/food/{fdcId}?format=full`,
+   normalizes `foodPortions` → `[{label, grams}]` ("1 slice = 28g", "1 medium = 118g", "1 strip = 8g") — count-based foods no longer
+   force grams/oz. **Client side already ships in the app bundle** (on food-tap `getUsdaFoodDetail(fdcId)` → merged into
+   `buildUnitOptions` as unit choices; `selectFood` defaults count foods to their first household unit). **This new proxy file must be
+   DEPLOYED with the merge — until then the on-tap fetch is a graceful no-op** (fetch fails/absent → falls back to the grams/oz/serving
+   units already shown; never fakes a count). Additive + low-risk → deploy together with (c). **Partial coverage by design:** only USDA
+   foods that DEFINE portions get household units; OFF foods and portion-less USDA foods keep grams/oz. **FULL universal count/unit
+   coverage (every food, every natural unit) remains the Nutritionix post-revenue upgrade #1 (v2)** — this proxy is the partial
+   free-stack version we ship now.
+   **(e) Integrations copy — Strava/Calendar removed from the app's Connected Apps (Me tab) for v1, saved for v2.** Backend intact
+   (`api/strava/[action].js` OAuth, `connected_apps` table, `LifeAwareTraining.jsx` CalendarSettingsPanel + `calendarConnected`/
+   `onCalendar*` prop threading — referral-style hide-UI-keep-backend). Copy to reconcile at merge: **(i)** the in-app paywall feature
+   bullet already trimmed on goclub (`sections.jsx` — was "Strava, Apple Health, Garmin, Fitbit integrations" → "Apple Health
+   integration"; Garmin/Fitbit never existed, Strava is v2) — **check `main`'s `landing.jsx`/`FAQPage.jsx` for the same
+   integrations claim and trim to match.** **(ii)** `legal.jsx` Strava + Calendar data-handling descriptions (~lines 108, 139,
+   184-195, 710) — **LEAVE AS-IS**: accurate for when those integrations return in v2, and the backend stays. No change needed;
+   noted here only so the merge copy pass doesn't "fix" them by mistake.
+   **(f) Website favicon — ✅ ALREADY DEPLOYED to `main` standalone** (`dadbdb7`, 2026-07-11). coach-macro.com's tab was still the old
+   3-ascending-bars mark; swapped `public/favicon.svg` to the whistle + added sized rasters (favicon-16/32.png, multi-res favicon.ico,
+   180px apple-touch-icon) and wired them into `index.html`. Verified live (all assets 200, SVG content flipped whistle). Backend-safe
+   additive web change → deployed ahead of the app merge like the proxies. 🟡 Optional related tweak NOT done: `index.html` `theme-color`
+   is still `#060D1A` (old navy) — could go `#FF3B30` to match the red/whistle brand; left out of scope for the favicon task.
 
 ### 🟡 MUST-VERIFY / CLEANUP before submission (not security-critical)
-5. **Clinical-records / provisioning entitlement cleanup** — verify portal App ID + provisioning profile carry only what's used
+6. **Clinical-records / provisioning entitlement cleanup** — verify portal App ID + provisioning profile carry only what's used
    (binary entitlements currently clean). [detail ~"Clinical-records" bullet below]
-6. **HRV full device verification** — reads work (`ah_hrv_ok`); the Settings-permission-sheet + real HRV data needs an Apple Watch
+7. **HRV full device verification** — reads work (`ah_hrv_ok`); the Settings-permission-sheet + real HRV data needs an Apple Watch
    wearer, cleanest via delete/reinstall so HRV is in the initial grant. [detail ~"HRV full device verification" bullet below]
-7. **Analytics breadcrumbs keep-vs-gate** — `ah_*` / `tier` / `bmr` / `plan_confirm_*` breadcrumbs kept through dev for cheap
+8. **Analytics breadcrumbs keep-vs-gate** — `ah_*` / `tier` / `bmr` / `plan_confirm_*` breadcrumbs kept through dev for cheap
    observability; **gate or strip before App Store**. [detail ~"Breadcrumb keep-vs-gate" bullet below]
+
+---
+
+## 💰 POST-REVENUE UPGRADE PATH — deferred paid-tier data upgrades
+_Deliberate sequencing decision, **NOT a pre-launch gap**: ship v1 on the improved **free** data stack, then invest in these
+paid data upgrades **once the app generates revenue** to justify the recurring, usage-scaling cost. Pursue in priority order._
+
+1. **Nutritionix (paid tier) — food database upgrade.** Replace/augment the current free stack (USDA FoodData Central + Open
+   Food Facts) with **Nutritionix** for better food-search coverage & quality — restaurant items, branded foods, better relevance —
+   closing the gap vs. MyFitnessPal / YAZIO / MacroFactor. **Status:** Emiliano has **emailed Nutritionix; evaluating their free tier
+   as a starting point.** If the free tier is approved → integrate it; **upgrade to the paid tier when revenue supports it.**
+   _(Directly motivated by the free stack's real limits — see the OFF reliability note below: Open Food Facts `search.pl` intermittently
+   returns 503 and USDA lacks prepared-dish coverage without FNDDS. Nutritionix would resolve both.)_
+   **↳ Serving/units coverage — partial in v1, full = here (v2):** v1 ships a real serving-size + units system on the free data
+   (qty×unit → grams → `calcMacros`) — grams/oz always, the food's natural serving (OFF) + name-heuristic `SMART_SERVINGS` presets,
+   ml/fl-oz/cup for **flagged liquids** (OFF ml-serving or USDA `foodCategory:"Beverages"`, else grams — never guessed), AND **USDA
+   household/count measures** ("1 slice"/"1 medium"/"1 strip") via the on-tap `api/food-detail-usda` proxy (`/food/{fdcId}` foodPortions →
+   `[{label,grams}]`) — see merge-coordination (d). That last piece is **PARTIAL coverage**: only USDA foods that define portions; OFF
+   foods and portion-less USDA foods stay grams/oz. What the free stack still **can't** do, deferred to Nutritionix: **full universal
+   count/unit coverage** — every food, every natural unit, real per-food densities/natural-language servings. The USDA proxy is the
+   partial free version; **Nutritionix is the complete version we switch to in v2.**
+2. **ExerciseDB (paid tier) — exercise data upgrade.** Upgrade the exercise data (the "View Exercise" GIFs / exercise library) to the
+   **ExerciseDB paid tier** for better exercise coverage & media quality. (The ExerciseDB key is already server-proxied — see the
+   RapidAPI arc above; this is a tier/coverage upgrade, not a new integration.)
+
+**Rationale:** food & exercise data quality are genuine competitive factors, but commercial APIs cost recurring money that scales with
+usage. Plan = ship v1 on the improved free stack (USDA + OFF — now fixed: env-base bug + relevance ranking + typo/partial fallback,
+plus FNDDS pending the proxy deploy), then buy the paid upgrades once the app earns enough to justify the spend.
 
 ---
 

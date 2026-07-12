@@ -620,7 +620,6 @@ export const GLOBAL_CSS = `
 
 export const NEW_ONBOARDING  = false;
 export const GOCLUB_REDESIGN = true;
-export const SHOW_DEBUG      = true;  // flip false to hide overlay
 export const REDESIGN_CSS = `
   .goclub {
     --cm-bg:         #ffffff;
@@ -1193,7 +1192,6 @@ export class ErrorBoundary extends React.Component {
     console.error("[ErrorBoundary] CAUGHT:",error?.message);
     console.error("[ErrorBoundary] STACK:",error?.stack);
     console.error("[ErrorBoundary] COMPONENT:",info?.componentStack);
-    window.__debugPush?.(`EB: ${error?.message} | ${String(info?.componentStack||'').slice(0,120)}`);
   }
   render(){
     if(this.state.hasError){
@@ -1747,11 +1745,6 @@ export function getTier(count) {
   return 0;
 }
 
-export function getReferralBadge(count) {
-  if(count>=5)return 'VERIFIED';
-  if(count>=1)return 'VIP';
-  return null;
-}
 
 export function Badge({type}) {
   const TIERS={

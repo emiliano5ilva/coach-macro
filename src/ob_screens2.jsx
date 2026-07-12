@@ -125,7 +125,7 @@ import { computeExpenditure, storeExpenditure, getExpenditureHistory, computeTod
 import { runDailyValidationSuite, dismissInsight } from "./services/validationService.js";
 import { getAdaptiveFactors, detectSystematicBias, applyAdaptiveFactors, recalibrateFactors } from "./services/adaptiveLearningService.js";
 import { generateProactiveAdjustments } from "./services/predictiveService.js";
-import { buildContextSnapshot, recordMemory, recallApplicableLearnings, updateMemoryOutcomes, detectRecurringPatterns, getAllMemories, getUserPatterns, deleteMemory, exportMemories } from "./services/coachMemoryService.js";
+import { buildContextSnapshot, recordMemory, recallApplicableLearnings, updateMemoryOutcomes, detectRecurringPatterns, getAllMemories, getUserPatterns, deleteMemory } from "./services/coachMemoryService.js";
 import { detectActivePatterns, generateIntervention, recordPatternDetection, dismissPattern, trackInterventionOutcome, FAILURE_PATTERNS } from "./services/failurePatternService.js";
 import { detectPrimaryPersonality, adaptMessageSync, buildContextualMessage, trackUserEvent, setManualOverride, setEmotionalTone, getPersonalityProfile, getProfileSync, PERSONALITY_TYPES } from "./services/personalityService.js";
 import { getConnectionsData, identifyActiveInfluencers, predictDownstreamEffects, getConnectionInsights, getNodeStatus, formatMetricValue, METRIC_META, isTrustedCorr } from "./services/connectionsService.js";
@@ -3830,7 +3830,6 @@ export function YourPatternsCard({userId}) {
   const [patterns, setPatterns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
-  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (!userId) { setLoading(false); return; }
@@ -3845,18 +3844,6 @@ export function YourPatternsCard({userId}) {
   const plateaus      = memories.filter(m => m.memory_type === 'plateau').length;
   const setbacks      = memories.filter(m => m.memory_type === 'setback').length;
 
-  async function handleExport() {
-    setExporting(true);
-    try {
-      const json = await exportMemories(userId);
-      const blob = new Blob([json], { type: 'application/json' });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href = url; a.download = 'coach-memory.json'; a.click();
-      URL.revokeObjectURL(url);
-    } catch {}
-    setExporting(false);
-  }
 
   async function handleDelete(memId) {
     await deleteMemory(userId, memId);
@@ -3941,12 +3928,6 @@ export function YourPatternsCard({userId}) {
             </div>
           )}
 
-          {/* Footer actions */}
-          <div style={{margin:"0 16px 20px",display:"flex",gap:8}}>
-            <button onClick={handleExport} disabled={exporting} style={{flex:1,background:"none",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",textTransform:"uppercase",letterSpacing:"0.08em"}}>
-              {exporting?"Exporting…":"Export Memory"}
-            </button>
-          </div>
         </>
       )}
     </div>
@@ -7070,9 +7051,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [barcodeInput,setBarcodeInput]=useState("");
   const [barcodeResult,setBarcodeResult]=useState(null);
   const [barcodeLoading,setBarcodeLoading]=useState(false);
-  const [quickFields,setQF]=useState({name:"",calories:"",protein:"",carbs:"",fat:""});
   const [recs,setRecs]=useState(""); const [recsLoading,setRecsLoading]=useState(false);
-  const [recipes,setRecipes]=useState(""); const [recipesLoading,setRecipesLoading]=useState(false);
   const [fastProto,setFastProto]=useState(profile?.fasting && profile.fasting!=="no" ? profile.fasting : "16:8");
   const [fastActive,setFastActive]=useState(false);
   const [fastStart,setFastStart]=useState(null);
@@ -7396,7 +7375,6 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [workoutStartTime,setWorkoutStartTime]=useState(null);
   const [workoutSummary,setWorkoutSummary]=useState(null);
   const [completedWorkout,setCompletedWorkout]=useState(null);
-  const [workoutSaveDebug,setWorkoutSaveDebug]=useState(''); // TEMP: surface DB error on-screen — remove after diagnosing
   const notifTimeoutRef=useRef(null);
   const [middayDismissed,setMiddayDismissed]=useState(()=>{try{const d=localStorage.getItem('midday_dismissed');return d&&(Date.now()-parseInt(d))<7200000;}catch{return false;}});
   const [firstWeekCardDismissed,setFirstWeekCardDismissed]=useState(()=>{try{return!!localStorage.getItem('cm_1week_dismissed');}catch{return false;}});
@@ -8232,7 +8210,6 @@ Be specific and practical. Empathetic tone. No fluff.`,
   function _getTimeBasedSlot(slots){const h=new Date().getHours(),n=slots.length;if(n<=0)return 1;const bounds=n===2?[13]:n===4?[10,13,18]:n===5?[9,12,15,19]:[8,10,13,16,19];const idx=bounds.findIndex(b=>h<b);return slots[idx===-1?n-1:Math.min(idx,n-1)]||slots[0]||1;}
   function _resolveTargetSlot(inferred,slots,locked){if(!(locked||[]).includes(inferred))return inferred;const first=slots.find(s=>!(locked||[]).includes(s));if(first!==undefined)return first;showToast("All meals are locked for today.","info");return inferred;}
   function addBarcode(){if(!barcodeResult)return;const isFirstMeal=log.length===0;const _slots=getSlotsForFreq(profile?.mealFreq||"3");const _slot=_resolveTargetSlot(_getTimeBasedSlot(_slots),_slots,lockedSlots);const entry={...barcodeResult,id:Date.now(),method:"barcode",slot:_slot};const newLog=[entry,...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"barcode",calories:barcodeResult.calories,protein:barcodeResult.protein},user.id);}setBarcodeResult(null);setBarcodeInput("");setLogMsg(`✓ ${barcodeResult.name} added`);if(isFirstMeal){const sl=wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner';showToast(getWin('first_meal',sl)?.headline||'FIRST MEAL LOGGED.');}}
-  function addQuick(){if(!quickFields.calories)return;const _slots=getSlotsForFreq(profile?.mealFreq||"3");const _slot=_resolveTargetSlot(_getTimeBasedSlot(_slots),_slots,lockedSlots);const entry={food:quickFields.name||"Entry",calories:parseInt(quickFields.calories)||0,protein:parseInt(quickFields.protein)||0,carbs:parseInt(quickFields.carbs)||0,fat:parseInt(quickFields.fat)||0,id:Date.now(),method:"quick",slot:_slot};const newLog=[entry,...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"quick",calories:entry.calories,protein:entry.protein},user.id);}setQF({name:"",calories:"",protein:"",carbs:"",fat:""});}
   function removeLog(id){const newLog=log.filter(i=>i.id!==id);setLog(newLog);if(user)saveFoodLog(user.id,newLog);}
   function logEntry(entry){const entrySlot=typeof entry.slot==='number'?entry.slot:null;if(entrySlot&&(lockedSlots||[]).includes(entrySlot))return;const newLog=[{...entry,id:Date.now(),method:"memory"},...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"memory",calories:entry.calories,protein:entry.protein},user.id);}}
 
@@ -8267,25 +8244,6 @@ Be specific and practical. Empathetic tone. No fluff.`,
     setRecsLoading(false);
   }
 
-  async function fetchRecipes(){
-    setRecipesLoading(true);setRecipes("");
-    const recipeDietCtx=(profile.dietary||[]).filter(d=>d!=="none");
-    const recipeCondCtx=(profile.conditions||[]).filter(c=>c!=="none");
-    // Map profile dietary values to allergen chip keys for post-scan
-    const _CHIP_MAP={'dairy':'No Dairy','gluten':'No Gluten','nuts':'No Nuts','halal':'No Pork'};
-    const profileChips=recipeDietCtx.filter(d=>!['vegan','vegetarian'].includes(d)).map(d=>_CHIP_MAP[d]).filter(Boolean);
-    try{
-      let txt=await ai(`Remaining macros I need to hit:\n- Calories: ${remaining.calories} kcal\n- Protein: ${remaining.protein}g\n- Carbs: ${remaining.carbs}g\n- Fat: ${remaining.fat}g\nGoal: ${profile.goal} · Day: ${todayType}${recipeDietCtx.length>0?". Dietary restrictions (STRICTLY avoid): "+recipeDietCtx.join(", "):""}${recipeCondCtx.length>0?". Health conditions: "+recipeCondCtx.join(", "):""}\n\nGive 3 simple home recipes. Each: name, ingredients (max 6 with amounts), steps (max 5), macro breakdown, prep time. Easy to cook. Hit the protein and calorie targets.`,900);
-      // Allergen text scan — warn if any violation detected in the text response
-      const textViolations=scanTextAllergens(txt,profileChips);
-      if(textViolations.length>0){
-        txt=`⚠️ Allergy warning: possible ${textViolations.join(', ')} detected in suggestions below. Verify all ingredients before cooking.\n\n`+txt;
-      }
-      setRecipes(txt);
-    }
-    catch(e){console.error("[fetchRecipes] error:",e);const m=getAIErrorMessage(e);if(m)setRecipes("⚠️ "+m+" Tap 'Get Recipes' to retry.");}
-    setRecipesLoading(false);
-  }
 
   async function generateWorkout(type="lifting",split="",runPlan="",hybridTemplate=""){
     setWorkoutLoading(true);setWorkout("");
@@ -8531,8 +8489,6 @@ Rules:
           if(saveErr){
             console.error("[finishWorkout] workout_logs insert failed:",saveErr);
             workoutSaveFailed=true;
-            // TEMP: surface exact error on-screen — remove after diagnosing root cause
-            setWorkoutSaveDebug('SAVE ERR: '+saveErr.message+' (code:'+saveErr.code+')');
           }
           if(!saveErr&&prs.length>0){
             await sb.from("personal_records").upsert(
@@ -9212,51 +9168,6 @@ Rules:
             <div className="header-title">Hey, {firstName}</div>
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <div
-              onClick={()=>{}}
-              style={{
-                width:'36px',
-                height:'36px',
-                borderRadius:'10px',
-                background:'rgba(var(--accent-rgb),0.1)',
-                border:'1px solid rgba(var(--accent-rgb),0.2)',
-                display:'flex',
-                flexDirection:'column',
-                alignItems:'center',
-                justifyContent:'center',
-                cursor:'pointer',
-                marginRight:'8px',
-                gap:'2px',
-              }}
-            >
-              <svg
-                width="14"
-                height="17"
-                viewBox="0 0 14 17"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                style={{display:'block',margin:'0 auto'}}
-              >
-                <path
-                  d="M7 0C7 0 9.5 3 9.5 5.5C9.5 5.5 11 4 11 4C11 4 14 7.5 14 10.5C14 13.5 11 17 7 17C3 17 0 13.5 0 10.5C0 7.5 2.5 5 2.5 5C2.5 5 3.5 7 4.5 7C4.5 7 2.5 4.5 7 0Z"
-                  fill="var(--accent)"
-                />
-                <path
-                  d="M7 8C7 8 8.5 9.5 8.5 11C8.5 12.5 7.8 13.5 7 13.5C6.2 13.5 5.5 12.5 5.5 11C5.5 9.5 7 8 7 8Z"
-                  fill="#FEA020"
-                />
-              </svg>
-              <span style={{
-                fontFamily:'DM Mono,monospace',
-                fontSize:'8px',
-                color:'var(--accent)',
-                lineHeight:'1',
-                fontWeight:'500',
-                userSelect:'none',
-              }}>
-                {streakCount||14}
-              </span>
-            </div>
             <button className="icon-btn" aria-label="Notifications"><svg width={16} height={16} viewBox="0 0 24 24"><path d="M6 8a6 6 0 1112 0c0 7 3 7 3 9H3c0-2 3-2 3-9zM10 21a2 2 0 004 0" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinejoin="round"/></svg></button>
             <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,var(--red),#8b1a0a)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--condensed)",fontWeight:800,fontStyle:"italic",fontSize:16,color:"white"}}>{firstName[0].toUpperCase()}</div>
           </div>
@@ -10649,7 +10560,7 @@ Rules:
 
         {/* ── WHITE CARD ── */}
         <div className="goclub-card-enter" style={{
-          background:"var(--cm-paper,#FFFFFF)",borderRadius:"30px 30px 0 0",
+          background:"var(--cm-paper,#FFFFFF)",borderRadius:30,
           marginTop:-130,position:"relative",
           paddingTop:28,paddingLeft:20,paddingRight:20,paddingBottom:120,
         }}>
@@ -10988,7 +10899,7 @@ Rules:
             {/* ── TODAY: HYDRATION HERO — full-width SVG wave, blue scoped here only ── */}
             <StaggerItem i={3} style={{marginBottom:22,position:"relative"}}>
               {/* Wave panel — touchAction:pan-y lets the page scroll; manipulation on buttons kills ghost-clicks */}
-              <div style={{borderRadius:20,overflow:"hidden",background:"#032248",height:200,position:"relative",touchAction:"pan-y"}}>
+              <div id="today-hydration" style={{borderRadius:20,overflow:"hidden",background:"#032248",height:200,position:"relative",touchAction:"pan-y",scrollMarginTop:80}}>
                 <svg ref={waveRef} style={{position:"absolute",inset:0,width:"100%",height:"100%"}}>
                   <defs>
                     <linearGradient id="cm-wgr" x1="0" y1="0" x2="0" y2="1">
@@ -11412,8 +11323,6 @@ Rules:
       </div>
 
       {showHealthModal&&<AppleHealthModal onConnect={handleHealthConnect} onDismiss={dismissHealthModal} userId={user?.id}/>}
-      {/* TEMP: workout save error debug — remove after diagnosing root cause */}
-      {workoutSaveDebug?<div style={{position:'fixed',top:60,left:0,right:0,zIndex:9999,background:'rgba(239,68,68,0.92)',padding:'10px 14px',fontFamily:'monospace',fontSize:11,color:'#fff',lineHeight:1.5,wordBreak:'break-all'}}>{workoutSaveDebug}</div>:null}
       {bioScreen&&<BioAlgorithmScreen user={user} profile={profile} onClose={()=>setBioScreen(false)}/>}
       {showInjuryRiskModal&&acwrRisks[showInjuryRiskModal]&&(
         <InjuryRiskModal
@@ -11479,7 +11388,7 @@ Rules:
         {section==="today"&&<ErrorBoundary>{GOCLUB_REDESIGN?<HomeSectionGoClub/>:<HomeSection/>}</ErrorBoundary>}
         {section==="plan"&&GOCLUB_REDESIGN&&<ErrorBoundary><PlanOnboarding profile={profile} wPrefs={wPrefs} user={user} setWPrefs={setWPrefs} setSchedule={setSchedule} setSection={setSection} setPlanBuilt={setPlanBuilt} onProfileUpdate={onProfileUpdate} onProtocolRefetch={()=>{const _d=new Date().toISOString().split("T")[0];sb.from("nutrition_protocols").delete().eq("user_id",user.id).eq("protocol_date",_d).then(()=>{},()=>{});getTodayNutritionProtocol(user.id).then(p=>setTodayProtocol(p||null)).catch(()=>{});}}/></ErrorBoundary>}
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} pauseWorkout={pauseWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} runDistancePrompt={runDistancePrompt} onRunDistanceChange={(km)=>{_enteredRunKm.current=km;}} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} workoutLogsRaw={workoutLogsRaw} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={(secs)=>{setLocalRestSecs(secs||90);setShowLocalRest(true);}} onSkipLocalRest={()=>{setShowLocalRest(false);setLocalRestSecs(90);}} onReduceLocalRest={()=>setLocalRestSecs(s=>Math.max(0,s-30))} onProfileUpdate={handleProfileUpdate}/></ErrorBoundary>}
-        {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} lockedSlots={lockedSlots} onLockSlots={saveLockedSlots} resetSignal={fuelResetSignal} todayProtocol={todayProtocol} pendingTodaySlot={pendingTodaySlot} onClearPendingTodaySlot={()=>setPendingTodaySlot(null)}/></ErrorBoundary>}
+        {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} lockedSlots={lockedSlots} onLockSlots={saveLockedSlots} resetSignal={fuelResetSignal} todayProtocol={todayProtocol} pendingTodaySlot={pendingTodaySlot} onClearPendingTodaySlot={()=>setPendingTodaySlot(null)}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
         {section==="progress"&&<ErrorBoundary><ProgressSection
           coachScore={coachScore}
@@ -11605,9 +11514,9 @@ Rules:
         <div onClick={()=>setQuickLogOpen(false)} style={{position:"fixed",inset:0,zIndex:99}}/>
         <div className="quick-log-row">
           {[
-            {k:"water",  icon:"fluent-emoji-flat:droplet",                  label:"Log Water",  on:()=>{setSection("fuel");setFuelScreen("home");}}, /* FLAG: routes to Fuel — wire a direct water quick-add later */
-            {k:"food",   icon:"fluent-emoji-flat:fork-and-knife-with-plate",label:"Log Food",   on:()=>{setSection("fuel");setFuelScreen("home");}},
-            {k:"workout",icon:"fluent-emoji-flat:person-lifting-weights",   label:"Do Workout", on:()=>handleTabPress("train")}, /* goes to Train = today's scheduled session (lift/run/hybrid, whatever's planned) */
+            {k:"water",  icon:"fluent-emoji-flat:droplet",                  label:"Log Water",  on:()=>{setSection("today");setTimeout(()=>document.getElementById("today-hydration")?.scrollIntoView({behavior:"smooth",block:"center"}),360);}}, /* Today tab → scroll to the HYDRATION hero */
+            {k:"food",   icon:"fluent-emoji-flat:fork-and-knife-with-plate",label:"Log Food",   on:()=>{setSection("fuel");setFuelScreen("log");}}, /* Fuel tab → the log-method sheet (Scan&Snap / Describe / Restaurant AI) */
+            {k:"workout",icon:"fluent-emoji-flat:person-lifting-weights",   label:"Do Workout", on:()=>handleTabPress("train")}, /* Train tab = today's scheduled session (lift/run/hybrid, whatever's planned) */
           ].map(a=>(
             <button key={a.k} className="quick-log-btn" onClick={()=>{_hL&&_hL();a.on();setQuickLogOpen(false);}}>
               <Icon icon={a.icon} width={26} height={26}/>

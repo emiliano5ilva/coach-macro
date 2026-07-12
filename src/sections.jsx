@@ -79,7 +79,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
   SectionCard, Spinner, Logo, CC, MuscleMap, FAQItem, BodyFigure,
   calcTDEE, lookupBarcode, useCountUp, autoFocus, getDayMacros,
-  Badge, getTier, getReferralBadge,
+  Badge, getTier,
   hap, hapMed, hapSuccess, hapPR,
   PaperCard, Pill, MusclePills,
   InfoTip, WorkoutSkeleton, ExerciseSkeleton, CardSkeleton, EmptyState,
@@ -110,7 +110,7 @@ import WarmupScreen from "./components/WarmupScreen.jsx";
 import WeekEditor from "./components/WeekEditor.jsx";
 import FeatureStrip from "./components/FeatureStrip.jsx";
 import { getAIErrorMessage } from "./utils/errors.js";
-import { ProgramLibraryScreen, CustomRoutineBuilder } from "./ProgramLibrary.jsx";
+import { ProgramLibraryScreen } from "./ProgramLibrary.jsx";
 import { resolveProgram, resolveDisplayWeek } from "./utils/programResolver.js";
 import { estimateActiveKcal } from "./utils/calorieEstimate.js";
 import { CalendarSettingsPanel } from "./LifeAwareTraining.jsx";
@@ -121,9 +121,8 @@ import { MUSCLE_TO_BODYMAP, BODYMAP_COLOR, REGION_LABELS, ALL_REGIONS } from "./
 import { thermalAt, THERMAL_NODATA } from "./data/thermalPalette.js";
 import { getPrescription, getRestTime, getGoalLabel, getGoalContext } from "./data/prescription.js";
 import { calculateTrainingDNA } from "./services/trainingDnaService.js";
-import { getReferralData, getReferrals, REFERRAL_TIERS } from "./services/referralService.js";
 import { getAdaptLimit, trialDaysRemaining, trialExpiringSoon, isExpired, getSubscriptionLabel } from "./utils/subscription.js";
-import { purchaseMonthly, purchaseAnnual, restorePurchases } from "./services/purchaseService.js";
+import { purchaseMonthly, purchaseAnnual, restorePurchases, devUnlockEntitlement } from "./services/purchaseService.js";
 import { getTodaySoreness } from "./services/sorenessService.js";
 import { getProgramImage } from "./data/programImages.js";
 import { triggerEventUnlock } from "./services/featureUnlockService.js";
@@ -161,6 +160,28 @@ function enrichHyroxDesc(text, hyroxProfile) {
 }
 
 // ─── ADAPTIVE COACHING UI COMPONENTS ─────────────────────────────────────────
+// Extracted from an inline IIFE that called useState conditionally (below an early
+// return, inside a conditionally-rendered block) → React #300. As a real component,
+// its hook is per-instance and React mounts/unmounts it safely.
+function RedsOverreachWarning({ reds, over }) {
+  const [expanded, setExpanded] = React.useState(false);
+  if (!reds && !over) return null;
+  const _AF = "'Archivo',sans-serif";
+  const _MO = "'DM Mono',monospace";
+  const title = reds ? 'RED-S Pattern Detected' : 'Overreaching Detected';
+  const msg = reds ? reds.message : over.message;
+  return (
+    <div style={{background:'rgba(255,59,48,0.07)',border:'1.5px solid rgba(255,59,48,0.22)',borderRadius:12,padding:'14px 16px',marginBottom:10}}>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,cursor:'pointer'}} onClick={()=>setExpanded(e=>!e)}>
+        <span style={{fontSize:18}}>⚠️</span>
+        <div style={{fontFamily:_AF,fontWeight:800,fontSize:15,color:'#FF3B30',textTransform:'uppercase'}}>{title}</div>
+        <span style={{marginLeft:'auto',fontFamily:_MO,fontSize:9,color:'rgba(var(--cm-ink-rgb),0.75)'}}>{expanded?'▲':'▼'}</span>
+      </div>
+      {expanded&&<div style={{fontFamily:_MO,fontSize:11,color:'rgba(10,10,10,0.60)',lineHeight:1.65,borderTop:'1px solid rgba(255,59,48,0.12)',paddingTop:10,marginTop:4}}>{msg}</div>}
+    </div>
+  );
+}
+
 function AdaptiveBanner({ modifier, analysis }) {
   const [expanded,setExpanded]=React.useState(false);
   const isRecovery=modifier.label==='recovery';
@@ -1747,6 +1768,41 @@ function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
 
 // WarmupScreen is now imported from ./components/WarmupScreen.jsx
 
+// Extracted from an inline IIFE in WorkoutSummaryScreen that called useState in render
+// (rules-of-hooks violation / #300 risk). As a component its hook is per-instance & safe.
+function CoolDownSection({ summary }) {
+  const [showCoolDown, setShowCoolDown] = React.useState(false);
+  const isRun = (summary?.title||'').toLowerCase().includes('run') || (summary?.title||'').toLowerCase().includes('cardio');
+  const coolProtocol = isRun ? COOL_DOWN.running : COOL_DOWN.strength;
+  return (
+    <div style={{marginBottom:16}}>
+      {!showCoolDown ? (
+        <button onClick={()=>setShowCoolDown(true)} style={{width:"100%",padding:"13px",background:"rgba(52,211,153,0.08)",border:"1px solid rgba(52,211,153,0.25)",borderRadius:14,color:T.green,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"var(--condensed)",fontStyle:"italic",textTransform:"uppercase",letterSpacing:1}}>
+          View Cool-Down Protocol (5 min)
+        </button>
+      ) : (
+        <div style={{background:"rgba(0,201,167,0.06)",border:"1px solid rgba(0,201,167,0.2)",borderRadius:14,padding:"16px 18px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(0,201,167,0.8)",letterSpacing:".18em",textTransform:"uppercase"}}>Cool-Down — 5 minutes</div>
+            <button onClick={()=>setShowCoolDown(false)} style={{background:"none",border:"none",color:"rgba(245,245,240,.3)",cursor:"pointer",fontSize:16,padding:"0 2px",lineHeight:1}}>×</button>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {coolProtocol.map((step, i) => (
+              <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 0",borderBottom:i<coolProtocol.length-1?"1px solid rgba(var(--accent-rgb),0.05)":"none"}}>
+                <div style={{width:22,height:22,borderRadius:"50%",background:"rgba(52,211,153,0.15)",border:"1px solid rgba(52,211,153,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:T.green,flexShrink:0,marginTop:1}}>{i+1}</div>
+                <div>
+                  <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:2}}>{step.name} <span style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(0,201,167,0.7)",fontWeight:400}}>· {step.duration}</span></div>
+                  <div style={{fontSize:11,color:"rgba(245,245,240,.55)",lineHeight:1.6}}>{step.detail}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogMore, plateausBroken }) {
   const [coachNote, setCoachNote] = useState(null);
   const [noteLoading, setNoteLoading] = useState(true);
@@ -1829,38 +1885,7 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
       </div>
 
       {/* Cool-down */}
-      {(()=>{
-        const [showCoolDown, setShowCoolDown] = React.useState(false);
-        const isRun = (summary?.title||'').toLowerCase().includes('run') || (summary?.title||'').toLowerCase().includes('cardio');
-        const coolProtocol = isRun ? COOL_DOWN.running : COOL_DOWN.strength;
-        return (
-          <div style={{marginBottom:16}}>
-            {!showCoolDown ? (
-              <button onClick={()=>setShowCoolDown(true)} style={{width:"100%",padding:"13px",background:"rgba(52,211,153,0.08)",border:"1px solid rgba(52,211,153,0.25)",borderRadius:14,color:T.green,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"var(--condensed)",fontStyle:"italic",textTransform:"uppercase",letterSpacing:1}}>
-                View Cool-Down Protocol (5 min)
-              </button>
-            ) : (
-              <div style={{background:"rgba(0,201,167,0.06)",border:"1px solid rgba(0,201,167,0.2)",borderRadius:14,padding:"16px 18px"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(0,201,167,0.8)",letterSpacing:".18em",textTransform:"uppercase"}}>Cool-Down — 5 minutes</div>
-                  <button onClick={()=>setShowCoolDown(false)} style={{background:"none",border:"none",color:"rgba(245,245,240,.3)",cursor:"pointer",fontSize:16,padding:"0 2px",lineHeight:1}}>×</button>
-                </div>
-                <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                  {coolProtocol.map((step, i) => (
-                    <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 0",borderBottom:i<coolProtocol.length-1?"1px solid rgba(var(--accent-rgb),0.05)":"none"}}>
-                      <div style={{width:22,height:22,borderRadius:"50%",background:"rgba(52,211,153,0.15)",border:"1px solid rgba(52,211,153,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:T.green,flexShrink:0,marginTop:1}}>{i+1}</div>
-                      <div>
-                        <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:2}}>{step.name} <span style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(0,201,167,0.7)",fontWeight:400}}>· {step.duration}</span></div>
-                        <div style={{fontSize:11,color:"rgba(245,245,240,.55)",lineHeight:1.6}}>{step.detail}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      <CoolDownSection summary={summary}/>
 
       {/* Actions */}
       <button onClick={onSaveAndExit} style={{width:"100%",padding:"15px",background:"var(--red)",color:"white",border:"none",borderRadius:14,fontFamily:"var(--condensed)",fontWeight:800,fontSize:16,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",marginBottom:10}}>
@@ -2452,22 +2477,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       console.warn('[coaching] no row for exercise:', e.name, '→ key:', _coachKey(e.name)); });
   },[trainScreen,_exNamesKey,coachingMap]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Custom routine session handoff ──────────────────────────────────────
-  useEffect(()=>{
-    if(trainScreen==="active"){
-      try{
-        const raw=sessionStorage.getItem("cm_custom_routine_session");
-        if(raw){
-          const parsed=JSON.parse(raw);
-          sessionStorage.removeItem("cm_custom_routine_session");
-          if(parsed?.exercises?.length&&!activeWorkout){
-            setActiveWorkout({title:parsed.title||"Custom Routine",exercises:parsed.exercises});
-          }
-        }
-      }catch{}
-    }
-  },[trainScreen]);
-
   // ── Favorites & Swap state ───────────────────────────────────────────────
   const favorites=wPrefs.favorites||[];
   const permanentSwaps=wPrefs.permanentSwaps||{};
@@ -2630,8 +2639,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     _doStartFromProgram(null);
   }
 
-  // ── Explore sheet state ─────────────────────────────────────────────────
-  const [showExploreSheet,setShowExploreSheet]=useState(false);
   const [activeCard,setActiveCard]=useState(0);
   const carouselRef=useRef(null);
   const [sessionDetailExpanded,setSessionDetailExpanded]=useState(false);
@@ -4168,13 +4175,13 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               })():(
                 <div className="header-eyebrow">// {todayFocus||cfg.label}</div>
               )}
-              <div className="header-title">{trainScreen==="today"?"Today's Session":trainScreen==="plan"?"My Program":trainScreen==="library"?"Exercise Library":trainScreen==="routine-builder"?"My Routines":trainScreen==="warmup-protocols"?"Protocols":trainScreen==="builder"?"Lift Smarter":trainScreen==="progress"?"Progress":"Train"}</div>
+              <div className="header-title">{trainScreen==="today"?"Today's Session":trainScreen==="plan"?"My Program":trainScreen==="library"?"Exercise Library":trainScreen==="warmup-protocols"?"Protocols":trainScreen==="builder"?"Lift Smarter":trainScreen==="progress"?"Progress":"Train"}</div>
             </div>
           </div>
         </div>
       )}
 
-      <div style={{padding:trainScreen==="routine-builder"?0:GOCLUB_REDESIGN&&(trainScreen==="today"||trainScreen==="plan")?0:isMobile?"12px 18px":"0"}}>
+      <div style={{padding:GOCLUB_REDESIGN&&(trainScreen==="today"||trainScreen==="plan")?0:isMobile?"12px 18px":"0"}}>
 
         {/* ── Resume Workout Prompt — today surface only ── */}
         {resumePrompt&&!activeWorkout&&trainScreen==="today"&&(
@@ -4346,24 +4353,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   {muscleDesc?.replace(/\s*[\.\!\?].*$/,"").toUpperCase?.()}
                 </div>
                 {/* RED-S / Overreaching */}
-                {(()=>{
-                  const reds=profile?.adaptive_profile?.redsDetected;
-                  const over=profile?.adaptive_profile?.overreachDetected;
-                  if(!reds&&!over)return null;
-                  const [expanded,setExpanded]=React.useState(false);
-                  const title=reds?'RED-S Pattern Detected':'Overreaching Detected';
-                  const msg=reds?reds.message:over.message;
-                  return(
-                    <div style={{background:'rgba(255,59,48,0.07)',border:'1.5px solid rgba(255,59,48,0.22)',borderRadius:12,padding:'14px 16px',marginBottom:10}}>
-                      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,cursor:'pointer'}} onClick={()=>setExpanded(e=>!e)}>
-                        <span style={{fontSize:18}}>⚠️</span>
-                        <div style={{fontFamily:_AF,fontWeight:800,fontSize:15,color:'#FF3B30',textTransform:'uppercase'}}>{title}</div>
-                        <span style={{marginLeft:'auto',fontFamily:_MO,fontSize:9,color:'rgba(var(--cm-ink-rgb),0.75)'}}>{expanded?'▲':'▼'}</span>
-                      </div>
-                      {expanded&&<div style={{fontFamily:_MO,fontSize:11,color:'rgba(10,10,10,0.60)',lineHeight:1.65,borderTop:'1px solid rgba(255,59,48,0.12)',paddingTop:10,marginTop:4}}>{msg}</div>}
-                    </div>
-                  );
-                })()}
+                <RedsOverreachWarning reds={profile?.adaptive_profile?.redsDetected} over={profile?.adaptive_profile?.overreachDetected}/>
                 {adaptiveSession?.injuryRisk==="high"&&adaptiveSession?.injuryNote&&(
                   <div style={{background:"rgba(255,59,48,0.07)",border:"1.5px solid rgba(255,59,48,0.18)",borderRadius:10,padding:"10px 14px",marginBottom:10,display:"flex",gap:10,alignItems:"flex-start"}}>
                     <span style={{fontSize:16,flexShrink:0}}>⚠️</span>
@@ -4651,7 +4641,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     <>
                       <div
                         ref={carouselRef}
-                        onScroll={e=>{const el=e.currentTarget;const w=el.offsetWidth||el.clientWidth||320;const idx=Math.min(2,Math.max(0,Math.round(el.scrollLeft/w)));setActiveCard(idx);}}
+                        onScroll={e=>{const el=e.currentTarget;const w=el.offsetWidth||el.clientWidth||320;const idx=Math.min(1,Math.max(0,Math.round(el.scrollLeft/w)));setActiveCard(idx);}}
                         style={{overflowX:"auto",display:"flex",flexDirection:"row",gap:0,paddingBottom:4,marginBottom:8,scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",scrollbarWidth:"none",msOverflowStyle:"none"}}
                       >
                         <div onClick={()=>{_hL();setTrainScreen("plan");}} style={cStyle}>
@@ -4675,17 +4665,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                           </div>
                           <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="rgba(var(--cm-ink-rgb,10,10,10),.35)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M9 18l6-6-6-6"/></svg>
                         </div>
-                        <div onClick={()=>{_hL();setShowExploreSheet(true);}} style={cStyle}>
-                          <div>
-                            <div style={{fontFamily:_MO,fontSize:9,color:"#FF3B30",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>TOOLS & MORE</div>
-                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:1}}>EXPLORE</div>
-                          </div>
-                          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb),0.75)"}}>Programs · Routines · Warm-up</div>
-                          <div style={{position:"absolute",bottom:16,right:16,color:"#FF3B30",fontSize:18,lineHeight:1}}>→</div>
-                        </div>
                       </div>
                       <div style={{display:"flex",gap:5,justifyContent:"center"}}>
-                        {[0,1,2].map(i=>(
+                        {[0,1].map(i=>(
                           <div key={i} style={{width:5,height:5,borderRadius:"50%",background:activeCard===i?"#FF3B30":"rgba(10,10,10,0.12)",transition:"background 0.2s"}}/>
                         ))}
                       </div>
@@ -4715,30 +4697,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 })()}
               </PaperCard>
 
-              {/* Explore bottom sheet — portalled */}
-              {showExploreSheet&&ReactDOM.createPortal(
-                <div onClick={()=>setShowExploreSheet(false)} style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"flex-end"}}>
-                  <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#ffffff",borderRadius:"24px 24px 0 0",padding:"24px 20px",paddingBottom:"calc(24px + env(safe-area-inset-bottom))"}}>
-                    <div style={{width:36,height:4,background:"rgba(10,10,10,0.12)",borderRadius:2,margin:"0 auto 20px"}}/>
-                    <div style={{fontFamily:_MO,fontSize:11,color:"#FF3B30",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:16}}>EXPLORE</div>
-                    {[
-                      {title:"PROGRAM LIBRARY",sub:"Browse all training programs",screen:"library"},
-                      {title:"MY ROUTINES",sub:"Your custom workouts",screen:"routine-builder"},
-                      {title:"WARM-UP",sub:"Movement prep by muscle group",screen:"warmup-protocols"},
-                      {title:"CUSTOM ROUTINE",sub:"Build your own workout",screen:"routine-builder"},
-                    ].map(({title,sub,screen})=>(
-                      <div key={title} onClick={()=>{_hL();setShowExploreSheet(false);setTrainScreen(screen);}} style={{padding:"14px 0",borderBottom:"1px solid rgba(10,10,10,0.06)",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
-                        <div>
-                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:17,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:1}}>{title}</div>
-                          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb),0.75)",marginTop:2}}>{sub}</div>
-                        </div>
-                        <div style={{color:"#FF3B30",fontSize:16,flexShrink:0}}>→</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>,
-                themeRoot()
-              )}
             </div>
           );
         })()}
@@ -5349,7 +5307,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             no external coach-macro.com). Mirrors the Settings legal viewer. */}
         {supportPageOpen&&(
           <div style={{position:"fixed",inset:0,zIndex:99999,background:"#000",overflowY:"auto"}}>
-            <button onClick={()=>setSupportPageOpen(false)} style={{position:"sticky",top:0,zIndex:1,display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.9)",border:"none",borderBottom:"1px solid rgba(245,245,240,0.1)",color:"var(--cm-red,#FF3B30)",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",padding:"14px 20px",width:"100%"}}>
+            <button onClick={()=>setSupportPageOpen(false)} style={{position:"sticky",top:0,zIndex:1,display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.9)",border:"none",borderBottom:"1px solid rgba(245,245,240,0.1)",color:"var(--cm-red,#FF3B30)",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",padding:"calc(env(safe-area-inset-top,0px) + 14px) 20px 14px",width:"100%"}}>
               <svg width={16} height={16} viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
               Back
             </button>
@@ -5546,8 +5504,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         {/* ── LIBRARY ── */}
         {trainScreen==="library"&&<ProgramLibraryScreen wPrefs={wPrefs} setWPrefs={setWPrefs} profile={profile} setTrainScreen={setTrainScreen} user={user} onProfileUpdate={onProfileUpdate} schedule={schedule} setSchedule={setSchedule}/>}
 
-        {/* ── CUSTOM ROUTINE BUILDER ── */}
-        {trainScreen==="routine-builder"&&<CustomRoutineBuilder user={user} setTrainScreen={setTrainScreen} onSaved={()=>{}} />}
 
         {/* ── WARM-UP PROTOCOLS VIEWER ── */}
         {trainScreen==="warmup-protocols"&&<WarmupProtocolsViewer isMobile={isMobile} setTrainScreen={setTrainScreen}/>}
@@ -6254,268 +6210,17 @@ export function ConnectSection({stravaToken,setStravaToken,stravaStatus,stravaAt
   );
 }
 
-// ─── REFER A FRIEND CARD ─────────────────────────────────────────────────────
-function ReferAFriendCard({ user, eyebrowStyle }) {
-  const [refData, setRefData] = useState(null);
-  const [referrals, setReferrals] = useState([]);
-  const [codeCopied, setCodeCopied] = useState(false);
-  const [sharing, setSharing] = useState(false);
-  const [showNextUnlock, setShowNextUnlock] = useState(false);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    getReferralData(user.id).then(d => {
-      if (!d) return;
-      setRefData(d);
-      // Flush any pending notifications queued by server when a referral converted
-      const notifs = d.pending_referral_notifications || [];
-      if (notifs.length > 0) {
-        notifs.forEach(n =>
-          showToast(n.message, n.type === 'tier_unlocked' ? 'success' : 'info', { duration: 4500 })
-        );
-        sb.from('profiles').update({
-          profile_data: { ...(d.profile_data || {}), pending_referral_notifications: [] },
-        }).eq('id', user.id).then(() => {});
-      }
-    });
-    getReferrals(user.id).then(list => setReferrals(list));
-  }, [user?.id]);
-
-  const referralCode = refData?.referral_code || '';
-  const referralCount = refData?.referral_count || 0;
-  const tier = refData?.referral_tier || 0;
-  const tierDef = REFERRAL_TIERS[tier] || REFERRAL_TIERS[0];
-  const tierColor = tierDef.color;
-  const nextTierDef = tier < 4 ? REFERRAL_TIERS[tier + 1] : null;
-
-  const progressPct = nextTierDef
-    ? Math.min(1, (referralCount - tierDef.min) / (nextTierDef.min - tierDef.min)) * 100
-    : 100;
-
-  async function copyCode() {
-    if (!referralCode) return;
-    try {
-      await navigator.clipboard.writeText(referralCode);
-      setCodeCopied(true);
-      setTimeout(() => setCodeCopied(false), 2000);
-    } catch {}
-  }
-
-  async function shareCode() {
-    if (!referralCode || sharing) return;
-    setSharing(true);
-    const text = `Use my referral code ${referralCode} to get started on Coach Macro — the app that connects your training and nutrition. Download at coach-macro.com`;
-    const url = `https://coach-macro.com/join?ref=${referralCode}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: 'Join me on Coach Macro', text, url });
-      } else {
-        await navigator.clipboard.writeText(`${text}\n${url}`);
-        showToast('Link copied!', 'success', { duration: 2000 });
-      }
-    } catch {}
-    setSharing(false);
-  }
-
-  if (!referralCode) return null;
-
-  return (
-    <>
-      <div style={eyebrowStyle}>Refer a friend</div>
-      <div style={{
-        background: 'var(--cm-paper,#FFFFFF)', borderRadius: 14, padding: 16,
-        boxShadow: '0 2px 12px rgba(0,0,0,.07)',
-        border: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)',
-        position: 'relative', overflow: 'hidden',
-      }}>
-        {/* Gradient */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, transparent 60%, rgba(var(--accent-rgb),0.04) 100%)', pointerEvents: 'none' }} />
-
-        {/* Headline + sub */}
-        <div style={{ fontFamily: "'Archivo',sans-serif", fontStyle: 'italic', fontWeight: 900, fontSize: 20, color: 'var(--cm-ink,#0A0A0A)', marginBottom: 4 }}>Give a friend 2 weeks free.</div>
-        <div style={{ fontFamily: "'Archivo',sans-serif", fontSize: 12, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.45)', marginBottom: 16 }}>Share your link — they start on us.</div>
-
-        {/* Code label */}
-        <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
-          Your referral code
-        </div>
-
-        {/* Code row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(var(--cm-ink-rgb,10,10,10),0.04)', border: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)', borderRadius: 10, padding: '12px 16px', marginBottom: 14 }}>
-          <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 24, color: 'var(--cm-red,#FF3B30)', flex: 1, letterSpacing: '0.08em' }}>
-            {referralCode}
-          </div>
-          <button onClick={copyCode} style={{ background: 'rgba(var(--cm-red-rgb,255,59,48),0.08)', border: '1px solid rgba(var(--cm-red-rgb,255,59,48),0.25)', borderRadius: 8, padding: '6px 12px', fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 9, color: 'var(--cm-red,#FF3B30)', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer' }}>
-            {codeCopied ? 'COPIED ✓' : 'COPY'}
-          </button>
-        </div>
-
-        {/* Share button */}
-        <button onClick={shareCode} disabled={sharing} style={{ width: '100%', background: 'var(--cm-red,#FF3B30)', border: 'none', borderRadius: 10, padding: 13, color: '#fff', fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', opacity: sharing ? 0.7 : 1 }}>
-          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx={18} cy={5} r={3}/><circle cx={6} cy={12} r={3}/><circle cx={18} cy={19} r={3}/><line x1={8.59} y1={13.51} x2={15.42} y2={17.49}/><line x1={15.41} y1={6.51} x2={8.59} y2={10.49}/></svg>
-          SHARE YOUR CODE
-        </button>
-
-        {/* Tier progress */}
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <div>
-              <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.4)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 3 }}>Current tier</div>
-              <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 18, color: tierColor }}>
-                {tier === 0 ? 'NO TIER YET.' : `${tierDef.name}.`}
-              </div>
-            </div>
-            <div style={{ background: 'rgba(var(--cm-red-rgb,255,59,48),0.08)', border: '1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)', borderRadius: 20, padding: '3px 10px', fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 9, color: 'var(--cm-red,#FF3B30)' }}>
-              {referralCount} referral{referralCount !== 1 ? 's' : ''}
-            </div>
-          </div>
-
-          {/* Progress — bar with next-unlock dropdown (tier < 4) or status count (tier 4) */}
-          {tier < 4 && nextTierDef ? (
-            <>
-              <div style={{ fontFamily: "'Archivo',sans-serif", fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.4)', marginBottom: 5 }}>
-                {nextTierDef.min - referralCount} more referral{nextTierDef.min - referralCount !== 1 ? 's' : ''} to {nextTierDef.name}
-              </div>
-              <div style={{ background: 'rgba(var(--cm-ink-rgb,10,10,10),0.06)', borderRadius: 4, height: 4, overflow: 'hidden', marginBottom: 12 }}>
-                <div style={{ height: '100%', width: `${progressPct}%`, background: tierColor, borderRadius: 4, transition: 'width 0.6s ease' }} />
-              </div>
-              {/* Next unlock row */}
-              <div
-                onClick={() => setShowNextUnlock(v => !v)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
-                  background: 'rgba(var(--cm-ink-rgb,10,10,10),0.02)', border: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)',
-                  borderRadius: 8, padding: '8px 12px', marginBottom: showNextUnlock ? 0 : 12 }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke={nextTierDef.color} strokeWidth={2} strokeLinecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
-                  <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Next unlock</span>
-                  <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 8, color: nextTierDef.color, letterSpacing: '0.04em' }}>
-                    {nextTierDef.newFeatures[0] || nextTierDef.newPerks[0] || nextTierDef.name}
-                  </span>
-                </div>
-                <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 9, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.3)' }}>{showNextUnlock ? '▲' : '▼'}</span>
-              </div>
-              {showNextUnlock && (
-                <div style={{ background: 'rgba(var(--cm-ink-rgb,10,10,10),0.02)', border: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)', borderTop: 'none',
-                  borderRadius: '0 0 8px 8px', padding: '10px 12px', marginBottom: 12 }}>
-                  {nextTierDef.newFeatures.map(f => (
-                    <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      <svg width={10} height={10} viewBox="0 0 24 24" fill={nextTierDef.color}><path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26C17.81 13.47 19 11.38 19 9c0-3.87-3.13-7-7-7z"/></svg>
-                      <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.8)' }}>{f}</span>
-                      <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 7, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.3)', marginLeft: 'auto' }}>FEATURE</span>
-                    </div>
-                  ))}
-                  {nextTierDef.newPerks.map(p => (
-                    <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      <svg width={10} height={10} viewBox="0 0 24 24" fill={nextTierDef.color}><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 16L12 15.45 7.77 18l1.12-4.81-3.73-3.23 4.92-.42L12 5l1.92 4.53 4.92.42-3.73 3.23L16.23 18z"/></svg>
-                      <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.8)' }}>{p}</span>
-                      <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 7, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.3)', marginLeft: 'auto' }}>PERK</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          ) : tier >= 4 ? (
-            <div style={{ textAlign: 'center', padding: '12px 0 16px' }}>
-              <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 56, color: '#FFD740', lineHeight: 1, letterSpacing: '-1px' }}>
-                {referralCount}
-              </div>
-              <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.4)', letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 4 }}>
-                Referrals. Legend status.
-              </div>
-            </div>
-          ) : null}
-
-          {/* Feature unlocks */}
-          <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 10, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.4)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Feature unlocks</div>
-          {[
-            { label: 'App icon customization',   unlockedAt: 1 },
-            { label: 'Workout history export',    unlockedAt: 2 },
-            { label: 'Color scheme customization', unlockedAt: 3 },
-            { label: 'Dashboard layout options',  unlockedAt: 4 },
-          ].map(({ label, unlockedAt }) => {
-            const unlocked = tier >= unlockedAt;
-            return (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                {unlocked
-                  ? <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 10, color: '#22c55e' }}>✓</span>
-                  : <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" stroke="rgba(var(--cm-ink-rgb,10,10,10),0.2)" strokeWidth={1.7}/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="rgba(var(--cm-ink-rgb,10,10,10),0.2)" strokeWidth={1.7} strokeLinecap="round"/></svg>
-                }
-                <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: unlocked ? 'var(--cm-ink,#0A0A0A)' : 'rgba(var(--cm-ink-rgb,10,10,10),0.3)' }}>{label}</span>
-                {!unlocked && <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.25)', marginLeft: 'auto' }}>{REFERRAL_TIERS[unlockedAt].min} refs</span>}
-              </div>
-            );
-          })}
-
-          {/* Status perks */}
-          {tierDef.perks.length > 0 && (
-            <>
-              <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 10, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.4)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8, marginTop: 14 }}>Status perks</div>
-              {tierDef.perks.map(p => (
-                <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 10, color: '#22c55e' }}>✓</span>
-                  <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: 'var(--cm-ink,#0A0A0A)' }}>{p}</span>
-                </div>
-              ))}
-            </>
-          )}
-          {tier === 0 && (
-            <div style={{ fontFamily: "'Archivo',sans-serif", fontSize: 9, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.4)', marginTop: 6 }}>Refer 1 friend who subscribes to unlock your first feature</div>
-          )}
-        </div>
-
-        {/* Referral list */}
-        {referrals.length > 0 && (
-          <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)' }}>
-            <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 10, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.4)', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 8 }}>Referred members</div>
-            {referrals.map((r, i) => (
-              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < referrals.length - 1 ? '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)' : 'none' }}>
-                <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: 'var(--cm-ink,#0A0A0A)' }}>
-                  Anonymous
-                </span>
-                {r.status === 'completed'
-                  ? <span style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 6, padding: '2px 8px', fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 8, color: '#22c55e' }}>PAID ✓</span>
-                  : <span style={{ background: 'rgba(254,160,32,0.1)', border: '1px solid rgba(254,160,32,0.2)', borderRadius: 6, padding: '2px 8px', fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 8, color: '#FEA020' }}>PENDING</span>
-                }
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
-
 // ─── APPEARANCE SECTION ──────────────────────────────────────────────────────
 function AppearanceSection({ user, wPrefs, setWPrefs }) {
-  const [tier, setTier] = useState(null);
   const saved = wPrefs?.theme || { accent: 'red', bg: 'black' };
   const [pendingAccent, setPendingAccent] = useState(saved.accent);
   const [pendingBg,     setPendingBg]     = useState(saved.bg);
   const [saving, setSaving] = useState(false);
   const isDirty = pendingAccent !== saved.accent || pendingBg !== saved.bg;
 
-  useEffect(() => {
-    if (!user?.id) return;
-    // Dev accounts always get max tier so the theme picker is visible for testing.
-    // MODE-gated (same pattern as the dev-skip flow) → terser-strips from prod builds.
-    if (import.meta.env.MODE !== "production" && user.email?.endsWith('@coachm.dev')) { setTier(4); return; }
-    sb.from('profiles').select('referral_tier').eq('id', user.id).maybeSingle()
-      .then(({ data }) => setTier(data?.referral_tier || 0));
-  }, [user?.id]);
-
   const accentHex = ACCENT_COLORS.find(c => c.id === pendingAccent)?.hex || '#FF3B30';
   const bgHex     = BG_COLORS.find(c => c.id === pendingBg)?.hex         || '#000000';
   const lightBg   = isLightBg(bgHex);
-  const previewText   = lightBg ? '#1a1a1a' : 'var(--cm-ink,#0A0A0A)';
-  const previewTextDim = lightBg ? 'rgba(0,0,0,0.50)' : 'rgba(var(--cm-ink-rgb,10,10,10),0.50)';
-  const previewBorder = lightBg ? 'rgba(0,0,0,0.12)' : 'rgba(var(--cm-ink-rgb,10,10,10),0.10)';
-  const previewCard   = lightBg ? '#ececec' : (() => {
-    const bg = BG_COLORS.find(c => c.id === pendingBg);
-    if (!bg) return '#0d0d0d';
-    const [r, g, b_] = bg.rgb.split(',').map(Number);
-    return `#${[r, g, b_].map(c => Math.min(255, Math.round(c + (255 - c) * 0.07)).toString(16).padStart(2, '0')).join('')}`;
-  })();
 
   async function confirm() {
     if (!user?.id) return;
@@ -6534,13 +6239,6 @@ function AppearanceSection({ user, wPrefs, setWPrefs }) {
     setPendingAccent(saved.accent);
     setPendingBg(saved.bg);
   }
-
-  // Always use default colors for the locked preview
-  const lockedAccentHex = '#FF3B30';
-  const lockedBgHex     = '#000000';
-
-  const isUnlocked = tier !== null && tier >= 3;
-  const isLoading  = tier === null;
 
   function ColorSwatch({ colors, selected, onSelect, isAccentRow }) {
     return (
@@ -6589,32 +6287,32 @@ function AppearanceSection({ user, wPrefs, setWPrefs }) {
       return [r,g,b2].map(c => Math.min(255,Math.round(c+(255-c)*0.07)).toString(16).padStart(2,'0')).join('');
     })();
     return (
-      <div style={{ background: bgH, borderRadius: 12, overflow: 'hidden', border: `1px solid ${pBord}` }}>
-        {/* Mock header */}
-        <div style={{ background: pCard, padding: '10px 14px', borderBottom: `1px solid ${pBord}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: accentH }} />
-          <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 14, color: ptxt }}>COACH MACRO</div>
+      <div style={{ background: bgH, borderRadius: 16, overflow: 'hidden', border: `1px solid ${pBord}` }}>
+        {/* Header */}
+        <div style={{ padding: '14px 16px 4px', display: 'flex', alignItems: 'center', gap: 9 }}>
+          <div style={{ width: 9, height: 9, borderRadius: '50%', background: accentH }} />
+          <div style={{ fontFamily: 'var(--condensed)', fontWeight: 900, letterSpacing: '0.16em', fontSize: 12, color: ptxt, textTransform: 'uppercase' }}>Coach Macro</div>
         </div>
-        <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {/* Mock stat card */}
-          <div style={{ background: pCard, borderRadius: 8, padding: '8px 10px', border: `1px solid ${pBord}` }}>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: accentH, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>// TODAY</div>
-            <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 18, color: ptxt, lineHeight: 1 }}>PUSH DAY.</div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: ptxtD, marginTop: 2 }}>Chest · Shoulders · Triceps</div>
+        <div style={{ padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Session card */}
+          <div style={{ background: pCard, borderRadius: 14, padding: '13px 15px', border: `1px solid ${pBord}` }}>
+            <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 8.5, color: accentH, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 7 }}>Today</div>
+            <div style={{ fontFamily: "'Archivo',sans-serif", fontStyle: 'italic', fontWeight: 900, fontSize: 21, color: ptxt, lineHeight: 0.95, textTransform: 'uppercase' }}>Push Day</div>
+            <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 10.5, color: ptxtD, marginTop: 5 }}>Chest · Shoulders · Triceps</div>
           </div>
-          {/* Mock progress bar */}
-          <div style={{ background: pCard, borderRadius: 8, padding: '8px 10px', border: `1px solid ${pBord}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 8, color: ptxtD }}>Protein</span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 8, color: accentH }}>142 / 180g</span>
+          {/* Protein card */}
+          <div style={{ background: pCard, borderRadius: 14, padding: '13px 15px', border: `1px solid ${pBord}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+              <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 10.5, color: ptxtD, letterSpacing: '0.02em' }}>Protein</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, color: accentH }}>142 / 180g</span>
             </div>
-            <div style={{ height: 4, background: `rgba(${lt ? '0,0,0' : '245,245,240'},0.12)`, borderRadius: 2, overflow: 'hidden' }}>
-              <div style={{ width: '79%', height: '100%', background: accentH, borderRadius: 2 }} />
+            <div style={{ height: 6, background: `rgba(${lt ? '0,0,0' : '245,245,240'},0.10)`, borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ width: '79%', height: '100%', background: accentH, borderRadius: 3 }} />
             </div>
           </div>
-          {/* Mock button */}
-          <button style={{ width: '100%', padding: '9px', background: accentH, border: 'none', borderRadius: 8, fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 13, color: lt && accentH === '#FFFFFF' ? '#1a1a1a' : '#fff', letterSpacing: '0.04em', textTransform: 'uppercase', cursor: 'default' }}>
-            START SESSION →
+          {/* CTA */}
+          <button style={{ width: '100%', padding: '12px', background: accentH, border: 'none', borderRadius: 12, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 12, color: lt && accentH === '#FFFFFF' ? '#1a1a1a' : '#fff', letterSpacing: '0.14em', textTransform: 'uppercase', cursor: 'default' }}>
+            Start Session →
           </button>
         </div>
       </div>
@@ -6622,55 +6320,34 @@ function AppearanceSection({ user, wPrefs, setWPrefs }) {
   }
 
   return (
-    <>
-      {isLoading ? null : (
-        <>
-          {!isUnlocked ? (
-            /* ── LOCKED STATE ── */
-            <div style={{ background: 'var(--cm-paper,#FFFFFF)', borderRadius: 12, border: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)', overflow: 'hidden', padding: '16px 16px 20px', boxShadow: '0 2px 12px rgba(0,0,0,.08)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(var(--cm-ink-rgb,10,10,10),0.25)"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.40)', letterSpacing: '0.10em' }}>Unlock at 5 referrals</span>
-              </div>
-              <MiniPreview accentH={lockedAccentHex} bgH={lockedBgHex} />
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.25)', textAlign: 'center', marginTop: 12, letterSpacing: '0.08em' }}>
-                Invite 5 friends to unlock color themes.
-              </div>
-            </div>
-          ) : (
-            /* ── UNLOCKED STATE ── */
-            <div style={{ background: 'var(--cm-paper,#FFFFFF)', borderRadius: 12, border: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)', overflow: 'hidden', padding: '16px' }}>
-              {/* Live preview */}
-              <MiniPreview accentH={accentHex} bgH={bgHex} />
+    <div style={{ background: 'var(--cm-paper,#FFFFFF)', borderRadius: 12, border: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)', overflow: 'hidden', padding: '16px' }}>
+      {/* Live preview */}
+      <MiniPreview accentH={accentHex} bgH={bgHex} />
 
-              {/* Accent picker */}
-              <div style={{ marginTop: 16 }}>
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.40)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 2 }}>Accent Color</div>
-                <ColorSwatch colors={ACCENT_COLORS} selected={pendingAccent} onSelect={setPendingAccent} isAccentRow />
-              </div>
+      {/* Accent picker */}
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.40)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 2 }}>Accent Color</div>
+        <ColorSwatch colors={ACCENT_COLORS} selected={pendingAccent} onSelect={setPendingAccent} isAccentRow />
+      </div>
 
-              {/* Background picker */}
-              <div style={{ marginTop: 16 }}>
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.40)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 2 }}>Background</div>
-                <ColorSwatch colors={BG_COLORS} selected={pendingBg} onSelect={setPendingBg} isAccentRow={false} />
-              </div>
+      {/* Background picker */}
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.40)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 2 }}>Background</div>
+        <ColorSwatch colors={BG_COLORS} selected={pendingBg} onSelect={setPendingBg} isAccentRow={false} />
+      </div>
 
-              {/* Confirm / Cancel — only when there are unsaved changes */}
-              {isDirty && (
-                <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                  <button onClick={cancel} style={{ flex: 1, padding: '11px', background: 'rgba(var(--cm-ink-rgb,10,10,10),0.06)', border: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)', borderRadius: 10, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.60)', fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
-                    Cancel
-                  </button>
-                  <button onClick={confirm} disabled={saving} style={{ flex: 2, padding: '11px', background: accentHex, border: 'none', borderRadius: 10, color: lightBg && accentHex === '#FFFFFF' ? '#1a1a1a' : '#fff', fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
-                    {saving ? 'Saving…' : 'Apply Theme'}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </>
+      {/* Confirm / Cancel — only when there are unsaved changes */}
+      {isDirty && (
+        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+          <button onClick={cancel} style={{ flex: 1, padding: '11px', background: 'rgba(var(--cm-ink-rgb,10,10,10),0.06)', border: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)', borderRadius: 10, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.60)', fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            Cancel
+          </button>
+          <button onClick={confirm} disabled={saving} style={{ flex: 2, padding: '11px', background: accentHex, border: 'none', borderRadius: 10, color: lightBg && accentHex === '#FFFFFF' ? '#1a1a1a' : '#fff', fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            {saving ? 'Saving…' : 'Apply Theme'}
+          </button>
+        </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -6900,16 +6577,9 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const [showRaceTypePicker,setShowRaceTypePicker]=useState(false);
   const [showRaceDatePicker,setShowRaceDatePicker]=useState(false);
   const [showCaloriePicker,setShowCaloriePicker]=useState(false);
-  const [stravaConnected,setStravaConnected]=useState(false);
-  const [stravaLoading,setStravaLoading]=useState(false);
-  const [stravaAthlete,setStravaAthlete]=useState(null);
-
-  useEffect(()=>{
-    if(!user?.id)return;
-    sb.from('connected_apps').select('metadata,connected_at').eq('user_id',user.id).eq('provider','strava').maybeSingle().then(({data})=>{
-      if(data){setStravaConnected(true);setStravaAthlete(data);}
-    });
-  },[user?.id]);
+  // Strava + Calendar connect UI removed for v1 (saved for v2). Backend intact:
+  // api/strava OAuth flow, the connected_apps table, and LifeAwareTraining's
+  // CalendarSettingsPanel + calendarConnected/onCalendar* prop threading all remain.
 
   async function saveSettings(newWPrefs,newSchedule){
     if(!user)return;
@@ -7018,7 +6688,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         );
       })()}
       {/* ── WHITE SHEET (wraps all existing sections) ── */}
-      <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:4,paddingTop:22,paddingBottom:28,marginLeft:isMobile?-18:0,marginRight:isMobile?-18:0,paddingLeft:isMobile?18:0,paddingRight:isMobile?18:0}}>
+      <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:4,paddingTop:22,paddingBottom:28,marginLeft:isMobile?-18:0,marginRight:isMobile?-18:0,paddingLeft:isMobile?18:0,paddingRight:isMobile?18:0}}>
       {/* ── GROUP 1: YOU ─────────────────────────────────────────────── */}
       <div style={eyebrowStyle}>You</div>
       {/* <AthletePassport user={user}/> — temporarily hidden, keep for later */}
@@ -7043,10 +6713,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       <div style={eyebrowStyle}>Appearance</div>
       <AppearanceSection user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} />
 
-      {/* ── GROUP 4: REFER A FRIEND ──────────────────────────────────── */}
-      <ReferAFriendCard user={user} eyebrowStyle={eyebrowStyle} />
-
-      {/* ── GROUP 5: YOUR VOICE ──────────────────────────────────────── */}
+      {/* ── GROUP 4: YOUR VOICE ──────────────────────────────────────── */}
       <div style={eyebrowStyle}>Your voice</div>
       <div style={cardStyle}>
         <div onClick={()=>{if(window.uj)window.uj.showWidget({section:"features"});}} style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
@@ -7075,7 +6742,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       <div style={eyebrowStyle}>Account</div>
       <div style={cardStyle}>
         <MeRow label="Account" value="Plan, purchases, privacy" onPress={()=>setMeScreen('account')}/>
-        <MeRow label="Connected apps" value="Strava, Calendar, Health" onPress={()=>setMeScreen('connected')}/>
+        <MeRow label="Connected apps" value="Apple Health" onPress={()=>setMeScreen('connected')}/>
         <MeRow label="Sign Out" isDestructive isLast onPress={onSignOut}/>
       </div>
       </div>{/* end white sheet */}
@@ -7086,7 +6753,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
             <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
           </div>
-          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:8,padding:"24px 18px 48px"}}>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
             <div style={eyebrowStyle}>Plan & nutrition</div>
             <div style={cardStyle}>
               {/* A. Diet Preset */}
@@ -7185,7 +6852,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
             <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
           </div>
-          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:8,padding:"24px 18px 48px"}}>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
             <div style={eyebrowStyle}>Display & tracking</div>
             <div style={cardStyle}>
               {/* Skill Level Chips */}
@@ -7319,7 +6986,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
             <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:6}}>← Back</button>
           </div>
-          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:8,padding:"24px 18px 48px"}}>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
             <div style={eyebrowStyle}>Profile</div>
             <div style={cardStyle}>
               <MeRow label="Name" value={localName||"—"} onPress={()=>{setEditModal("name");setEditValue(localName);}}/>
@@ -7352,7 +7019,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
             <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
           </div>
-          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:8,padding:"24px 18px 48px"}}>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
             <div style={eyebrowStyle}>Coaching style</div>
             <CommunicationStyleSection userId={user?.id}/>
           </div>
@@ -7363,7 +7030,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
             <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
           </div>
-          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:8,padding:"24px 18px 48px"}}>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
             <div style={eyebrowStyle}>Notifications</div>
             <CoachOutreachSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle}/>
           </div>
@@ -7374,7 +7041,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
             <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
           </div>
-          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:8,padding:"24px 18px 48px"}}>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
             <div style={eyebrowStyle}>Patterns & memory</div>
             <YourPatternsCard userId={user?.id}/>
           </div>
@@ -7387,46 +7054,9 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
             <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
           </div>
-          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:8,padding:"24px 18px 48px"}}>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
             <div style={eyebrowStyle}>Connected apps</div>
             <div style={cardStyle}>
-              {/* Strava */}
-              <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{display:"flex",alignItems:"center",gap:12}}>
-                  <div style={{width:44,height:44,borderRadius:10,background:"#FC4C02",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
-                  </div>
-                  <div>
-                    <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>Strava</div>
-                    {stravaConnected&&stravaAthlete?.metadata?.firstname&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:1}}>{stravaAthlete.metadata.firstname}</div>}
-                    {!stravaConnected&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:1}}>Sync runs & rides automatically</div>}
-                  </div>
-                </div>
-                {stravaConnected?(
-                  <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:9,color:"#22c55e",background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.2)",borderRadius:6,padding:"3px 8px"}}>CONNECTED</span>
-                    <button onClick={async()=>{
-                      if(!confirm("Disconnect Strava?"))return;
-                      await sb.from('connected_apps').delete().eq('user_id',user.id).eq('provider','strava');
-                      setStravaConnected(false);setStravaAthlete(null);
-                      showToast("Strava disconnected","info");
-                    }} style={{background:"transparent",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:6,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",fontSize:11,padding:"4px 10px",cursor:"pointer",fontFamily:"'Archivo',sans-serif"}}>Disconnect</button>
-                  </div>
-                ):(
-                  <button onClick={async()=>{
-                    if(!user?.id)return;
-                    setStravaLoading(true);
-                    const base=import.meta.env.VITE_API_BASE_URL||"";
-                    window.location.href=`${base}/api/strava/auth?userId=${user.id}`;
-                  }} disabled={stravaLoading} style={{background:"#FC4C02",border:"none",borderRadius:8,color:"#fff",fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,padding:"7px 14px",cursor:"pointer",letterSpacing:"0.06em"}}>
-                    {stravaLoading?"CONNECTING…":"CONNECT"}
-                  </button>
-                )}
-              </div>
-              {/* Calendar — Life-Aware Training */}
-              <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
-                <CalendarSettingsPanel connected={calendarConnected||false} onConnect={onCalendarConnect||(() =>{})} onDisconnect={onCalendarDisconnect||(() =>{})} prefs={wPrefs?.calendarPrefs||{}} onPrefsChange={async(key,val)=>{const next={...wPrefs,calendarPrefs:{...(wPrefs?.calendarPrefs||{}),[key]:val}};setWPrefs(next);if(user){try{await sb.from("profiles").upsert({id:user.id,wprefs:next},{onConflict:"id"});}catch{}}}}/>
-              </div>
               {/* Apple Health */}
               <div style={{padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -7451,7 +7081,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
             <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
           </div>
-          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:8,padding:"24px 18px 48px"}}>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
             <div style={eyebrowStyle}>Account</div>
             {/* Subscription */}
             <div style={cardStyle}>
@@ -7470,7 +7100,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                   <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,marginBottom:12}}>UPGRADE TO PRO.</div>
                   <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Monthly</span><span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.6)"}}>$12.99 / month</span></div>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Annual · Founding</span><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.6)"}}>$49.99 / year</span><span style={{background:"rgba(34,197,94,0.15)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:4,padding:"1px 6px",fontSize:9,color:"#22c55e",fontFamily:"'Archivo',sans-serif",fontWeight:700}}>SAVE 68%</span></div></div>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Annual</span><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.6)"}}>$49.99 / year</span><span style={{background:"rgba(34,197,94,0.15)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:4,padding:"1px 6px",fontSize:9,color:"#22c55e",fontFamily:"'Archivo',sans-serif",fontWeight:700}}>SAVE 68%</span></div></div>
                   </div>
                   <button onClick={()=>setShowPlansModal(true)} style={{width:"100%",padding:"12px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:10,color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:14,letterSpacing:".06em",textTransform:"uppercase",cursor:"pointer"}}>VIEW PLANS →</button>
                 </div>
@@ -7500,7 +7130,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 onboarding legal modal in NativeApp). No external URLs, no WKWebView navigation. */}
             {legalPage&&(
               <div style={{position:"fixed",inset:0,zIndex:99999,background:"#000",overflowY:"auto"}}>
-                <button onClick={()=>setLegalPage(null)} style={{position:"sticky",top:0,zIndex:1,display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.9)",border:"none",borderBottom:"1px solid rgba(245,245,240,0.1)",color:"var(--cm-red,#FF3B30)",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",padding:"14px 20px",width:"100%"}}>
+                <button onClick={()=>setLegalPage(null)} style={{position:"sticky",top:0,zIndex:1,display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.9)",border:"none",borderBottom:"1px solid rgba(245,245,240,0.1)",color:"var(--cm-red,#FF3B30)",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",padding:"calc(env(safe-area-inset-top,0px) + 14px) 20px 14px",width:"100%"}}>
                   <svg width={16} height={16} viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
                   Back
                 </button>
@@ -7541,16 +7171,29 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             <div style={{width:32,height:3,background:"rgba(var(--cm-red-rgb,255,59,48),0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
             <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,marginBottom:6}}>GO PRO.</div>
             <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.1em",marginBottom:20}}>10 ADAPT NOW · AI LOGGING · RECIPES · RESTAURANT AI</div>
-            {[{id:"monthly",label:"MONTHLY",price:"$12.99",per:"/month",badge:null,gradient:false},{id:"annual",label:"FOUNDING ANNUAL",price:"$49.99",per:"/year · $4.17/mo",badge:"FOUNDING MEMBER",saving:"Save 68% vs monthly · locked for life",gradient:true}].map(plan=>(
+            {[{id:"monthly",label:"MONTHLY",price:"$12.99",per:"/month",badge:null,gradient:false},{id:"annual",label:"ANNUAL",price:"$49.99",per:"/year · $4.17/mo",badge:null,saving:"Save 68% vs monthly",gradient:true}].map(plan=>(
               <div key={plan.id} onClick={async()=>{
                 if(purchaseLoading)return;
                 setPurchaseLoading(plan.id);
-                const{data:{user:u}}=await sb.auth.getUser().catch(()=>({data:{user:null}}));
-                if(!u){setPurchaseLoading(null);return;}
-                const ok=plan.id==="monthly"?await purchaseMonthly(u.id):await purchaseAnnual(u.id);
-                setPurchaseLoading(null);
-                if(ok){setShowPlansModal(false);showToast(`${plan.id==="monthly"?"Monthly":"Annual"} subscription activated!`,"success");}
-                else showToast("Purchase failed. Try again.","error");
+                try{
+                  const{data:{user:u}}=await sb.auth.getUser().catch(()=>({data:{user:null}}));
+                  if(!u){showToast("Please sign in to continue.","error");return;}
+                  // ── DEV-TEST BYPASS (build:sim → MODE!=="production") — visible simulated unlock.
+                  //    MODE-gated → terser-stripped from production `vite build` (never ships). ──
+                  if(import.meta.env.MODE!=="production"){
+                    const unlocked=await devUnlockEntitlement(u.id);
+                    if(unlocked){setShowPlansModal(false);showToast("Dev unlock — subscription simulated!","success");}
+                    else showToast("Dev unlock failed — check the console.","error");
+                    return;
+                  }
+                  // ── REAL PURCHASE (production) ──
+                  const ok=plan.id==="monthly"?await purchaseMonthly(u.id):await purchaseAnnual(u.id);
+                  if(ok){setShowPlansModal(false);showToast(`${plan.id==="monthly"?"Monthly":"Annual"} subscription activated!`,"success");}
+                  else showToast("Purchase cancelled or not completed.","error");
+                }catch(e){
+                  console.warn("[paywall] purchase failed:",e?.message,e);
+                  showToast(/package not found/i.test(e?.message||"")?"Subscriptions aren’t available yet. Please try again later.":"Purchase failed. Try again.","error");
+                }finally{setPurchaseLoading(null);}
               }} style={{background:plan.gradient?"linear-gradient(135deg,#0d0d0d,rgba(var(--cm-red-rgb,255,59,48),0.04))":"var(--cm-paper,#FFFFFF)",border:`1px solid ${plan.gradient?"var(--cm-red,#FF3B30)":"rgba(var(--cm-red-rgb,255,59,48),0.1)"}`,borderRadius:14,padding:16,marginBottom:10,cursor:"pointer",position:"relative"}}>
                 {plan.badge&&<div style={{position:"absolute",top:-10,right:16,background:"var(--cm-red,#FF3B30)",borderRadius:20,padding:"3px 10px",fontFamily:"'Archivo',sans-serif",fontSize:8,color:"#fff",fontWeight:700}}>{plan.badge}</div>}
                 <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:9,color:plan.gradient?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.4)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>{plan.label}</div>
@@ -7945,16 +7588,8 @@ export function PromoScreen({profile, onValidCode, onNoCode}) {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900;ital@0,900;1,900&family=Inter:wght@300;400;500;600;700;800&display=swap');`}</style>
       <div style={{width:'100%',maxWidth:440}}>
         {/* Logo */}
-        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:48}}>
-          <svg width={52} height={22} viewBox="0 0 52 22">
-            <rect x={0}  y={0}  width={14} height={22} rx={3} fill={T.prot}/>
-            <rect x={19} y={5}  width={14} height={17} rx={3} fill={T.carb}/>
-            <rect x={38} y={10} width={14} height={12} rx={3} fill={T.fat}/>
-          </svg>
-          <div style={{fontFamily:"var(--condensed)",fontWeight:900,letterSpacing:3,fontSize:17,lineHeight:1.1}}>
-            <div style={{color:'#fff'}}>COACH</div>
-            <div><span style={{color:T.prot}}>M</span><span style={{color:T.carb}}>A</span><span style={{color:T.fat}}>C</span><span style={{color:'#fff'}}>RO</span></div>
-          </div>
+        <div style={{marginBottom:48}}>
+          <Logo size={26} text={true} textColor="#fff" />
         </div>
 
         {/* Headline */}
@@ -7997,7 +7632,7 @@ export function PromoScreen({profile, onValidCode, onNoCode}) {
           Start 7-Day Free Trial →
         </button>
         <div style={{fontSize:12,color:T.mu,textAlign:'center',lineHeight:1.6}}>
-          No charge until day 8 · Cancel anytime · $12.99/mo or $49.99/yr founding price
+          No charge until day 8 · Cancel anytime · $12.99/mo or $49.99/yr
         </div>
       </div>
     </div>
@@ -8009,7 +7644,7 @@ export function Paywall({profile}) {
   const [plan, setPlan] = useState('annual');
   const [purchasing, setPurchasing] = useState(false);
   const plans = {
-    annual:  {label:'Founding Annual', badge:'FOUNDING — SAVE 68%', price:'$49.99', per:'/yr',  sub:'$4.17/month · billed annually · locked for life', note:'7 days free, then $49.99/yr'},
+    annual:  {label:'Annual', badge:'SAVE 68%', price:'$49.99', per:'/yr',  sub:'$4.17/month · billed annually', note:'7 days free, then $49.99/yr'},
     monthly: {label:'Monthly',         badge:null,                   price:'$12.99', per:'/mo',  sub:'billed monthly · cancel anytime',                    note:'7 days free, then $12.99/mo'},
   };
 
@@ -8019,10 +7654,26 @@ export function Paywall({profile}) {
     try {
       const { data: { user: u } } = await sb.auth.getUser().catch(() => ({ data: { user: null } }));
       if (!u) { showToast('Please sign in to continue.', 'error'); return; }
+
+      // ── DEV-TEST BYPASS (build:sim → MODE!=="production") — visible simulated unlock.
+      //    MODE-gated → terser-stripped from production `vite build` (never ships). ──
+      if (import.meta.env.MODE !== 'production') {
+        const unlocked = await devUnlockEntitlement(u.id);
+        if (unlocked) { showToast('Dev unlock — subscription simulated. Loading your app…', 'success'); setTimeout(() => window.location.reload(), 800); }
+        else showToast('Dev unlock failed — check the console.', 'error');
+        return;
+      }
+
+      // ── REAL PURCHASE (production) ──
       const ok = plan === 'annual' ? await purchaseAnnual(u.id) : await purchaseMonthly(u.id);
       if (ok) window.location.reload();
-      else showToast('Purchase failed. Try again.', 'error');
-    } catch { showToast('Purchase failed. Try again.', 'error'); }
+      else showToast('Purchase cancelled or not completed.', 'error');
+    } catch (e) {
+      console.warn('[paywall] purchase failed:', e?.message, e);
+      showToast(/package not found/i.test(e?.message || '')
+        ? 'Subscriptions aren’t available yet. Please try again later.'
+        : 'Purchase failed. Try again.', 'error');
+    }
     finally { setPurchasing(false); }
   }
   const p = plans[plan];
@@ -8031,16 +7682,8 @@ export function Paywall({profile}) {
     <div style={{minHeight:'100vh',background:T.bg,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900;ital@0,900;1,900&family=Inter:wght@300;400;500;600;700;800&display=swap');`}</style>
       <div style={{width:'100%',maxWidth:440}}>
-        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:36}}>
-          <svg width={52} height={22} viewBox="0 0 52 22">
-            <rect x={0}  y={0}  width={14} height={22} rx={3} fill={T.prot}/>
-            <rect x={19} y={5}  width={14} height={17} rx={3} fill={T.carb}/>
-            <rect x={38} y={10} width={14} height={12} rx={3} fill={T.fat}/>
-          </svg>
-          <div style={{fontFamily:"var(--condensed)",fontWeight:900,letterSpacing:3,fontSize:17,lineHeight:1.1}}>
-            <div style={{color:'#fff'}}>COACH</div>
-            <div><span style={{color:T.prot}}>M</span><span style={{color:T.carb}}>A</span><span style={{color:T.fat}}>C</span><span style={{color:'#fff'}}>RO</span></div>
-          </div>
+        <div style={{marginBottom:36}}>
+          <Logo size={26} text={true} textColor="#fff" />
         </div>
 
         <div style={{fontFamily:"var(--condensed)",fontSize:44,fontWeight:900,fontStyle:'italic',lineHeight:.9,marginBottom:10}}>
@@ -8068,7 +7711,7 @@ export function Paywall({profile}) {
           <div style={{fontSize:13,color:T.mu,marginBottom:4}}>{p.sub}</div>
           <div style={{fontSize:13,color:T.carb,fontWeight:700,marginBottom:20}}>{p.note}</div>
           <div style={{display:'flex',flexDirection:'column',gap:0,marginBottom:24,borderTop:`1px solid ${T.bd}`,paddingTop:16}}>
-            {['Everything in one app — Fuel + Train','Dynamic macros that shift daily with your schedule','AI food logging — describe any meal instantly','Progressive overload tracking — every set, every session','Restaurant AI, recipe generator, barcode scanner','Strava, Apple Health, Garmin, Fitbit integrations','Running plans, Hyrox mode, Hybrid athlete support'].map(f=>(
+            {['Everything in one app — Fuel + Train','Dynamic macros that shift daily with your schedule','AI food logging — describe any meal instantly','Progressive overload tracking — every set, every session','Restaurant AI, recipe generator, barcode scanner','Apple Health integration','Running plans, Hyrox mode, Hybrid athlete support'].map(f=>(
               <div key={f} style={{display:'flex',gap:10,padding:'7px 0',borderBottom:`1px solid rgba(245,245,240,0.05)`,fontSize:13,color:'#ccc',alignItems:'flex-start'}}>
                 <span style={{color:T.prot,fontWeight:800,flexShrink:0}}>✓</span>{f}
               </div>
@@ -8092,7 +7735,7 @@ export function UpgradeScreen({ profile, onContinue }) {
   const [purchasing, setPurchasing] = useState(false);
   const firstName = (profile?.name || '').split(' ')[0] || 'there';
   const plans = {
-    annual:  { label:'Founding Annual', badge:'FOUNDING — SAVE 68%', price:'$49.99', per:'/yr',  sub:'$4.17/month · billed annually · locked for life' },
+    annual:  { label:'Annual', badge:'SAVE 68%', price:'$49.99', per:'/yr',  sub:'$4.17/month · billed annually' },
     monthly: { label:'Monthly',         badge:null,                   price:'$12.99', per:'/mo',  sub:'billed monthly · cancel anytime' },
   };
 
@@ -8102,10 +7745,26 @@ export function UpgradeScreen({ profile, onContinue }) {
     try {
       const { data: { user: u } } = await sb.auth.getUser().catch(() => ({ data: { user: null } }));
       if (!u) { showToast('Please sign in to continue.', 'error'); return; }
+
+      // ── DEV-TEST BYPASS (build:sim → MODE!=="production") — visible simulated unlock.
+      //    MODE-gated → terser-stripped from production `vite build` (never ships). ──
+      if (import.meta.env.MODE !== 'production') {
+        const unlocked = await devUnlockEntitlement(u.id);
+        if (unlocked) { showToast('Dev unlock — subscription simulated. Continuing…', 'success'); onContinue?.(); }
+        else showToast('Dev unlock failed — check the console.', 'error');
+        return;
+      }
+
+      // ── REAL PURCHASE (production) ──
       const ok = plan === 'annual' ? await purchaseAnnual(u.id) : await purchaseMonthly(u.id);
       if (ok) onContinue?.();
-      else showToast('Purchase failed. Try again.', 'error');
-    } catch { showToast('Purchase failed. Try again.', 'error'); }
+      else showToast('Purchase cancelled or not completed.', 'error');
+    } catch (e) {
+      console.warn('[paywall] purchase failed:', e?.message, e);
+      showToast(/package not found/i.test(e?.message || '')
+        ? 'Subscriptions aren’t available yet. Please try again later.'
+        : 'Purchase failed. Try again.', 'error');
+    }
     finally { setPurchasing(false); }
   }
   const p = plans[plan];
@@ -8130,23 +7789,15 @@ export function UpgradeScreen({ profile, onContinue }) {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900;ital@0,900;1,900&family=Inter:wght@300;400;500;600;700;800&display=swap');`}</style>
       <div style={{ width:'100%', maxWidth:440 }}>
 
-        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:32 }}>
-          <svg width={52} height={22} viewBox="0 0 52 22">
-            <rect x={0}  y={0}  width={14} height={22} rx={3} fill={T.prot}/>
-            <rect x={19} y={5}  width={14} height={17} rx={3} fill={T.carb}/>
-            <rect x={38} y={10} width={14} height={12} rx={3} fill={T.fat}/>
-          </svg>
-          <div style={{ fontFamily:"var(--condensed)", fontWeight:900, letterSpacing:3, fontSize:17, lineHeight:1.1 }}>
-            <div style={{ color:'#fff' }}>COACH</div>
-            <div><span style={{ color:T.prot }}>M</span><span style={{ color:T.carb }}>A</span><span style={{ color:T.fat }}>C</span><span style={{ color:'#fff' }}>RO</span></div>
-          </div>
+        <div style={{ marginBottom:32 }}>
+          <Logo size={26} text={true} textColor="#fff" />
         </div>
 
         <div style={{ fontFamily:"var(--condensed)", fontSize:44, fontWeight:900, fontStyle:'italic', lineHeight:.92, marginBottom:10 }}>
           YOUR TRIAL<br/><span style={{ color:T.prot }}>HAS ENDED.</span>
         </div>
         <p style={{ fontSize:15, color:'#888', marginBottom:24, lineHeight:1.65 }}>
-          Hey {firstName} — your 14-day free trial is up. Upgrade to keep AI features, or continue with core tracking for free.
+          Hey {firstName} — your 7-day free trial is up. Upgrade to keep AI features, or continue with core tracking for free.
         </p>
 
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:24 }}>
@@ -8209,15 +7860,8 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
   const [purchaseError, setPurchaseError] = useState("");
 
   // ── Dynamic values ──────────────────────────────────────────────────────
-  const trialDays = (() => {
-    if (!profile?.trial_started_at || !profile?.trial_ends_at) return 7;
-    const start = new Date(profile.trial_started_at);
-    const end   = new Date(profile.trial_ends_at);
-    const days  = Math.round((end - start) / (1000 * 60 * 60 * 24));
-    return days >= 10 ? 14 : 7;
-  })();
-
-  const eyebrow   = trialDays === 14 ? "// your two weeks are up" : "// your free week is up";
+  // Trial is always 7 days (single source of truth) — no 14-day path exists.
+  const eyebrow   = "// your free week is up";
   const firstName = profile?.first_name || profile?.name?.split(" ")[0] || null;
 
   // ── Purchase handlers ───────────────────────────────────────────────────
@@ -8226,16 +7870,32 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
     return user?.id;
   }
 
+  // Shared error surfacing for the mid-app purchase handlers (setPurchaseError-based).
+  function surfacePurchaseError(e) {
+    console.warn("[paywall] purchase failed:", e?.message, e);
+    setPurchaseError(/package not found/i.test(e?.message || "")
+      ? "Subscriptions aren’t available yet. Please try again later."
+      : "Purchase failed. Try again.");
+  }
+
   async function purchaseMonthlyFn() {
     setPurchaseError("");
     try {
       setLoading(true);
       const uid = await getUid();
-      if (!uid) return;
+      if (!uid) { setPurchaseError("Please sign in to continue."); return; }
+      // ── DEV-TEST BYPASS (build:sim → MODE!=="production") — visible simulated unlock.
+      //    MODE-gated → terser-stripped from production `vite build` (never ships). ──
+      if (import.meta.env.MODE !== "production") {
+        if (await devUnlockEntitlement(uid)) onSubscribed?.();
+        else setPurchaseError("Dev unlock failed — check the console.");
+        return;
+      }
+      // ── REAL PURCHASE (production) ──
       const ok = await purchaseMonthly(uid);
       if (ok) onSubscribed?.();
-      else setPurchaseError("Purchase failed. Try again.");
-    } catch { setPurchaseError("Purchase failed. Try again."); }
+      else setPurchaseError("Purchase cancelled or not completed.");
+    } catch (e) { surfacePurchaseError(e); }
     finally { setLoading(false); }
   }
 
@@ -8244,11 +7904,19 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
     try {
       setLoading(true);
       const uid = await getUid();
-      if (!uid) return;
+      if (!uid) { setPurchaseError("Please sign in to continue."); return; }
+      // ── DEV-TEST BYPASS (build:sim → MODE!=="production") — visible simulated unlock.
+      //    MODE-gated → terser-stripped from production `vite build` (never ships). ──
+      if (import.meta.env.MODE !== "production") {
+        if (await devUnlockEntitlement(uid)) onSubscribed?.();
+        else setPurchaseError("Dev unlock failed — check the console.");
+        return;
+      }
+      // ── REAL PURCHASE (production) ──
       const ok = await purchaseAnnual(uid);
       if (ok) onSubscribed?.();
-      else setPurchaseError("Purchase failed. Try again.");
-    } catch { setPurchaseError("Purchase failed. Try again."); }
+      else setPurchaseError("Purchase cancelled or not completed.");
+    } catch (e) { surfacePurchaseError(e); }
     finally { setLoading(false); }
   }
 
@@ -8370,11 +8038,6 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
 
           {plan === "annual" && (
             <>
-              {/* Badge */}
-              <div style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid var(--accent)', borderRadius: 20, padding: '4px 12px', marginBottom: 18, marginTop: 4 }}>
-                <span style={{ ...mono, fontSize: 9.5, color: 'var(--accent)', letterSpacing: 1.8, textTransform: 'uppercase' }}>FOUNDING · LOCKED FOR LIFE</span>
-              </div>
-
               {/* Price row */}
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 10 }}>
                 <span style={{ ...condensed, fontStyle: 'italic', fontSize: 24, color: 'rgba(255,255,255,0.5)', textDecoration: 'line-through', textDecorationColor: 'var(--accent)', lineHeight: 1 }}>$69.99</span>
@@ -8423,7 +8086,7 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
 
         {/* 9 ── TRUST ROW */}
         <div style={{ ...mono, fontSize: 10.5, color: '#fff', letterSpacing: 1.4, textTransform: 'uppercase', textAlign: 'center', marginBottom: 12 }}>
-          $0.00 TODAY · CANCEL ANYTIME · LOCKED FOR LIFE
+          $0.00 TODAY · CANCEL ANYTIME
         </div>
 
         {/* 10 ── RESTORE LINK */}

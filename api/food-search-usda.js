@@ -20,7 +20,9 @@ export default withLogging(async function handler(req, res) {
   }
 
   try {
-    const url = `${USDA_BASE}/foods/search?query=${encodeURIComponent(query.trim())}&dataType=Foundation,SR%20Legacy&pageSize=15&api_key=${apiKey}`;
+    // Include Survey (FNDDS) — the dataset that covers prepared/mixed dishes
+    // (e.g. "fettuccine alfredo"); Foundation + SR Legacy are mostly raw ingredients.
+    const url = `${USDA_BASE}/foods/search?query=${encodeURIComponent(query.trim())}&dataType=Survey%20(FNDDS),Foundation,SR%20Legacy&pageSize=25&api_key=${apiKey}`;
     const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!r.ok) {
       console.error('[food-search-usda] USDA responded', r.status);

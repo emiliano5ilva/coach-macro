@@ -1,135 +1,213 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 
+// Premium spotlight tour — dimmed overlay with a single bright cutout over the
+// target element, an on-brand tooltip (Archivo) with a caret, back/next nav, and
+// a Skip-tour escape available on every step. Spring physics via motion/react.
+// Props: steps [{ targetSelector, headline, description }], onComplete(), onSkip().
 export default function SpotlightTour({ steps, onComplete, onSkip }) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [targetRect, setTargetRect] = useState(null);
+  const reduce = useReducedMotion();
+  const SPRING = reduce ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 30 };
+  const PAD = 10;
 
-  const step = steps[currentStep];
+  const [i, setI] = useState(0);
+  const [rect, setRect] = useState(null);
+  const [vp, setVp] = useState({ w: window.innerWidth, h: window.innerHeight });
+  const rafRef = useRef(0);
+  const step = steps[i] || {};
+  const last = i >= steps.length - 1;
 
+  const measure = useCallback(() => {
+    const sel = step?.targetSelector;
+    const el = sel ? document.querySelector(sel) : null;
+    if (!el) { setRect(null); return; }
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) { setRect(null); return; }
+    setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+  }, [step]);
+
+  // On step change: scroll the target into view, then track its rect until it
+  // settles (the smooth-scroll takes a few frames; keep the cutout glued to it).
   useEffect(() => {
-    if (!step?.targetSelector) { setTargetRect(null); return; }
-    const el = document.querySelector(step.targetSelector);
-    if (el) {
-      const rect = el.getBoundingClientRect();
-      setTargetRect(rect);
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } else {
-      setTargetRect(null);
-    }
-  }, [currentStep, step]);
+    const el = step?.targetSelector ? document.querySelector(step.targetSelector) : null;
+    if (el) el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+    let start = null;
+    const tick = (t) => {
+      if (start == null) start = t;
+      measure();
+      if (t - start < 650) rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [i, step, measure, reduce]);
 
-  function handleNext() {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(c => c + 1);
-    } else {
-      onComplete();
-    }
-  }
+  // Reposition on viewport change (rotation / resize / keyboard).
+  useEffect(() => {
+    const onR = () => { setVp({ w: window.innerWidth, h: window.innerHeight }); measure(); };
+    window.addEventListener('resize', onR);
+    window.addEventListener('orientationchange', onR);
+    return () => {
+      window.removeEventListener('resize', onR);
+      window.removeEventListener('orientationchange', onR);
+    };
+  }, [measure]);
 
-  const padding = 12;
-  const r = targetRect;
+  const next = () => (last ? onComplete() : setI((v) => v + 1));
+  const back = () => setI((v) => Math.max(0, v - 1));
 
-  // Position tooltip below target if target is in top half, above if in bottom half
-  const tooltipBelow = r ? r.top <= window.innerHeight / 2 : false;
-  const tooltipStyle = {
-    position: 'absolute',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    width: 'calc(100% - 40px)',
-    maxWidth: 360,
-    background: '#0d0d0d',
-    border: '1px solid rgba(232,52,28,0.25)',
-    borderRadius: 14,
-    padding: 16,
-    zIndex: 10000,
-    ...(r && tooltipBelow
-      ? { top: r.bottom + 16 }
-      : r
-        ? { bottom: window.innerHeight - r.top + 16 }
-        : { top: '50%', marginTop: -100 }),
-  };
+  // Cutout box, clamped to the viewport.
+  const box = rect
+    ? {
+        x: Math.max(6, rect.left - PAD),
+        y: Math.max(6, rect.top - PAD),
+        w: Math.min(vp.w - 12, rect.width + PAD * 2),
+        h: rect.height + PAD * 2,
+      }
+    : null;
+
+  // Tooltip placement: below the target if it sits in the top half, else above.
+  const below = rect ? rect.top + rect.height / 2 < vp.h / 2 : true;
+  const TW = Math.min(360, vp.w - 32);
+  let tx = rect ? rect.left + rect.width / 2 - TW / 2 : vp.w / 2 - TW / 2;
+  tx = Math.max(16, Math.min(tx, vp.w - TW - 16));
+  const topPos = rect ? rect.top + rect.height + PAD + 14 : vp.h / 2 - 130;
+  const bottomPos = rect ? vp.h - (rect.top - PAD) + 14 : null;
+  const caretX = rect ? Math.max(22, Math.min(TW - 22, rect.left + rect.width / 2 - tx)) : TW / 2;
+
+  const AF = "'Archivo', sans-serif";
+  const RED = 'var(--cm-red,#FF3B30)';
+  const PAPER = 'var(--cm-paper,#FFFFFF)';
+  const INK = 'var(--cm-ink,#0A0A0A)';
+  const MUTE = 'rgba(var(--cm-ink-rgb,10,10,10),0.55)';
+
+  const boxAnim = box ? { x: box.x, y: box.y, width: box.w, height: box.h } : {};
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'all' }}>
-      {/* Dark overlay with spotlight cutout */}
-      {r ? (
-        <svg
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'all' }}
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <mask id="spotlight-mask">
-              <rect width="100%" height="100%" fill="white" />
-              <rect
-                x={r.left - padding}
-                y={r.top - padding}
-                width={r.width + padding * 2}
-                height={r.height + padding * 2}
-                rx="12"
-                fill="black"
-              />
-            </mask>
-          </defs>
-          <rect width="100%" height="100%" fill="rgba(0,0,0,0.85)" mask="url(#spotlight-mask)" />
-          {/* Red border ring */}
-          <rect
-            x={r.left - padding}
-            y={r.top - padding}
-            width={r.width + padding * 2}
-            height={r.height + padding * 2}
-            rx="12"
-            fill="none"
-            stroke="rgba(232,52,28,0.6)"
-            strokeWidth="1.5"
+    <div style={{ position: 'fixed', inset: 0, zIndex: 99999, fontFamily: AF }}>
+      {/* Dimmed overlay with a single bright spotlight cutout (no double-dim). */}
+      <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, display: 'block' }}>
+        <defs>
+          <mask id="cm-spotlight-mask">
+            <rect width="100%" height="100%" fill="white" />
+            {box && (
+              <motion.rect initial={false} animate={boxAnim} transition={SPRING} rx="16" fill="black" />
+            )}
+          </mask>
+        </defs>
+        <rect width="100%" height="100%" fill="rgba(8,6,6,0.74)" mask="url(#cm-spotlight-mask)" />
+        {box && (
+          <>
+            <motion.rect
+              initial={false}
+              animate={boxAnim}
+              transition={SPRING}
+              rx="16"
+              fill="none"
+              stroke={RED}
+              strokeWidth="2.5"
+            />
+            {!reduce && (
+              <motion.rect initial={false} animate={boxAnim} transition={SPRING} rx="16" fill="none" stroke={RED} strokeWidth="2.5">
+                <animate attributeName="stroke-opacity" values="0.55;0;0.55" dur="2s" repeatCount="indefinite" />
+              </motion.rect>
+            )}
+          </>
+        )}
+      </svg>
+
+      {/* Tap-catcher — blocks interaction with the app behind the tour. */}
+      <div style={{ position: 'absolute', inset: 0 }} onClick={(e) => e.stopPropagation()} />
+
+      {/* Tooltip */}
+      <motion.div
+        key={i}
+        initial={{ opacity: 0, y: below ? 10 : -10, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={SPRING}
+        style={{
+          position: 'absolute',
+          left: tx,
+          width: TW,
+          ...(below ? { top: topPos } : { bottom: bottomPos }),
+          background: PAPER,
+          borderRadius: 18,
+          padding: 18,
+          boxShadow: '0 14px 44px rgba(0,0,0,0.38)',
+          zIndex: 2,
+        }}
+      >
+        {/* Caret pointing at the target */}
+        {rect && (
+          <div
+            style={{
+              position: 'absolute',
+              left: caretX - 7,
+              [below ? 'top' : 'bottom']: -6,
+              width: 14,
+              height: 14,
+              background: PAPER,
+              transform: 'rotate(45deg)',
+              borderRadius: 3,
+            }}
           />
-        </svg>
-      ) : (
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.85)', pointerEvents: 'all' }} />
-      )}
+        )}
 
-      {/* Uniform dim layer — dims spotlight hole so background buttons look inactive */}
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1, pointerEvents: 'none' }} />
-
-      {/* Tooltip card */}
-      <div style={tooltipStyle}>
-        {/* Step counter + skip */}
+        {/* Counter + Skip */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 8, color: '#e8341c', letterSpacing: '0.16em', textTransform: 'uppercase' }}>
-            {currentStep + 1} OF {steps.length}
+          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', color: RED }}>
+            {i + 1} / {steps.length}
           </div>
           <button
             onClick={onSkip}
-            style={{ background: 'none', border: 'none', fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'rgba(245,245,240,0.3)', cursor: 'pointer', padding: '2px 6px' }}
+            style={{ background: 'none', border: 'none', fontFamily: AF, fontSize: 11, fontWeight: 700, color: MUTE, cursor: 'pointer', padding: 4, letterSpacing: '0.03em' }}
           >
-            SKIP TOUR
+            Skip tour
           </button>
         </div>
 
         {/* Headline */}
-        <div style={{ fontFamily: 'Barlow Condensed, sans-serif', fontStyle: 'italic', fontWeight: 900, fontSize: 20, color: '#f5f5f0', lineHeight: 1, marginBottom: 6, textTransform: 'uppercase' }}>
-          {step.headline}<span style={{ color: '#e8341c' }}>.</span>
+        <div style={{ fontWeight: 800, fontSize: 19, color: INK, lineHeight: 1.1, marginBottom: 6, textTransform: 'uppercase' }}>
+          {step.headline}
         </div>
 
         {/* Description */}
-        <div style={{ fontFamily: 'Barlow Condensed, sans-serif', fontSize: 14, color: 'rgba(245,245,240,0.6)', lineHeight: 1.5, marginBottom: 14 }}>
+        <div style={{ fontSize: 14, fontWeight: 500, color: MUTE, lineHeight: 1.5, marginBottom: 16 }}>
           {step.description}
         </div>
 
         {/* Progress dots */}
-        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', marginBottom: 12 }}>
-          {steps.map((_, i) => (
-            <div key={i} style={{ width: i === currentStep ? 16 : 6, height: 6, borderRadius: 3, background: i === currentStep ? '#e8341c' : 'rgba(245,245,240,0.15)', transition: 'all 0.3s ease' }} />
+        <div style={{ display: 'flex', gap: 5, marginBottom: 16 }}>
+          {steps.map((_, k) => (
+            <motion.div
+              key={k}
+              initial={false}
+              animate={{ width: k === i ? 18 : 6, backgroundColor: k === i ? '#FF3B30' : 'rgba(10,10,10,0.14)' }}
+              transition={SPRING}
+              style={{ height: 6, borderRadius: 3 }}
+            />
           ))}
         </div>
 
-        {/* Next / Let's Go button */}
-        <button
-          onClick={handleNext}
-          style={{ width: '100%', background: '#e8341c', border: 'none', borderRadius: 10, padding: '12px 0', fontFamily: 'DM Mono, monospace', fontWeight: 700, fontSize: 11, color: '#fff', letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}
-        >
-          {currentStep < steps.length - 1 ? 'NEXT →' : "LET'S GO →"}
-        </button>
-      </div>
+        {/* Nav */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          {i > 0 && (
+            <motion.button
+              whileTap={{ scale: 0.94 }}
+              onClick={back}
+              style={{ flex: 1, background: 'rgba(var(--cm-ink-rgb,10,10,10),0.05)', border: 'none', borderRadius: 12, padding: '13px 0', fontFamily: AF, fontWeight: 700, fontSize: 13, color: INK, cursor: 'pointer', letterSpacing: '0.02em' }}
+            >
+              ← Back
+            </motion.button>
+          )}
+          <motion.button
+            whileTap={{ scale: 0.94 }}
+            onClick={next}
+            style={{ flex: 2, background: RED, border: 'none', borderRadius: 12, padding: '13px 0', fontFamily: AF, fontWeight: 800, fontSize: 13, color: '#fff', cursor: 'pointer', letterSpacing: '0.04em' }}
+          >
+            {last ? "Let's go →" : 'Next →'}
+          </motion.button>
+        </div>
+      </motion.div>
     </div>
   );
 }

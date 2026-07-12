@@ -754,7 +754,6 @@ function ProofSection() {
       </div>
       <div className="lp-proof-stats">
         {[
-          {label:'Founding member access'},
           {num:'12',suffix:'wk',label:'data window per profile'},
           {num:'$0',red:true,label:'charged in trial · ever'},
         ].map((s, i) => (
@@ -863,8 +862,8 @@ function WaitlistSection() {
         ) : (
           <>
             <h2 className="lp-wl-hl">Be First.</h2>
-            <p className="lp-wl-sub">Join the waitlist. Get <strong>30 days free at launch</strong>. No credit card ever.</p>
-            <div className="lp-wl-counter">Founding member access</div>
+            <p className="lp-wl-sub">Join the waitlist. Get <strong>7 days free at launch</strong>. No credit card ever.</p>
+            <div className="lp-wl-counter">Early access at launch</div>
             <form className="lp-wl-form" onSubmit={handleSubmit}>
               <input className="lp-wl-input" type="text" placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} autoComplete="given-name"/>
               <input className="lp-wl-input" type="email" placeholder="you@email.com" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email"/>
@@ -931,7 +930,7 @@ export function LandingPage({ onSignUp }) {
 
       <section className="lp-hero">
         <div className="lp-hero-content">
-          <div className="lp-hero-eyebrow">Founding access — opening soon</div>
+          <div className="lp-hero-eyebrow">Opening soon</div>
           <h1 className="lp-hero-headline">
             Your food and<br/>
             your training<br/>
@@ -945,7 +944,7 @@ export function LandingPage({ onSignUp }) {
               Join the Waitlist <span className="arrow">→</span>
             </button>
             <span className="lp-hero-proof">
-              <strong>Founding member access</strong> · $49.99/yr · locked for life
+              <strong>$49.99/yr</strong> · 7 days free
             </span>
           </div>
         </div>
