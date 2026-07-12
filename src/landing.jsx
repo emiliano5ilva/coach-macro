@@ -429,6 +429,46 @@ const CSS = `
     .lp:not(.motion-off) .lp-card.active { transform: rotate(0deg) translateY(-26px) scale(1.08); }
   }
 
+  /* ── Make-it-yours: coaching personalization (voice) ──────────────────────────
+     Per-coach accent (--accent/-glow/-tint) is set inline; used ONLY on borders,
+     rings, dots, glows and the top rule — never on text — so every label stays
+     full-contrast ink/paper (no grey; AA both themes). ── */
+  .lp-mine-label { text-align: center; font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--red-text); margin: 0 0 8px; }
+  .lp-mine-sub { text-align: center; font-family: var(--body); font-size: 16px; line-height: 1.6; color: var(--white); max-width: 540px; margin: 0 auto; }
+
+  .lp-coach { max-width: 1060px; margin: 132px auto 0; padding: 0 8px; }
+  .lp-coach-head { text-align: center; margin-bottom: 46px; }
+  .lp-coach-head .lp-section-eyebrow { margin-bottom: 14px; }
+  .lp-coach-title { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(32px, 4.4vw, 56px); line-height: 0.94; letter-spacing: -0.01em; text-transform: uppercase; color: var(--white); margin-bottom: 14px; }
+  .lp-coach-title .accent { color: var(--red); }
+
+  .lp-coach-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .lp-coach-card { position: relative; background: var(--bg-card); border: 1px solid var(--lp-border); border-radius: 20px; padding: 34px 26px 30px; text-align: center; overflow: hidden; transition: transform .45s cubic-bezier(.34,1.35,.42,1), border-color .3s, box-shadow .3s; }
+  .lp-coach-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent); }
+  .lp:not(.motion-off) .lp-coach-card:hover { transform: translateY(-7px); border-color: var(--accent); box-shadow: 0 24px 55px rgba(0,0,0,0.30); }
+  .lp-coach-mono { width: 68px; height: 68px; margin: 4px auto 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 31px; color: var(--white); background: var(--accent-tint); border: 2px solid var(--accent); box-shadow: 0 0 30px -6px var(--accent-glow); }
+  .lp-coach-name { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 27px; line-height: 1; letter-spacing: -0.01em; text-transform: uppercase; color: var(--white); margin-bottom: 9px; }
+  .lp-coach-sub { font-family: var(--body); font-size: 14px; line-height: 1.5; color: var(--white); margin-bottom: 18px; }
+  .lp-coach-tag { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--white); }
+  .lp-coach-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 11px -1px var(--accent-glow); }
+  .lp-coach-note { text-align: center; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--white); margin-top: 26px; }
+
+  .lp-adapt { max-width: 720px; margin: 100px auto 0; text-align: center; }
+  .lp-adapt-title { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(28px, 3.6vw, 44px); line-height: 1; letter-spacing: -0.01em; text-transform: uppercase; color: var(--white); margin-bottom: 18px; }
+  .lp-adapt-title .accent { color: var(--red); }
+  .lp-adapt-copy { font-family: var(--body); font-size: 16px; line-height: 1.65; color: var(--white); max-width: 600px; margin: 0 auto; }
+  .lp-adapt-learns { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--red-text); margin: 32px 0 16px; }
+  .lp-pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+  .lp-pill { display: inline-flex; align-items: center; gap: 9px; padding: 11px 18px; border-radius: 999px; border: 1px solid var(--lp-border); background: var(--bg-card); font-family: var(--body); font-size: 14px; font-weight: 600; color: var(--white); transition: border-color .25s, transform .25s, box-shadow .25s; }
+  .lp:not(.motion-off) .lp-pill:hover { border-color: var(--red); transform: translateY(-2px); box-shadow: 0 8px 24px -8px var(--red-glow); }
+  .lp-pill-ico { font-size: 16px; line-height: 1; }
+
+  @media (max-width: 860px) {
+    .lp-coach { margin-top: 92px; }
+    .lp-coach-grid { grid-template-columns: 1fr; gap: 14px; max-width: 380px; margin: 0 auto; }
+    .lp-adapt { margin-top: 74px; }
+  }
+
   .lp-pricing { padding: 140px 48px; border-top: 1px solid var(--white-border); }
   .lp-pricing-inner { max-width: 860px; margin: 0 auto; }
   /* Pricing = one consistently-centered section (headline + subhead join the already-centered table/lines/cards). */
@@ -1235,13 +1275,32 @@ function CardsSection() {
     { src: 'theme-red',     alt: 'Coach Macro app in the red color theme' },
     { src: 'theme-purple',  alt: 'Coach Macro app in the purple color theme' },
   ];
+  // Real shipping personas (personalityService TONE_DISPLAY). Accent used only on
+  // rings/dots/glows — warm→steady→intense mapped to the site's gold/blue/red tokens.
+  const coaches = [
+    { initial: 'M', name: 'McFarland', sub: 'Warm and encouraging',      tag: 'Warm',    a: '#FFD740', g: 'rgba(255,215,64,0.55)', t: 'rgba(255,215,64,0.10)' },
+    { initial: 'G', name: 'Garcia',    sub: 'Straight and steady',       tag: 'Steady',  a: '#2979FF', g: 'rgba(41,121,255,0.55)', t: 'rgba(41,121,255,0.10)' },
+    { initial: 'E', name: 'Eckley',    sub: 'No excuses, all intensity', tag: 'Intense', a: '#FF3B30', g: 'rgba(255,59,48,0.55)',  t: 'rgba(255,59,48,0.10)' },
+  ];
+  // Real shipping communication styles (personalityService PERSONALITY_TYPES).
+  const styles = [
+    { ico: '📊', label: 'Data-Driven' },
+    { ico: '🚀', label: 'Progress-Focused' },
+    { ico: '🔍', label: 'Evidence-First' },
+    { ico: '🎯', label: 'Consistency-Oriented' },
+    { ico: '⚡', label: 'Direct' },
+    { ico: '🔬', label: 'Technical' },
+  ];
   return (
     <section className="lp-cards" id="themes">
       <div className="lp-cards-head">
         <div className="lp-section-eyebrow">Make it yours</div>
         <h2 className="lp-section-title fade-up">Your coach,<br/>your <span className="accent">way.</span></h2>
-        <p className="lp-lede fade-up">Eight color themes, light or dark. Make the whole app yours — the training and the coaching stay exactly the same, the look is up to you.</p>
+        <p className="lp-lede fade-up">Two things you shouldn't have to settle for — how it looks, and how it talks to you. Eight color themes, light or dark. Three coaches. And a voice that keeps tuning itself to the way you think.</p>
       </div>
+
+      {/* THE LOOK — color themes */}
+      <div className="lp-mine-label fade-up">The look — eight themes, light or dark</div>
       <div className="lp-cards-fan fade-up" role="group" aria-label="App color themes — pick a card">
         {cards.map((c, i) => (
           <button
@@ -1261,6 +1320,40 @@ function CardsSection() {
         ))}
       </div>
       <div className="lp-cards-hint" aria-hidden="true">Hover or tap a card</div>
+
+      {/* THE VOICE — 3 coaches (user-chosen) + adaptive communication style (learned) */}
+      <div className="lp-coach fade-up">
+        <div className="lp-coach-head">
+          <div className="lp-section-eyebrow">The voice</div>
+          <h3 className="lp-coach-title">Pick your <span className="accent">coach.</span></h3>
+          <p className="lp-mine-sub">Chosen by you, live from day one — and switchable the moment your mood is.</p>
+        </div>
+        <div className="lp-coach-grid" role="list">
+          {coaches.map(c => (
+            <div className="lp-coach-card" role="listitem" key={c.name}
+              style={{ '--accent': c.a, '--accent-glow': c.g, '--accent-tint': c.t }}>
+              <div className="lp-coach-mono" aria-hidden="true">{c.initial}</div>
+              <div className="lp-coach-name">Coach {c.name}</div>
+              <div className="lp-coach-sub">{c.sub}</div>
+              <div className="lp-coach-tag"><span className="lp-coach-dot"/>{c.tag}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Adaptive communication styles — LEARNED, not picked */}
+        <div className="lp-adapt">
+          <h3 className="lp-adapt-title">Then it learns <span className="accent">how you think.</span></h3>
+          <p className="lp-adapt-copy">Beyond tone, Coach Macro adapts <em>how</em> it explains things to the way you actually engage — leaning into the framing that lands for you. You never set this; it learns it. And if you'd rather steer, you can.</p>
+          <div className="lp-adapt-learns">It learns and adapts to</div>
+          <div className="lp-pills" role="list">
+            {styles.map(s => (
+              <span className="lp-pill" role="listitem" key={s.label}>
+                <span className="lp-pill-ico" aria-hidden="true">{s.ico}</span>{s.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
