@@ -357,6 +357,12 @@ function AuthScreen({onAuth, startView="welcome"}) {
             </div>
           </div>
         )}
+        {view==="signup"&&(
+          <div style={{fontSize:11,color:"rgba(245,245,240,0.4)",lineHeight:1.5,fontFamily:"var(--body)",marginBottom:16,marginTop:-6}}>
+            AI features (food descriptions, photo logging, coaching) send data to Anthropic — see our{" "}
+            <span onClick={()=>setShowLegalModal("privacy")} style={{color:"rgba(245,245,240,0.65)",textDecoration:"underline",cursor:"pointer"}}>Privacy Policy</span>.
+          </div>
+        )}
         {error&&<ErrorMessage error={error} style={{marginBottom:16}}/>}
         <button onClick={handleEmailAuth} disabled={loading||(view==="signup"&&!termsAccepted)} style={{width:"100%",padding:"16px",background:(loading||(view==="signup"&&!termsAccepted))?"rgba(245,245,240,0.1)":"var(--red)",color:(loading||(view==="signup"&&!termsAccepted))?"var(--white-dim)":"white",fontWeight:800,fontSize:15,letterSpacing:"0.1em",border:"none",borderRadius:14,cursor:(loading||(view==="signup"&&!termsAccepted))?"default":"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)",marginBottom:16,transition:"all 0.15s"}}>
           {loading?"...":(view==="signup"?"Create Account →":"Sign In →")}

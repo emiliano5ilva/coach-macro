@@ -90,6 +90,7 @@ import { track, EVENTS, trackError, setAnalyticsEnabled } from "./services/analy
 import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS, GLUTE_PROGRAMS, PROGRAM_LIBRARY } from "./programs.js";
 import { getProgramForUser, getTodayRunWorkout, buildRunEngineInputs, getRunWeek, RUN_SESSION_TITLE, deriveDayModality, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS, HYBRID_TEMPLATE_CYCLES, getSkillVariant, HYROX_STATIONS } from "./running_programs.js";
 import { getHyroxPhase } from "./services/hyroxPeriodisationService.js";
+import { setAIEnabled } from "./services/aiConsent.js";
 import { getRunningPhase } from "./services/runningPeriodisationService.js";
 import { getStrengthPhase } from "./services/strengthPeriodisationService.js";
 import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, getSwapOptionsForEquipment, EXERCISE_MUSCLE_GROUP, getMuscleGroup } from "./exercise_database.js";
@@ -6619,6 +6620,13 @@ function WheelCol({options,value,onChange,width=80}){
 // ─── SETTINGS SECTION ────────────────────────────────────────────────────────
 export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,dayFocus,todayKey,isMobile,onSignOut,user,onPreviewBrief,calendarConnected,onCalendarConnect,onCalendarDisconnect,onLogInjury,onProfileUpdate}) {
   const [delStep,setDelStep]=useState(0);
+  const [aiOn,setAiOn]=useState(!!profile?.ai_features_enabled);
+  async function toggleAIFeatures(){
+    const next=!aiOn; setAiOn(next); setAIEnabled(next);
+    if(user){ try{ await sb.from('profiles').upsert({id:user.id,ai_features_enabled:next},{onConflict:'id'}); }catch{} }
+    if(onProfileUpdate) onProfileUpdate({ai_features_enabled:next});
+    showToast(next?"AI features enabled.":"AI features turned off.","success");
+  }
   const [legalPage,setLegalPage]=useState(null); // null | 'privacy' | 'terms' | 'health-disclaimer' | 'health-data-notice' | 'support' — in-app bundled legal pages
   const [delInput,setDelInput]=useState("");
   const [deleting,setDeleting]=useState(false);
@@ -6942,6 +6950,16 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
             <div style={eyebrowStyle}>Display & tracking</div>
             <div style={cardStyle}>
+              {/* AI Features toggle — the opt-out the privacy policy references (strict off-until-consented) */}
+              <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",alignItems:"center",gap:12}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:14,color:"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",marginBottom:2}}>AI Features</div>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)"}}>Food descriptions, photo logging &amp; coaching via Anthropic. Off = core tracking only.</div>
+                </div>
+                <div onClick={toggleAIFeatures} style={{width:44,height:24,borderRadius:12,background:aiOn?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                  <div style={{position:"absolute",top:2,left:aiOn?22:2,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
+                </div>
+              </div>
               {/* Skill Level Chips */}
               <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
                 <div style={{fontSize:14,color:"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",marginBottom:2}}>Experience Level</div>

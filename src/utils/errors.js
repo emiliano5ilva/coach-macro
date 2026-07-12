@@ -132,6 +132,8 @@ export const getErrorMessage = (error) => {
 
 // Returns null when subscription_required (paywall fires automatically), otherwise a user-facing string
 export const getAIErrorMessage = (error) => {
+  // AI features off / consent declined → cancel silently (no error surfaced).
+  if (error?.aiConsentDeclined) return null;
   const msg = (error?.message || '').toLowerCase();
   if (msg.includes('subscription required') || msg.includes('trial has ended') || msg.includes('upgrade to pro')) return null;
   if (msg.includes('monthly') && msg.includes('limit')) return "Monthly AI limit reached — resets on the 1st.";

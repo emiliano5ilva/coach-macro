@@ -91,6 +91,7 @@ import { calculateAllRisks, logInjury, getInjuryLogs, resolveInjury, getInjuryFr
 import { InjuryHistorySection, InjuryRiskModal, PainLogModal } from "./InjuryPrevention.jsx";
 import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus, AH_PERMS_VERSION } from "./services/appleHealth.js";
 import { getAIErrorMessage } from "./utils/errors.js";
+import { setAIEnabled, registerAIConsentRequester } from "./services/aiConsent.js";
 import { MuscleVolumeChart } from "./MuscleVolumeChart.jsx";
 import { FluxRangeChart, PeakPerformanceChart } from "./PerformanceCharts.jsx";
 import { BodyCompositionVector, GoalProbabilityCone, BalanceCheck } from "./ProgressCharts2.jsx";
@@ -7186,6 +7187,19 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   // ── Peer Comparison ───────────────────────────────────────────────────────
   const [showPeerView,setShowPeerView]=useState(false);
 
+  // ── AI consent (strict off-until-consented; Apple Nov 2025) ─────────────────
+  const [aiConsentReq,setAiConsentReq]=useState(null); // {resolve} while the sheet is open
+  useEffect(()=>{ setAIEnabled(!!profile?.ai_features_enabled); },[profile?.ai_features_enabled]);
+  useEffect(()=>{ registerAIConsentRequester(()=>new Promise(resolve=>setAiConsentReq({resolve}))); },[]);
+  async function handleAIEnable(){
+    const r=aiConsentReq; setAiConsentReq(null);
+    setAIEnabled(true);
+    if(user){ try{ await sb.from('profiles').upsert({id:user.id,ai_features_enabled:true},{onConflict:'id'}); }catch{} }
+    if(onProfileUpdate) onProfileUpdate({ai_features_enabled:true});
+    r&&r.resolve(true);
+  }
+  function handleAINotNow(){ const r=aiConsentReq; setAiConsentReq(null); r&&r.resolve(false); }
+
   // ── Feature Unlock System ──────────────────────────────────────────────────
   const [showAppTour,setShowAppTour]=useState(false);
   const [pendingUnlock,setPendingUnlock]=useState(null);
@@ -11532,6 +11546,21 @@ Rules:
           ))}
         </div>
       </>)}
+
+      {/* AI consent — one-time lightweight bottom sheet, gates the first AI call */}
+      {aiConsentReq&&(
+        <div style={{position:"fixed",inset:0,zIndex:10050,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={handleAINotNow}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,background:"var(--cm-paper,#FFFFFF)",borderRadius:"22px 22px 0 0",padding:"24px 22px calc(24px + env(safe-area-inset-bottom,0px))",boxShadow:"0 -10px 44px rgba(0,0,0,.34)",fontFamily:"'Archivo',sans-serif",animation:"sheet-in 0.24s ease forwards"}}>
+            <div style={{width:36,height:4,borderRadius:2,background:"rgba(var(--cm-ink-rgb,10,10,10),0.14)",margin:"0 auto 18px"}}/>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:20,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.1,marginBottom:12,textTransform:"uppercase"}}>Heads up — AI features</div>
+            <div style={{fontSize:14,fontWeight:500,color:"rgba(var(--cm-ink-rgb,10,10,10),0.62)",lineHeight:1.55,marginBottom:10}}>Coach Macro uses AI (<strong style={{color:"var(--cm-ink,#0A0A0A)"}}>Anthropic's Claude</strong>) for food descriptions, photo logging, meal suggestions, and workout coaching.</div>
+            <div style={{fontSize:14,fontWeight:500,color:"rgba(var(--cm-ink-rgb,10,10,10),0.62)",lineHeight:1.55,marginBottom:10}}>When you use these, the details you're logging — a food description or photo, your goals, and your macro targets — are sent to Anthropic to generate your result. We <strong style={{color:"var(--cm-ink,#0A0A0A)"}}>never</strong> send your name or email, and Anthropic <strong style={{color:"var(--cm-ink,#0A0A0A)"}}>doesn't</strong> train its models on it.</div>
+            <div style={{fontSize:12.5,fontWeight:500,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",lineHeight:1.5,marginBottom:20}}>Turn this off anytime in Settings → Display &amp; tracking.  ·  <span onClick={()=>{const u="https://www.coach-macro.com/privacy";try{window.open(u,"_system")||window.open(u,"_blank");}catch{}}} style={{color:"var(--cm-red,#FF3B30)",textDecoration:"underline",cursor:"pointer"}}>Privacy Policy</span></div>
+            <button onClick={handleAIEnable} style={{width:"100%",padding:"15px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:15,letterSpacing:"0.04em",cursor:"pointer",marginBottom:10}}>Enable AI features</button>
+            <button onClick={handleAINotNow} style={{width:"100%",padding:"13px",background:"none",border:"none",color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:14,cursor:"pointer"}}>Not now</button>
+          </div>
+        </div>
+      )}
 
       {/* App tour — fires once after onboarding */}
       {showAppTour&&(
