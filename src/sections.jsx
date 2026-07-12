@@ -2535,6 +2535,20 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     }
   }, []);
   useEffect(() => {
+    // Recover an in-progress GPS run after a force-close (offers Resume; time while closed isn't counted).
+    try {
+      const saved = localStorage.getItem(RUN_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.mode === 'gps' && parsed.ts && Date.now() - parsed.ts < 6 * 60 * 60 * 1000 && (parsed.elapsed || 0) >= 20) {
+          setRunResumePrompt(parsed);
+        } else {
+          localStorage.removeItem(RUN_KEY);
+        }
+      }
+    } catch {}
+  }, []);
+  useEffect(() => {
     if (activeWorkout) {
       try { localStorage.setItem(WORKOUT_KEY, JSON.stringify({...activeWorkout, ts: Date.now()})); } catch {}
     }
@@ -2584,6 +2598,10 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const gpsWatchRef=useRef(null);      // native watcher id (string) from addWatcher
   const gpsFilterRef=useRef(null);     // per-run accuracy filter instance
   const gpsStoppedRef=useRef(false);   // guards the addWatcher-resolves-after-stop race
+  const runStartMsRef=useRef(0);       // wall-clock base → elapsed survives backgrounding/screen-off
+  const runDistBaseRef=useRef(0);      // distance carried across a resume (filter measures distance since resume)
+  const [runResumePrompt,setRunResumePrompt]=useState(null); // in-progress GPS run recovered after force-close
+  const RUN_KEY="cm_active_run";       // localStorage key for the persisted in-progress GPS run
   const [hyroxType,setHyroxType]=useState(null);
   const [hyroxTotalElapsed,setHyroxTotalElapsed]=useState(0);
   const [hyroxSegElapsed,setHyroxSegElapsed]=useState(0);
@@ -2608,9 +2626,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
   useEffect(()=>{
     return()=>{
-      clearInterval(runTimerRef.current);
-      gpsStoppedRef.current=true;
-      if(gpsWatchRef.current!=null){ BackgroundGeolocation.removeWatcher({id:gpsWatchRef.current}).catch(()=>{}); gpsWatchRef.current=null; }
+      // Safety-net: leaving Train (tab switch / teardown) stops the GPS watcher so it
+      // can never keep tracking in the background. Keep the persisted run so it can resume.
+      stopRunTracking({clearSaved:false});
       clearInterval(hyroxTotalTimerRef.current);
       clearInterval(hyroxSegTimerRef.current);
     };
@@ -3022,18 +3040,46 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     return `${_p2(m)}:${_p2(s)}`;
   }
 
-  function startGPSRun(){
+  // ── Centralized run-tracking stop — the single teardown used by EVERY exit path
+  //    (finish, abandon/unmount, resume-replace). Idempotent + safe to call twice.
+  //    Kills the timer AND the native GPS watcher (→ blue indicator disappears) and,
+  //    unless we're preserving state for resume, clears the persisted in-progress run.
+  function stopRunTracking({clearSaved=true}={}){
+    clearInterval(runTimerRef.current); runTimerRef.current=null;
+    gpsStoppedRef.current=true;
+    if(gpsWatchRef.current!=null){ BackgroundGeolocation.removeWatcher({id:gpsWatchRef.current}).catch(()=>{}); gpsWatchRef.current=null; }
+    if(clearSaved){ try{localStorage.removeItem(RUN_KEY);}catch{} }
+  }
+
+  function startGPSRun(resume=null){
+    // Guard against a stale/orphaned watcher from a prior run before starting a new/resumed one.
+    if(gpsWatchRef.current!=null){ BackgroundGeolocation.removeWatcher({id:gpsWatchRef.current}).catch(()=>{}); gpsWatchRef.current=null; }
+    clearInterval(runTimerRef.current);
     setSessionMode('run-gps');
     setRunLogId(null);
-    setRunElapsed(0);setRunDistance(0);setRunCoords([]);setRunLaps([]);setRunCurrentPace('--:--');setRunAvgPace('--:--');setRunCalories(0);setRunGpsError(false);
-    runTimerRef.current=setInterval(()=>setRunElapsed(p=>p+1),1000);
-    // Native watcher, FOREGROUND mode (no backgroundMessage). Every raw fix runs through gpsFilter
-    // (accuracy floor / spike gate / EMA smoothing / min-distance) before it can move distance or pace.
+    const _imp=(profile?.wUnit||wPrefs?.wUnit)==='lbs';
+    const paceMult=_imp?1.609344:1;   // sec/km → sec/mi for pace display
+    if(resume){
+      setRunDistance(resume.distance||0);setRunCoords([]);setRunLaps([]);setRunCurrentPace('--:--');setRunAvgPace('--:--');setRunCalories(0);setRunGpsError(false);
+      runDistBaseRef.current=resume.distance||0;                    // filter measures NEW distance; base carries the pre-close total
+      runStartMsRef.current=Date.now()-((resume.elapsed||0)*1000);  // continue from saved elapsed (time while force-closed is NOT counted)
+      setRunElapsed(resume.elapsed||0);
+    }else{
+      setRunElapsed(0);setRunDistance(0);setRunCoords([]);setRunLaps([]);setRunCurrentPace('--:--');setRunAvgPace('--:--');setRunCalories(0);setRunGpsError(false);
+      runDistBaseRef.current=0;
+      runStartMsRef.current=Date.now();
+    }
+    // Timestamp-based timer — elapsed = now − start, so it stays correct through
+    // background / screen-off (a suspended tick self-corrects the instant it resumes).
+    runTimerRef.current=setInterval(()=>setRunElapsed(Math.max(0,Math.floor((Date.now()-runStartMsRef.current)/1000))),1000);
     const _gf=createGpsFilter(); gpsFilterRef.current=_gf;
     gpsStoppedRef.current=false;
     const _fmtSpk=(spk)=>(spk==null||!isFinite(spk))?'--:--':`${Math.floor(spk/60)}:${String(Math.round(spk%60)).padStart(2,'0')}`;
     BackgroundGeolocation.addWatcher(
-      { requestPermissions:true, stale:false, distanceFilter:5 },   // NO backgroundMessage → foreground / When-In-Use
+      // backgroundMessage → keeps GPS + JS alive while backgrounded during an active,
+      // user-initiated run (When-In-Use); iOS shows the blue location indicator.
+      // distanceFilter:5 keeps it battery-light. Watcher is stopped on every exit (stopRunTracking).
+      { backgroundMessage:"Tracking your run — distance, pace, and route.", backgroundTitle:"Coach Macro — run in progress", requestPermissions:true, stale:false, distanceFilter:5 },
       (location,error)=>{
         if(error){ setRunGpsError(true); return; }
         if(!location) return;
@@ -3041,14 +3087,18 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         if(r.accepted){
           setRunCoords(prev=>[...prev,{lat:location.latitude,lon:location.longitude,alt:location.altitude||0,ts:location.time||Date.now()}]);
           if(r.reason!=='anchor'){
-            setRunDistance(r.totalKm);
-            setRunCurrentPace(_fmtSpk(r.currentPaceSecPerKm));
-            setRunAvgPace(_fmtSpk(r.avgPaceSecPerKm));
+            const _dist=runDistBaseRef.current+r.totalKm;
+            const _el=Math.max(0,Math.floor((Date.now()-runStartMsRef.current)/1000));
+            setRunDistance(_dist);
+            setRunCurrentPace(_fmtSpk(r.currentPaceSecPerKm==null?null:r.currentPaceSecPerKm*paceMult));
+            setRunAvgPace(_fmtSpk(r.avgPaceSecPerKm==null?null:r.avgPaceSecPerKm*paceMult));
+            // Persist for resume-after-force-close (throttled naturally by distanceFilter).
+            try{localStorage.setItem(RUN_KEY,JSON.stringify({mode:'gps',elapsed:_el,distance:_dist,ts:Date.now()}));}catch{}
           }
         }
       }
     ).then(id=>{
-      // If finish fired before the watcher id resolved, remove it immediately (no leak).
+      // If a stop fired before the watcher id resolved, remove it immediately (no leak).
       if(gpsStoppedRef.current){ BackgroundGeolocation.removeWatcher({id}).catch(()=>{}); }
       else gpsWatchRef.current=id;
     }).catch(()=>setRunGpsError(true));
@@ -3070,9 +3120,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   }
 
   function finishGPSRun(){
-    clearInterval(runTimerRef.current);
-    gpsStoppedRef.current=true;
-    if(gpsWatchRef.current!=null){ BackgroundGeolocation.removeWatcher({id:gpsWatchRef.current}).catch(()=>{}); gpsWatchRef.current=null; }
+    stopRunTracking();                 // stops timer + GPS watcher (blue indicator off) + clears persisted run
+    setRunResumePrompt(null);
     const elapsed=runElapsed;
     const dist=runDistance;
     const avgPace=fmtPace(dist,elapsed);
@@ -3288,11 +3337,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         <div style={{display:"flex",justifyContent:"center",gap:32,marginBottom:32}}>
           <div>
             <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:26,color:"#fff"}}>{runCurrentPace}</div>
-            <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.1em"}}>pace /km</div>
+            <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.1em"}}>pace /{(profile?.wUnit||wPrefs?.wUnit)==='lbs'?'mi':'km'}</div>
           </div>
           <div>
-            <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:26,color:"#fff"}}>{runDistance.toFixed(2)}</div>
-            <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.1em"}}>km</div>
+            <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:26,color:"#fff"}}>{((profile?.wUnit||wPrefs?.wUnit)==='lbs'?runDistance*0.621371:runDistance).toFixed(2)}</div>
+            <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{(profile?.wUnit||wPrefs?.wUnit)==='lbs'?'mi':'km'}</div>
           </div>
         </div>
         <div style={{display:"flex",gap:8,marginBottom:28}}>
@@ -4183,6 +4232,26 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
       <div style={{padding:GOCLUB_REDESIGN&&(trainScreen==="today"||trainScreen==="plan")?0:isMobile?"12px 18px":"0"}}>
 
+        {/* ── Resume GPS Run Prompt — recovered after force-close, today surface only ── */}
+        {runResumePrompt&&sessionMode!=='run-gps'&&trainScreen==="today"&&(()=>{
+          const _imp=(profile?.wUnit||wPrefs?.wUnit)==='lbs';
+          const _d=_imp?(runResumePrompt.distance||0)*0.621371:(runResumePrompt.distance||0);
+          const _mn=Math.floor((runResumePrompt.elapsed||0)/60);
+          const _sub=`${_mn} min · ${_d.toFixed(2)} ${_imp?'mi':'km'} so far`;
+          return(
+            <div className="cm-resume-card" style={{margin:'12px 12px 0',padding:'13px 14px',background:'var(--cm-paper,#fff)',borderRadius:17,boxShadow:'0 8px 26px rgba(0,0,0,.22)',display:'flex',alignItems:'center',gap:12}}>
+              <div style={{flexShrink:0,width:9,height:9,borderRadius:'50%',background:'var(--cm-red,#FF3B30)',boxShadow:'0 0 0 4px rgba(255,59,48,.15)'}}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,fontWeight:700,color:'var(--cm-ink,#0A0A0A)',lineHeight:1.2,marginBottom:2}}>Unfinished run</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:10.5,color:'rgba(var(--cm-ink-rgb,10,10,10),.55)',lineHeight:1.4}}>{_sub}</div>
+              </div>
+              <div style={{display:'flex',gap:8,flexShrink:0,alignItems:'center'}}>
+                <button onClick={()=>{const _r=runResumePrompt;setRunResumePrompt(null);startGPSRun(_r);hapMed&&hapMed();}} style={{padding:'8px 13px',background:'var(--cm-red,#FF3B30)',border:'none',borderRadius:20,color:'#fff',fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',cursor:'pointer',whiteSpace:'nowrap',minHeight:'auto'}}>Resume →</button>
+                <button onClick={()=>{setRunResumePrompt(null);try{localStorage.removeItem(RUN_KEY);}catch{}}} style={{width:30,height:30,borderRadius:'50%',background:'rgba(var(--cm-ink-rgb,10,10,10),.06)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',padding:0,fontSize:14,color:'var(--cm-ink,#0A0A0A)',flexShrink:0,lineHeight:1,minHeight:'auto'}}>✕</button>
+              </div>
+            </div>
+          );
+        })()}
         {/* ── Resume Workout Prompt — today surface only ── */}
         {resumePrompt&&!activeWorkout&&trainScreen==="today"&&(
           GOCLUB_REDESIGN?(()=>{
