@@ -16,7 +16,7 @@ import { getErrorMessage } from "./utils/errors.js";
 import { ErrorMessage } from "./utils/errors.jsx";
 import { sb } from "./supabase.js";
 import { track, EVENTS, setAnalyticsEnabled } from "./services/analytics.js";
-import { initDeepLinks } from "./services/deepLinks.js";
+import { initDeepLinks, isRecoveryInProgress, clearRecovery } from "./services/deepLinks.js";
 import { initPushNotifications, scheduleTrialExpiryNotification } from "./services/notifications.js";
 import { FuelOnboarding, TrainOnboarding } from "./onboarding.jsx";
 import { PromoScreen, Paywall, UpgradeScreen, ExpiredPaywall } from "./sections.jsx";
@@ -64,15 +64,17 @@ function SplashScreen({onDone}) {
 // (Apple/Google OAuth SVGs removed with social login — email/password only for v1.)
 
 // ── Auth Screen ───────────────────────────────────────────────────────────────
-function AuthScreen({onAuth, startView="welcome"}) {
+function AuthScreen({onAuth, startView="welcome", initialError=""}) {
   // view: welcome | signin | signup | forgot | forgot-sent | reset
-  const [view,setView]=useState(startView);
+  // An expired/invalid reset link opens the forgot view (so the user can request a new one)
+  // with the error shown; a valid link opens the reset view to set a new password.
+  const [view,setView]=useState(initialError?"forgot":startView);
   const [name,setName]=useState("");
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");
   const [newPassword,setNewPassword]=useState("");
   const [loading,setLoading]=useState(false);
-  const [error,setError]=useState("");
+  const [error,setError]=useState(initialError||"");
   const [resetSent,setResetSent]=useState(false);
   const [termsAccepted,setTermsAccepted]=useState(false);
   const [showLegalModal,setShowLegalModal]=useState(null); // null | "terms" | "privacy"
@@ -124,6 +126,7 @@ function AuthScreen({onAuth, startView="welcome"}) {
     try{
       const{error:e}=await sb.auth.updateUser({password:newPassword});
       if(e)throw e;
+      clearRecovery(); // recovery done — let the next SIGNED_IN route normally into the app
       setView("signin");
       setError("");
       // Show success via error state repurposed
@@ -406,6 +409,7 @@ export default function NativeApp() {
   // Apply default theme immediately so UI never flashes wrong colors before profile loads
   useEffect(() => { applyDefaultTheme(); }, []);
   const [phase,setPhase]=useState("splash");
+  const [resetErr,setResetErr]=useState(""); // expired/invalid password-reset link message
   const ujInitialized = useRef(false);
   // Dedupes handleAuth: cold start can call it twice (manual localStorage read
   // + onAuthStateChange INITIAL_SESSION) for the same user. Keyed by uid so a
@@ -799,7 +803,12 @@ export default function NativeApp() {
     const{data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
       // INITIAL_SESSION/TOKEN_REFRESHED let a restored (cold-start) session
       // drive app state, not just a fresh interactive SIGNED_IN.
-      if((event==="SIGNED_IN"||event==="INITIAL_SESSION"||event==="TOKEN_REFRESHED")&&session?.user)handleAuth(session.user,null);
+      if((event==="SIGNED_IN"||event==="INITIAL_SESSION"||event==="TOKEN_REFRESHED")&&session?.user){
+        // setSession() on a password-reset deep-link also emits SIGNED_IN — route to the
+        // reset screen to set a new password, not into the app (which would skip the reset).
+        if(isRecoveryInProgress())setPhase("reset-password");
+        else handleAuth(session.user,null);
+      }
       if(event==="PASSWORD_RECOVERY")setPhase("reset-password");
     });
     const onSubRequired=()=>{
@@ -811,14 +820,17 @@ export default function NativeApp() {
       if(route==="workout"){setPhase("app");setTimeout(()=>window.dispatchEvent(new CustomEvent("cm:nav",{detail:"train"})),100);}
       else if(route==="fuel"){setPhase("app");setTimeout(()=>window.dispatchEvent(new CustomEvent("cm:nav",{detail:"fuel"})),100);}
       else if(route==="pro")setPhase("upgrade");
-      else if(route==="reset-password")setPhase("reset-password");
+      else if(route==="reset-password"){setResetErr("");setPhase("reset-password");}
     };
     window.addEventListener("cm:deeplink",onDeepLink);
+    const onResetErr=(e)=>{setResetErr(e.detail?.message||"This password reset link is invalid. Please request a new one.");setPhase("reset-password");};
+    window.addEventListener("cm:reset-password-error",onResetErr);
     try{initDeepLinks();}catch{}
     return()=>{
       subscription.unsubscribe();
       window.removeEventListener("cm:subscription-required",onSubRequired);
       window.removeEventListener("cm:deeplink",onDeepLink);
+      window.removeEventListener("cm:reset-password-error",onResetErr);
     };
   },[]);
 
@@ -865,7 +877,7 @@ export default function NativeApp() {
     </div>
   );
 
-  if(phase==="reset-password")return<AuthScreen onAuth={handleAuth} startView="reset"/>;
+  if(phase==="reset-password")return<AuthScreen onAuth={handleAuth} startView="reset" initialError={resetErr}/>;
   if(phase==="welcome-screen")return<AuthScreen onAuth={handleAuth} startView="welcome"/>;
 
   if(phase==="loading")return(
