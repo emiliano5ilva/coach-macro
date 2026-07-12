@@ -6553,6 +6553,14 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const [legalPage,setLegalPage]=useState(null); // null | 'privacy' | 'terms' | 'health-disclaimer' | 'health-data-notice' | 'support' — in-app bundled legal pages
   const [delInput,setDelInput]=useState("");
   const [deleting,setDeleting]=useState(false);
+  const [delError,setDelError]=useState("");
+  // Apple-compliant: deleting the account does NOT cancel the App Store subscription.
+  // Point users to Apple's subscription management (billing continues until they cancel there).
+  function openManageSubscription(){
+    const url="https://apps.apple.com/account/subscriptions";
+    try{ window.open(url,"_system") || window.open(url,"_blank") || (window.location.href=url); }
+    catch{ window.location.href=url; }
+  }
   const [displayPrefs,setDisplayPrefs]=useState(wPrefs?.displayPrefs||{});
   const [meScreen,setMeScreen]=useState(null); // null | 'profile' | 'plan' | 'display'
   const [editModal,setEditModal]=useState(null);
@@ -6606,11 +6614,15 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
 
   async function deleteAccount() {
     if(!user||delInput.trim()!=="DELETE")return;
-    setDelStep(3);
+    setDelError("");
+    setDelStep(4);        // "Deleting…"
     setDeleting(true);
     try {
       const { data:{ session } } = await sb.auth.getSession();
-      const res = await fetch("/api/delete-account", {
+      // Absolute URL — a relative /api path hits the local capacitor origin in the
+      // native app and never reaches the server. Base matches the other API calls.
+      const base=import.meta.env.VITE_API_BASE_URL||import.meta.env.VITE_API_BASE||"";
+      const res = await fetch(`${base}/api/delete-account`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -6618,11 +6630,17 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         },
       });
       if (!res.ok) throw new Error("Delete failed");
+      // Log out of RevenueCat so the SDK doesn't retain/recreate the app user.
+      try{ const { Purchases } = await import('@revenuecat/purchases-capacitor'); await Purchases.logOut(); }catch{}
+      // Success → sign out → App unmounts back to the welcome/auth screen.
+      await sb.auth.signOut();
     } catch(e) {
-      // Fallback: client-side cleanup if server delete unavailable
-      await sb.from("profiles").delete().eq("id",user.id);
+      // No silent partial delete — surface a real error so the user can retry
+      // (leaving a half-deleted account is worse than a clear failure).
+      setDeleting(false);
+      setDelError("Couldn't delete your account. Check your connection and try again.");
+      setDelStep(3);       // back to the type-DELETE step
     }
-    await sb.auth.signOut();
   }
 
   const isPro=!!profile?.is_pro;
@@ -7142,7 +7160,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
               <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.06)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:12,padding:16,marginTop:8}}>
                 {delStep===1&&<>
                   <div style={{fontSize:13,color:"var(--cm-red,#FF3B30)",fontWeight:700,marginBottom:8}}>Delete your account?</div>
-                  <div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginBottom:6}}>Permanently deletes your profile, logs, workouts, and subscription records.</div>
+                  <div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginBottom:6}}>Permanently deletes your profile, logs, workouts, and all associated data.</div>
                   <div style={{fontSize:11,color:"var(--cm-red,#FF3B30)",marginBottom:14,fontWeight:600}}>Cannot be undone.</div>
                   <div style={{display:"flex",gap:8}}>
                     <button onClick={()=>setDelStep(0)} style={{flex:1,padding:"11px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
@@ -7150,15 +7168,25 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                   </div>
                 </>}
                 {delStep===2&&<>
+                  <div style={{fontSize:13,color:"var(--cm-ink,#0A0A0A)",fontWeight:700,marginBottom:8}}>Before you go — your subscription</div>
+                  <div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.6)",lineHeight:1.55,marginBottom:12}}>Deleting your account does <strong style={{color:"var(--cm-ink,#0A0A0A)"}}>not</strong> cancel your subscription. If you have an active plan, Apple manages the billing and it will keep charging until you cancel it in your Apple subscription settings.</div>
+                  <button onClick={openManageSubscription} style={{width:"100%",padding:"11px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"var(--cm-ink,#0A0A0A)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.15)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit",marginBottom:12}}>Manage Subscription →</button>
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={()=>setDelStep(0)} style={{flex:1,padding:"11px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                    <button onClick={()=>setDelStep(3)} style={{flex:1,padding:"11px",background:"var(--cm-red,#FF3B30)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Continue</button>
+                  </div>
+                </>}
+                {delStep===3&&<>
                   <div style={{fontSize:13,color:"var(--cm-red,#FF3B30)",fontWeight:700,marginBottom:8}}>Final confirmation</div>
                   <div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginBottom:12}}>Type <strong style={{color:"var(--cm-ink,#0A0A0A)"}}>DELETE</strong> to permanently delete your account.</div>
                   <input value={delInput} onChange={e=>setDelInput(e.target.value)} placeholder="Type DELETE here" style={{width:"100%",padding:"10px 12px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"#fff",border:`1px solid ${delInput==="DELETE"?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)"}`,borderRadius:8,fontSize:13,fontFamily:"inherit",marginBottom:12,boxSizing:"border-box"}}/>
+                  {delError&&<div style={{fontSize:11,color:"var(--cm-red,#FF3B30)",fontWeight:600,marginBottom:10}}>{delError}</div>}
                   <div style={{display:"flex",gap:8}}>
-                    <button onClick={()=>{setDelStep(0);setDelInput("");}} style={{flex:1,padding:"11px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                    <button onClick={()=>{setDelStep(0);setDelInput("");setDelError("");}} style={{flex:1,padding:"11px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
                     <button onClick={deleteAccount} disabled={deleting||delInput.trim()!=="DELETE"} style={{flex:1,padding:"11px",background:delInput==="DELETE"?"var(--cm-red,#FF3B30)":"rgba(var(--cm-red-rgb,255,59,48),0.3)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:delInput==="DELETE"?"pointer":"not-allowed",fontFamily:"inherit"}}>{deleting?"Deleting...":"Delete Forever"}</button>
                   </div>
                 </>}
-                {delStep===3&&<div style={{textAlign:"center",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)"}}>Deleting your account...</div>}
+                {delStep===4&&<div style={{textAlign:"center",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)"}}>Deleting your account...</div>}
               </div>
             )}
           </div>
