@@ -80,6 +80,26 @@ export function getVolumeCeiling(goalDistance, experience, liftDaysPerWeek, reco
   return Math.round(ceiling);
 }
 
+// ── Run ability tier (decoupled from lifting experience) ──────────────────────
+// Derives a RUNNING ability tier from current run data — NOT lifting experience.
+// Returns EXACTLY one of {beginner, intermediate, advanced} so START_BANDS always
+// hits a real key (never relies on the ?? fallback to mask a bad tier).
+// Thresholds land on real onboarding bucket edges:
+//   longestRunMi buckets 1,2,4,6,8,10,13 · currentRunsPerWeek 0–5 · seconds5K 2400/2100/1800/1500/1200
+//   beginner    : currentRunsPerWeek===0 OR longestRunMi ≤ 2  (buckets 1,2 = "under 2"/"can run a 5k or close")
+//   advanced    : longestRunMi ≥ 8 (buckets 8,10,13; elite 13+ → advanced for v1)
+//                 OR (currentRunsPerWeek ≥ 3 AND seconds5K ≤ 1500)  (frequent + sub-25:00 5k)
+//   intermediate: everything else (the safe middle — buckets longestRunMi 4,6)
+export function deriveRunAbility({ longestRunMi, currentRunsPerWeek, seconds5K }) {
+  const lr  = longestRunMi       != null ? Number(longestRunMi)       : null;
+  const rpw = currentRunsPerWeek != null ? Number(currentRunsPerWeek) : null;
+  const t5k = seconds5K          != null ? Number(seconds5K)          : null;
+
+  if (rpw === 0 || (lr != null && lr <= 2)) return 'beginner';
+  if ((lr != null && lr >= 8) || (rpw != null && rpw >= 3 && t5k != null && t5k <= 1500)) return 'advanced';
+  return 'intermediate';
+}
+
 // ── Starting volume (§5, §10.1) ───────────────────────────────────────────────
 
 export function getStartingVolume(currentRunsPerWeek, longestRunMi, goalDistance, experience) {
@@ -348,7 +368,8 @@ function buildSessions(
   emphasis,          // 'endurance' | 'speed' | 'consistency' — only used when phase === 'general'
   isDownWeek,        // passed from generateRunWeek for maintenance-conversion guard
   longestRunMi,      // athlete's current longest comfortable run — anchors session distances
-  currentRunsPerWeek // athlete's current weekly run frequency — 0 = non-runner
+  currentRunsPerWeek,// athlete's current weekly run frequency — 0 = non-runner
+  preferredLongDay   // user's chosen long-run day — a PREFERENCE, honored only if recovery-safe (else vetoed)
 ) {
   const days      = [...daysAvailable].sort((a, b) => (DAY_ORDER[a] || 0) - (DAY_ORDER[b] || 0));
   const numDays   = days.length;
@@ -358,9 +379,11 @@ function buildSessions(
   // Item 7 — compute DOMS-blocked days
   const domsBlocked = getDOMSBlockedDays(heavyDays, domsProf, recoveryCapacity);
 
-  // Long run day: prefer Sat > Sun, skip DOMS-blocked and adj-to-heavy days
+  // Long run day: user's pick FIRST (vetoable), then Sat > Sun — all under the SAME guards
+  // (skip DOMS-blocked + adjacent-to-heavy). A recovery-bad user pick fails the guard and the
+  // engine falls through to a safe day → the DOMS safeguard retains its veto.
   let longRunDay = null;
-  for (const pref of ['Sat', 'Sun']) {
+  for (const pref of [preferredLongDay, 'Sat', 'Sun'].filter(Boolean)) {
     if (days.includes(pref) && !domsBlocked.has(pref) && !heavyDays.some(h => daysAdjacent(pref, h))) {
       longRunDay = pref;
       break;
@@ -515,7 +538,10 @@ function buildSessions(
   const longSess = sessions.find(s => s.type === 'long');
   if (longSess) {
     const maxOther = Math.max(0, ...sessions.filter(s => s !== longSess).map(s => s.distanceMi));
-    if (longSess.distanceMi < maxOther) longSess.distanceMi = maxOther;
+    // fix (b): strictly-greater (was `< → =`). Fires ONLY on tie/inversion (low volume, where the
+    // lone easy day was clamped up to the rounded-down long → equal). At normal volumes long is
+    // already > maxOther so this never triggers. +0.25 step keeps long the longest; assertion holds.
+    if (longSess.distanceMi <= maxOther) longSess.distanceMi = roundDist(maxOther + 0.25);
     // Hard assertion: enforcement above must have resolved all violations.
     const maxAfter = Math.max(0, ...sessions.filter(s => s !== longSess).map(s => s.distanceMi));
     if (longSess.distanceMi < maxAfter) {
@@ -567,6 +593,7 @@ export function generateRunWeek(
   experience,
   liftingLoad,
   emphasis,
+  preferredLongDay,   // user's chosen long-run day — threaded to buildSessions as a vetoable preference
 ) {
   const seconds5K          = currentAbility?.seconds5K || null;
   const currentRunsPerWeek = currentAbility?.currentRunsPerWeek ?? 2; // ?? preserves 0 (non-runner)
@@ -598,7 +625,7 @@ export function generateRunWeek(
   const sessions = buildSessions(
     phase, exp, days, weeklyVolume, goalDistance,
     liftLoad, weekInPlan, phases, recoveryCapacity, isRaceWeek, _emphasis, isDownWeek,
-    longestRunMi, currentRunsPerWeek
+    longestRunMi, currentRunsPerWeek, preferredLongDay
   );
 
   return {

@@ -11,6 +11,7 @@ install! 'cocoapods', :disable_input_output_paths => true
 def capacitor_pods
   pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
   pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorCommunityBackgroundGeolocation', :path => '../../node_modules/@capacitor-community/background-geolocation'
   pod 'CapacitorCommunityBarcodeScanner', :path => '../../node_modules/@capacitor-community/barcode-scanner'
   pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
   pod 'CapacitorHaptics', :path => '../../node_modules/@capacitor/haptics'
@@ -36,5 +37,14 @@ post_install do |installer|
         config.build_settings['SWIFT_INSTALL_OBJC_HEADER'] = 'NO'
       end
     end
+  end
+  # Patch SubscriptionPeriod ambiguity in PurchasesHybridCommon (RevenueCat conflict)
+  file = 'Pods/PurchasesHybridCommon/ios/PurchasesHybridCommon/PurchasesHybridCommon/StoreProduct+HybridAdditions.swift'
+  if File.exist?(file)
+    File.chmod(0644, file)
+    content = File.read(file)
+    content = content.gsub('subscriptionPeriod: SubscriptionPeriod)', 'subscriptionPeriod: RevenueCat.SubscriptionPeriod)')
+    content = content.gsub('subscriptionPeriodUnit: SubscriptionPeriod.Unit)', 'subscriptionPeriodUnit: RevenueCat.SubscriptionPeriod.Unit)')
+    File.write(file, content)
   end
 end

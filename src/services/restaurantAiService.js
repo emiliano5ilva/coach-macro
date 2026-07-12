@@ -164,7 +164,10 @@ RULES: Optimise for protein first. Stay within 110% of all targets. Never recomm
 
 export async function getRestaurantRecs(restaurantName, _cuisineTypes, userContext) {
   const prompt = buildRestaurantPrompt(restaurantName, userContext);
-  return aiWithTools(prompt, RESTAURANT_REC_TOOLS, 'restaurant_recommendation', 2000, 'restaurant_pick');
+  // Lever 2: 2000 → 1200. A structured rec (best_order + 2-3 backups + avoid + coach_note)
+  // fits comfortably under 1200; Sonnet stops sooner. 1200 (not 1000) keeps a safety margin
+  // against the max_tokens truncation guard in aiWithTools for verbose backup lists.
+  return aiWithTools(prompt, RESTAURANT_REC_TOOLS, 'restaurant_recommendation', 1200, 'restaurant_pick');
 }
 
 export async function getMenuScanRecs(base64Image, mediaType, userContext) {

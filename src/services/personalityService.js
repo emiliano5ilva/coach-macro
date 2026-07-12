@@ -70,6 +70,7 @@ export async function getPersonalityProfile(userId) {
     scores:         data.scores          || {},
     confidence:     data.confidence      || 0,
     manualOverride: data.manual_override || null,
+    emotionalTone:  data.emotional_tone  || 'balanced',
     lastCalculated: data.last_calculated || null,
   };
   _cache.set(userId, { profile, ts: Date.now() });
@@ -91,6 +92,7 @@ async function savePersonalityProfile(userId, profile) {
     scores:          profile.scores         ?? {},
     confidence:      profile.confidence     ?? 0,
     manual_override: profile.manualOverride ?? null,
+    emotional_tone:  profile.emotionalTone  ?? 'balanced',
     last_calculated: new Date().toISOString().split('T')[0],
     updated_at:      new Date().toISOString(),
   }, { onConflict: 'user_id' });
@@ -262,6 +264,7 @@ export async function detectPrimaryPersonality(userId) {
     scores,
     confidence,
     manualOverride: profile?.manualOverride ?? null,
+    emotionalTone:  profile?.emotionalTone ?? 'balanced', // preserve a seeded/user-set tone across the weekly recalc
     lastCalculated: new Date().toISOString().split('T')[0],
   };
 
@@ -270,6 +273,8 @@ export async function detectPrimaryPersonality(userId) {
 }
 
 // ─── Message templates ────────────────────────────────────────────────────────
+
+const _lc = s => (s || 'training').toLowerCase();
 
 const T = {
   calorie_increase: {
@@ -328,21 +333,163 @@ const T = {
     coaster:       _d => `Scale stalled because intake isn't consistent. Seven days of hitting your number will break it.`,
     craftsman:     d => `${d.days||14}-day plateau + deficit cycling. This is disrupting leptin adaptation. Standardize for a week, then reassess.`,
   },
+  // train → fuel: voices today's macro target as a consequence of today's training.
+  // data: {session, carbDelta, kcalDelta, proteinHeld, underTarget}. carbDelta null = no
+  // baseline derivable; carbDelta<=0 = rest/recovery day. Branches on underTarget for the 2-state.
+  train_to_fuel: {
+    analyzer: d => {
+      const S=d.session||'Training day',s=_lc(d.session);
+      if(d.carbDelta==null) return d.underTarget?`Today's a bigger day than rest, and you're still under on carbs. Keep eating.`:`Today's numbers match your ${s}. You're on target.`;
+      if(d.carbDelta<=0) return `Rest day: carbs down${d.kcalDelta?`, about ${Math.abs(d.kcalDelta)} fewer calories than a training day`:''}, protein steady${d.proteinG?` at ${d.proteinG}g`:''}.`;
+      return `${S} adds up: +${d.carbDelta}g carbs, +${d.kcalDelta} calories vs a rest day.${d.proteinG?` Protein stays at ${d.proteinG}g.`:''}${d.underTarget?` You're still under on carbs.`:` You've hit your carb target.`}`;
+    },
+    believer: d => {
+      const S=d.session||'Training day',s=_lc(d.session);
+      if(d.carbDelta!=null&&d.carbDelta<=0) return `Rest day — let your body rebuild. Protein stays steady, and that's exactly what recovery needs.`;
+      if(d.carbDelta==null) return d.underTarget?`${S} takes a lot out of you — keep eating, you've still got more to give.`:`You fueled ${s} just right today. Love to see it.`;
+      return d.underTarget?`You crushed ${s} today, so I bumped your carbs ${d.carbDelta}g. Go fuel that comeback — you've still got room.`:`You crushed ${s} and fueled it right — a full ${d.carbDelta}g more carbs. That's how progress is built. Nailed it.`;
+    },
+    skeptic: d => {
+      const s=_lc(d.session);
+      if(d.carbDelta!=null&&d.carbDelta<=0) return `Lower demand today, so carbs come down a bit and protein holds. That's the reasoning — adjust if it doesn't feel right.`;
+      if(d.carbDelta==null) return `Your ${s} likely needs more fuel than a rest day. ${d.underTarget?'Keep eating to hit it.':'Looks covered.'} Adjust if your recovery lags.`;
+      return `Your ${s} burns more carbs, so today's target is up ${d.carbDelta}g${d.kcalDelta?` (${d.kcalDelta} more calories)`:''}. It's an estimate — adjust if you're not recovering.${d.underTarget?` You're under it right now.`:` You've reached it.`}`;
+    },
+    perfectionist: d => {
+      const S=d.session||'Training day',s=_lc(d.session);
+      if(d.carbDelta!=null&&d.carbDelta<=0) return `Rest day, so carbs ease back — and that's exactly right, not a step back. Protein stays steady. You're doing this well.`;
+      if(d.carbDelta==null) return d.underTarget?`${S} asks a little more of you — fuel it when you can. The overall week matters most.`:`You matched your ${s} nicely. Right on track.`;
+      return d.underTarget?`${S}, so carbs are up ${d.carbDelta}g. This is the plan working — hit it when you can, the week is what matters.`:`${S}, so carbs are up ${d.carbDelta}g, and you've hit it. Consistency like this is what counts.`;
+    },
+    coaster: d => {
+      const S=d.session||'Training day';
+      if(d.carbDelta!=null&&d.carbDelta<=0) return `Rest day. Carbs come down a bit, protein stays the same. Eat to your number.`;
+      if(d.carbDelta==null) return d.underTarget?`${S}. You're under on carbs — keep eating to hit today's target.`:`${S}. Carbs are hit. Done.`;
+      return d.underTarget?`${S}. Eat ${d.carbDelta}g more carbs today — that's the fuel the work needs. Not there yet.`:`${S}. ${d.carbDelta}g more carbs today, and you've already hit it. Done.`;
+    },
+    craftsman: d => {
+      const S=d.session||'Training day',s=_lc(d.session);
+      if(d.carbDelta!=null&&d.carbDelta<=0) return `Rest day: carbs down${d.kcalDelta?`, ${Math.abs(d.kcalDelta)} fewer calories`:''}, protein held${d.proteinG?` at ${d.proteinG}g`:''} so you keep muscle while you recover.`;
+      if(d.carbDelta==null) return `Your ${s} needs more fuel than a rest day.${d.underTarget?' Still short — keep eating.':' Looks covered.'} Watch how recovery goes.`;
+      return `${S}: +${d.carbDelta}g carbs, +${d.kcalDelta} calories vs rest${d.proteinG?`, protein held at ${d.proteinG}g to keep muscle`:''}.${d.underTarget?` Still some carbs to go — watch how your next session feels.`:` You've hit it — watch how your next session feels.`}`;
+    },
+  },
 };
+
+// ─── Emotional-tone moments (warm↔tough) ─────────────────────────────────────
+// SIBLING to the T-map above — NOT merged. Base-copy selector: emotional tone picks
+// the substance/warmth; the cognitive RULES then modify wording on top. Keyed
+// (moment × tone). adaptMessageSync reads TONE_MOMENTS[context.moment][tone] BEFORE the
+// cognitive confidence gate, so a seeded tone fires day one. Values are plain strings
+// with {token} placeholders (e.g. {lift}, {number}) that the CALLER fills with user data.
+const TONE_MOMENTS = {
+  pr: {
+    nurture: "Look at that — a new best on your {lift}. Do you see what you just did? That's not luck, that's the work showing up. Take a second and actually feel good about this one. You earned every pound.",
+    balanced: "New {lift} PR — {number}. That's a real marker, and the progression's working exactly like it should. Logged. Now we build from here.",
+    drive: "New PR on {lift}. Good. You know what that means? The old you is gone. That number you were scared of is your warm-up now. Don't celebrate too long — that's the new floor. Next week we take more."
+  },
+  disappeared_1: {
+    nurture: "Hey — it's been a couple days, and that's completely okay. No guilt here. Whenever you're ready, I'm right here and we just start again.",
+    balanced: "Couple days off. Happens to everyone, not worth a second thought. One session today and you're back in rhythm.",
+    drive: "Couple days quiet. Alright. The clock doesn't care about the days you missed — only what you do next. Get one in today."
+  },
+  disappeared_2: {
+    nurture: "Still here whenever you are. No pressure, no lost ground — just one small session to shake off the rust. That's all it takes to feel like yourself again.",
+    balanced: "Few days now. Don't try to make up for it, don't overthink it. Just log one thing today — the rhythm comes back on its own.",
+    drive: "Where you been? Doesn't matter — excuses don't build anything. One session. Today. No more hiding."
+  },
+  disappeared_3: {
+    nurture: "You started this for a reason, and that reason is still true. It's still waiting for you, and so am I. One step back in — today's a good day for it.",
+    balanced: "A week out. This is the point where it's easy to drift or easy to restart — your call. One session flips it. Let's do that.",
+    drive: "A week gone. This is the moment most people quit for good. You're not most people — prove it. One session, right now. Start the comeback."
+  },
+  fried: {
+    nurture: "I've been watching your numbers, and your body's asking for a break. Your recovery's low and you've put in real work. Today, rest is the smart move — it's part of the plan too, and you've earned it. Come back stronger tomorrow.",
+    balanced: "HRV's down, sleep's short. You're carrying real fatigue — that's just what the data says. Training hard today digs the hole deeper. Take it easy or take it off. Back off today, train better tomorrow. Simple call.",
+    drive: "Stop. Your numbers are trash and you know it. You think grinding today makes you tough? It makes you stupid. The strong move — the one nobody has the guts for — is to rest when your body's screaming and come back to punish it tomorrow. Sit down today. That's an order. Tomorrow you go to war."
+  },
+  plateau: {
+    nurture: "Plateaus are normal, and this isn't your fault. Your body's adapting, which actually means it's working. We just change the input — this is fixable, and we'll fix it together.",
+    balanced: "Scale's been flat two weeks. That's a signal, not a failure — bodies adapt. Time to adjust the plan. Nothing's wrong; something just needs to change.",
+    drive: "Stalled. Plateaus don't break because you complain about them — they break when you change the stimulus. So we change it. No panic, no quitting. Adjust and attack."
+  },
+  showed_up: {
+    nurture: "You slept badly and still showed up. Do you know how rare that is? That's the exact thing that builds a habit that lasts. I'm proud of you for this one.",
+    balanced: "Rough night's sleep and you trained anyway. That's the consistency that actually moves the needle — not the perfect days, the stubborn ones. Noted.",
+    drive: "Slept like garbage and showed up anyway. THAT'S who you're becoming. Anyone trains when it's easy. You trained when it wasn't. Remember this one — this is the rep that counts."
+  },
+  near_why: {
+    nurture: "You're getting close to what you set out for. Remember why you started — that reason's still real, and it's working. You're almost there, and you did this.",
+    balanced: "You're on track for your goal. The plan's working and the numbers back it up. Keep the momentum — this is the part where consistency pays off.",
+    drive: "Goal's in sight. Here's where most people ease off and coast to the finish. You don't. This is where you press harder, not softer. Finish what you started."
+  }
+};
+
+// why → emotional-tone seed (onboarding). aesthetic (and performance) → balanced is a
+// DELIBERATE safety default: never auto-assign Drive to appearance-motivated users.
+export function mapWhyToTone(why) {
+  if (why === 'health' || why === 'confidence') return 'nurture';
+  if (why === 'compete' || why === 'discipline') return 'drive';
+  return 'balanced';
+}
+
+const _hasToken = s => typeof s === 'string' && /\{\w+\}/.test(s);
+
+// ─── Contextual message builder (shared render core) ──────────────────────────
+// The SINGLE place that turns a (moment, tone, data) triple into a finished string.
+// Both the notification bridge and the in-app tone preview call this so they can
+// never drift. Resolves TONE_MOMENTS[moment][profile.emotionalTone] (balanced
+// fallback), fills {token} placeholders from `data`, then runs the token guardrail:
+// if any {token} survives the fill, fall back to a token-free variant of the same
+// moment, or return null (skip) rather than ship a message with a raw "{lift}" in it.
+// Pure and gate-free — tone is user-chosen, not inferred, so it fires from day one.
+export function buildContextualMessage(moment, profile, data = {}) {
+  const bucket = moment && TONE_MOMENTS[moment];
+  if (!bucket) return null;
+
+  const tone = profile?.emotionalTone || 'balanced';
+  const raw  = bucket[tone] || bucket.balanced;
+  if (typeof raw !== 'string' || !raw) return null;
+
+  const filled = raw.replace(/\{(\w+)\}/g, (m, k) =>
+    (data[k] != null && data[k] !== '') ? String(data[k]) : m);
+
+  // Guardrail: a clean fill (no surviving {token}) ships as-is.
+  if (!_hasToken(filled)) return filled;
+
+  // A token went unfilled → never surface a broken placeholder. Prefer any
+  // token-free variant of this moment (selected tone first), else skip.
+  const tokenFree = [bucket[tone], bucket.balanced, bucket.nurture, bucket.drive]
+    .find(s => typeof s === 'string' && s && !_hasToken(s));
+  return tokenFree || null;
+}
 
 // ─── Sync adaptation ──────────────────────────────────────────────────────────
 
 export function adaptMessageSync(rawMessage, profile, context = {}) {
-  if (!profile || !rawMessage) return rawMessage;
-  const type = profile.manualOverride || profile.primaryType || 'balanced';
-  if (type === 'balanced' || (profile.confidence ?? 0) < 20) return rawMessage;
+  if (!profile) return rawMessage;
 
-  if (context.scenario && T[context.scenario]) {
+  // ── Layer 1: emotional TONE selects the base copy. Seeded, NOT inferred → NO gate. ──
+  let base = rawMessage;
+  const tone = profile.emotionalTone || 'balanced';
+  if (context.moment && TONE_MOMENTS[context.moment]) {
+    const tf = TONE_MOMENTS[context.moment][tone] || TONE_MOMENTS[context.moment].balanced;
+    if (tf) base = typeof tf === 'function' ? tf(context.data || {}) : tf;
+  }
+  if (!base) return rawMessage;
+
+  // ── Layer 2: cognitive TYPE modifies the base. Inferred → keep the confidence gates. ──
+  const type = profile.manualOverride || profile.primaryType || 'balanced';
+  if (type === 'balanced' || (profile.confidence ?? 0) < 20) return base; // scoped: skip cognitive only
+
+  // Legacy scenario path (no tone moment): T-map full replacement — unchanged behavior.
+  if (!context.moment && context.scenario && T[context.scenario]) {
     const fn = T[context.scenario][type];
     if (fn) return fn(context.data || {});
   }
 
-  return applyRules(rawMessage, type, profile.confidence ?? 0, context);
+  // Tone-moment (or non-scenario) path: cognitive RULES MODIFY the tone base.
+  return applyRules(base, type, profile.confidence ?? 0, context);
 }
 
 export async function adaptMessage(rawMessage, userId, context = {}) {
@@ -466,6 +613,15 @@ export async function setManualOverride(userId, type) {
   if (!userId) return;
   const existing = (await getPersonalityProfile(userId)) || { primaryType: 'balanced', scores: {}, confidence: 0 };
   await savePersonalityProfile(userId, { ...existing, manualOverride: type === 'auto' ? null : type });
+}
+
+// Emotional tone (nurture|balanced|drive). User-chosen / onboarding-seeded — exempt from
+// the cognitive confidence gates (see adaptMessageSync Layer 1).
+export async function setEmotionalTone(userId, tone) {
+  if (!userId) return;
+  const t = ['nurture', 'balanced', 'drive'].includes(tone) ? tone : 'balanced';
+  const existing = (await getPersonalityProfile(userId)) || { primaryType: 'balanced', scores: {}, confidence: 0 };
+  await savePersonalityProfile(userId, { ...existing, emotionalTone: t });
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

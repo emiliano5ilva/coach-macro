@@ -15,7 +15,16 @@ export function getUserMode(profile, wPrefs) {
   const hasSplitWithRun = splitType.includes('run') || splitType.includes('hybrid');
   if (isHybridFlag || hasSplitWithRun) return 'hybrid';
 
-  if (profile?.run_race_date || wPrefs?.runRaceDate) return 'running';
+  if (profile?.run_race_date || wPrefs?.runRaceDate) {
+    // Race date should ADD running context, not erase a lifting identity.
+    // A user with a split, non-beginner lift exp, or a strength goal is a hybrid athlete.
+    const liftExp = (wPrefs?.liftExp || profile?.profile_data?.liftExp || profile?.liftExp || 'beginner').toLowerCase();
+    const hasLiftExp    = liftExp === 'intermediate' || liftExp === 'advanced';
+    const hasSplit      = !!(wPrefs?.splitType);
+    const goal          = (profile?.goal || profile?.profile_data?.goal || '').toLowerCase().replace(/\s+/g, '_');
+    const hasStrengthGoal = ['build_muscle', 'get_stronger', 'recomp', 'gain_strength'].includes(goal);
+    return (hasLiftExp || hasSplit || hasStrengthGoal) ? 'hybrid' : 'running';
+  }
 
   return 'strength';
 }

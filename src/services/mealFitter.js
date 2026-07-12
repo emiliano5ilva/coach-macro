@@ -22,13 +22,23 @@ const SERVING_STEP = 0.25;            // round servings to nearest ¼
 const MIN_SERVINGS = 0.5;
 const MAX_SERVINGS = 3.0;
 
-// Calorie fraction allocated to each slot
-const SLOT_RATIOS_2 = { lunch: 0.45, dinner: 0.55 };
-const SLOT_RATIOS_3 = { breakfast: 0.25, lunch: 0.35, dinner: 0.40 };
-const SLOT_RATIOS_4 = { breakfast: 0.25, lunch: 0.30, dinner: 0.35, snack: 0.10 };
+// Ordered slot plans: each entry is [key, mealSlot, ratio].
+// key    — unique slot identifier used in meals[].slot and positional mapping.
+// mealSlot — recipe pool filter value (snack1/2/3 all query meal_slot='snack').
+// 2/3/4 ratios are byte-identical to the former SLOT_RATIOS_2/3/4.
+// 5 sum: 0.22+0.26+0.30+0.11+0.11 = 1.00
+// 6 sum: 0.20+0.22+0.24+0.12+0.11+0.11 = 1.00
+const SLOT_PLANS = {
+  2: [['lunch','lunch',0.45],['dinner','dinner',0.55]],
+  3: [['breakfast','breakfast',0.25],['lunch','lunch',0.35],['dinner','dinner',0.40]],
+  4: [['breakfast','breakfast',0.25],['lunch','lunch',0.30],['dinner','dinner',0.35],['snack','snack',0.10]],
+  5: [['breakfast','breakfast',0.22],['lunch','lunch',0.26],['dinner','dinner',0.30],['snack1','snack',0.11],['snack2','snack',0.11]],
+  6: [['breakfast','breakfast',0.20],['lunch','lunch',0.22],['dinner','dinner',0.24],['snack1','snack',0.12],['snack2','snack',0.11],['snack3','snack',0.11]],
+};
+function planForCount(n) { return SLOT_PLANS[n] || SLOT_PLANS[Math.max(2, Math.min(6, n))] || SLOT_PLANS[3]; }
 
-// Canonical slot ordering for output stability
-const SLOT_ORDER = { breakfast: 0, lunch: 1, dinner: 2, snack: 3 };
+// Canonical slot ordering for output stability (snack1/2/3 extend after dinner)
+const SLOT_ORDER = { breakfast: 0, lunch: 1, dinner: 2, snack: 3, snack1: 3, snack2: 4, snack3: 5 };
 
 // Sort filled plan meals into canonical order so positional mapping (index+1 → slot number) is stable.
 // Accepts both shaped plan meals (m.name) and raw fitDay output (m.recipe).
@@ -75,13 +85,36 @@ export function isAllergenExcluded(recipe, allergens) {
   return allergens.some(a => tags.includes(a));
 }
 
+// Mirrors DIET_INCLUDES in fuel.jsx — must stay in sync.
+// Defines which recipe diet_tags qualify for a given chosen diet.
+const _DIET_INCLUDES = {
+  vegan:         ['vegan'],
+  vegetarian:    ['vegetarian','vegan'],
+  pescatarian:   ['pescatarian','vegetarian','vegan'],
+  mediterranean: ['mediterranean'],
+  keto:          ['keto'],
+  paleo:         ['paleo'],
+  'low-carb':    ['low-carb'],
+  carnivore:     ['carnivore'],
+};
+
 /**
  * Diet match: recipe satisfies the requested diet.
  * 'balanced', null, or undefined → any recipe qualifies.
+ * Uses inclusion map so sub-diets (e.g. vegan ⊂ vegetarian ⊂ pescatarian) pass.
  */
 export function meetsDiet(recipe, diet) {
   if (!diet || diet === 'balanced') return true;
-  return (recipe.diet_tags || []).includes(diet);
+  const tags = recipe.diet_tags || [];
+  // Mediterranean has no genuine snack recipes → allow pescatarian/vegetarian recipes for the
+  // SNACK slot only (breakfast/lunch/dinner stay strictly mediterranean). Tags stay honest.
+  if (diet === 'mediterranean') {
+    if (tags.includes('mediterranean')) return true;
+    if (recipe.meal_slot === 'snack' && tags.some(t => t === 'pescatarian' || t === 'vegetarian')) return true;
+    return false;
+  }
+  const allowed = _DIET_INCLUDES[diet] || [diet];
+  return tags.some(t => allowed.includes(t));
 }
 
 /**
@@ -94,22 +127,20 @@ export function filterPool(pool, diet, allergens) {
 
 /**
  * Split a dayTarget proportionally across meal slots.
- * Returns plain object: { breakfast: {cal,pro,carb,fat}, ... }
+ * Returns an ordered array of {key, mealSlot, cal, pro, carb, fat}.
+ * key    — unique slot id (e.g. 'snack1', 'snack2').
+ * mealSlot — recipe pool filter value ('snack' for all snack keys).
+ * Supports mealCount 2–6.
  */
 export function slotTargets(dayTarget, mealCount) {
-  const ratios = mealCount === 2 ? SLOT_RATIOS_2
-               : mealCount === 4 ? SLOT_RATIOS_4
-               : SLOT_RATIOS_3;
-  const out = {};
-  for (const [slot, ratio] of Object.entries(ratios)) {
-    out[slot] = {
-      cal:  Math.round(dayTarget.cal  * ratio),
-      pro:  r1(dayTarget.pro  * ratio),
-      carb: r1(dayTarget.carb * ratio),
-      fat:  r1(dayTarget.fat  * ratio),
-    };
-  }
-  return out;
+  return planForCount(mealCount).map(([key, mealSlot, ratio]) => ({
+    key,
+    mealSlot,
+    cal:  Math.round(dayTarget.cal  * ratio),
+    pro:  r1(dayTarget.pro  * ratio),
+    carb: r1(dayTarget.carb * ratio),
+    fat:  r1(dayTarget.fat  * ratio),
+  }));
 }
 
 /**
@@ -176,28 +207,31 @@ function recencyPenalty(recipe, nowMs) {
  * The allergen gate is enforced at `filterPool` level — this function
  * receives only pre-filtered recipes and adds no new allergen logic.
  */
-function pickForSlot(eligible, slot, target, usedKeys, rand, nowMs) {
+function pickForSlot(eligible, mealSlot, target, usedKeys, rand, nowMs, diet) {
   const available = eligible.filter(r => !usedKeys.has(recipeKey(r)));
 
   if (available.length === 0) {
     return {
       unfillable: true,
-      reason: `no eligible recipes available for slot "${slot}"`,
+      reason: `no eligible recipes available for slot "${mealSlot}"`,
     };
   }
 
   // Prefer slot-matched; fall back to whole available pool
-  const slotMatched = available.filter(r => r.meal_slot === slot);
+  const slotMatched = available.filter(r => r.meal_slot === mealSlot);
   const candidates  = slotMatched.length > 0 ? slotMatched : available;
 
-  // Score every candidate
+  // Score every candidate (lower = better)
   const scored = candidates.map(recipe => {
     const servings    = optimalServings(recipe, target.cal);
     const scaled      = scaleMacros(recipe, servings);
     const dist        = macroDist(scaled, target);
     const penalty     = recencyPenalty(recipe, nowMs);
     const jitter      = rand() * 0.001;           // deterministic tie-break
-    return { recipe, servings, scaledMacros: scaled, score: dist + penalty + jitter };
+    // Variety preference (NOT a hard filter): nudge recipes whose single best-fit identity
+    // matches the chosen diet ahead of secondary-tag matches when macros are otherwise close.
+    const primPref    = (diet && diet !== 'balanced' && recipe.primary_diet === diet) ? -0.05 : 0;
+    return { recipe, servings, scaledMacros: scaled, score: dist + penalty + jitter + primPref };
   });
 
   scored.sort((a, b) => a.score - b.score);
@@ -211,7 +245,7 @@ function pickForSlot(eligible, slot, target, usedKeys, rand, nowMs) {
  * fitDay({ dayTarget, mealCount, diet, allergens, pool, seed })
  *
  * @param {{ cal, pro, carb, fat }} dayTarget  - daily macro targets
- * @param {number}   mealCount  - 3 (breakfast/lunch/dinner) or 4 (+snack)
+ * @param {number}   mealCount  - 2–6 meals (2=lunch+dinner, 3=B/L/D, 4=B/L/D+snack, 5=+snack1/2, 6=+snack1/2/3)
  * @param {string}   diet       - diet tag (e.g. 'keto') or 'balanced'/null
  * @param {string[]} allergens  - allergen tags to HARD-EXCLUDE (safety gate)
  * @param {object[]} pool       - array of recipe objects (read-only)
@@ -238,23 +272,19 @@ export function fitDay({
   // 1. Filter pool — ALLERGEN GATE applied here; never relaxed downstream
   const eligible = filterPool(pool, diet, allergens);
 
-  // 2. Per-slot calorie/macro targets
-  const targets = slotTargets(dayTarget, mealCount);
+  // 2. Per-slot calorie/macro targets (ordered array, already in plan order)
+  const slots = slotTargets(dayTarget, mealCount);
 
-  // 3. Pick for each slot in stable order
-  const slotNames = Object.keys(targets).sort(
-    (a, b) => (SLOT_ORDER[a] ?? 9) - (SLOT_ORDER[b] ?? 9),
-  );
-
+  // 3. Pick for each slot in plan order
   const meals    = [];
   const usedKeys = new Set();
 
-  for (const slot of slotNames) {
-    const result = pickForSlot(eligible, slot, targets[slot], usedKeys, rand, nowMs);
+  for (const s of slots) {
+    const result = pickForSlot(eligible, s.mealSlot, s, usedKeys, rand, nowMs, diet);
     if (!result.unfillable) {
       usedKeys.add(recipeKey(result.recipe));
     }
-    meals.push({ slot, ...result });
+    meals.push({ slot: s.key, mealSlot: s.mealSlot, ...result });
   }
 
   // 4. Day totals (sum only filled slots)

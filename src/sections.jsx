@@ -1,28 +1,99 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { motion, useReducedMotion } from 'motion/react';
+import "./iconData.js"; // side-effect: registers fluent-emoji-flat + twemoji collections
+import { Icon } from "@iconify/react";
+import { CommunicationStyleSection, YourPatternsCard } from "./ob_screens2.jsx";
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { registerPlugin } from '@capacitor/core';
+import { createGpsFilter } from './utils/gpsFilter.js';
+import { themeRoot } from './utils/portalRoot.js';
 import { MN, MotionArc, StaggerItem } from './motion-layer.jsx';
-const _hL=()=>{try{Haptics.impact({style:ImpactStyle.Light});}catch{}};
+// Phase 0: native background-geolocation, FOREGROUND-only for now (no backgroundMessage → When-In-Use).
+// Native CLLocationManager → the permission prompt reads "Coach Macro", not "localhost".
+const BackgroundGeolocation = registerPlugin('BackgroundGeolocation');
+const _hL=()=>{Haptics.impact({style:ImpactStyle.Light}).catch(()=>{});};
+// Normalized coaching key: lowercase, strip ALL parens (superset/program tags anywhere), unify
+// hyphens/slashes → space, drop punctuation, collapse whitespace. Verified zero collisions across the
+// 103 seeded exercise_coaching names (e.g. "Close Grip Bench" ≠ "Close Grip Bench Press"). This resolves
+// pure spacing/hyphen/paren/case variants automatically; the alias map handles equipment/synonym classes.
+const _normKey = s => String(s||'').toLowerCase().replace(/\([^)]*\)/g,' ').replace(/[\/\-]/g,' ').replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();
+// Coaching aliases: generator-variant normKey → seeded normKey. EVERY value is a real exercise_coaching
+// name (verified). Same movement only — spelling/plural/synonym/equipment-generic + reviewed Tier-3
+// map-to-closest calls. Genuinely-different movements are left uncovered (V2 author-backlog), not mapped.
+const _COACH_ALIAS = {
+  // spelling / plural / synonym
+  'bench press':'barbell bench press','back extension':'hyperextension','bent over lateral raise':'rear delt fly',
+  'skullcrusher':'skull crusher','dumbbell flye':'dumbbell fly','flat dumbbell flye':'dumbbell fly',
+  'tricep overhead extension':'overhead tricep extension','cable pushdown':'tricep pushdown',
+  'nordic curl':'nordic hamstring curl','mountain climbers':'mountain climber','burpees':'burpee',
+  'upright row':'dumbbell upright row','barbell upright row':'dumbbell upright row',
+  // squat / deadlift generics
+  'squat':'barbell squat','back squat':'barbell squat','barbell deadlift':'deadlift',
+  'dumbbell goblet squat':'goblet squat','dumbbell sumo squat':'sumo squat','dumbbell sumo deadlift':'sumo deadlift',
+  // banded → band-specific / generic seeded
+  'banded bicep curl':'band curl','bicep curl with resistance band':'band curl','banded row':'band row',
+  'banded hip thrust':'band hip thrust','banded lateral walk':'band lateral walk','banded tricep pushdown':'band tricep pushdown',
+  'banded clamshell':'clamshell','clamshell with band':'clamshell','banded donkey kick':'donkey kick',
+  'banded good morning':'good morning','banded reverse lunge':'reverse lunge','banded romanian deadlift':'romanian deadlift',
+  'banded lateral raise':'lateral raise','cable lateral raise':'lateral raise','banded overhead press':'overhead press',
+  'seated barbell press':'overhead press',
+  // equipment → generic seeded
+  'dumbbell calf raise':'calf raise','dumbbell shrug':'shrug','one arm dumbbell row':'dumbbell row',
+  'wide grip pulldown':'lat pulldown','close grip pulldown':'lat pulldown','cable hip kickback':'cable kickback',
+  'seated dumbbell press':'dumbbell shoulder press','dumbbell overhead press':'dumbbell shoulder press',
+  // face pull labels (both parts seeded)
+  'face pull with band':'band face pull','face pull or band pull apart':'face pull',
+  'cable face pull':'face pull','barbell bent over row':'barbell row','bent over row':'barbell row',
+  // Tier-3 rulings (map-to-closest, reviewed)
+  'bicep curl':'dumbbell curl','assisted pull up':'pull up','pull up progression':'pull up','muscle up progression':'pull up',
+  'push up progression':'push up','pistol squat progression':'assisted pistol squat',
+  'pike push up handstand push up':'pike push up','handstand push up':'pike push up',
+  'chest fly':'dumbbell fly','incline dumbbell fly':'dumbbell fly','incline dumbbell flye':'dumbbell fly',
+  'flat dumbbell press':'dumbbell bench press','dumbbell press':'dumbbell bench press','decline barbell press':'barbell bench press',
+  'machine shoulder press':'overhead press','cable pullover':'dumbbell pullover','t bar row':'cable row',
+  'single arm cable row':'cable row','lying dumbbell hamstring curl':'lying leg curl','ring dip':'dip',
+  'single leg hip thrust':'hip thrust','glute bridge march':'glute bridge','modified push up':'push up',
+};
+const _coachKey = name => { const k=_normKey(name); return _COACH_ALIAS[k]||k; };
+const _hM=()=>{Haptics.impact({style:ImpactStyle.Medium}).catch(()=>{});};
+
+// ── SET-VIEW MOTION LANGUAGE — one shared spring, reused for EVERY layout state change (log collapse,
+// next-set expand, rest→next return, edit). Physics, not duration tweens: settles ~250-300ms with a
+// barely-perceptible overshoot ("had to happen", not bouncy). useReducedMotion → callers pass layout=false.
+const cmSpring = { type: "spring", stiffness: 520, damping: 34, mass: 0.9 };
+// Coach-voice "why this rest" note, bucketed by the ACTUAL prescribed rest (ex.restSecs, which comes
+// from data/prescription.js by goal × skill × movement). Honest: it explains the rule that's running.
+// Plain spoken, no em-dashes, same spirit as the water-goal explanation.
+function _restCoachNote(secs){
+  const s=Number(secs)||90;
+  if(s>=180) return "Heavy compound work drains your whole system. A full rest lets your muscles refill their fuel so your next set is just as strong. Cut it short and the set suffers, and so does your progress.";
+  if(s>=120) return "Big lifts need real recovery. This gives you enough to come back strong for a quality set without letting the muscle go cold.";
+  if(s>=75)  return "Enough time to recover for a solid set, short enough to keep the muscle working. This is the sweet spot for building size.";
+  if(s>=50)  return "Smaller muscles bounce back fast. A shorter rest keeps the blood in the muscle and the intensity up, which is what drives growth here.";
+  return "Short rest keeps your heart rate up and builds work capacity. The burn is the point, so we keep moving.";
+}
 import AthletePassportComponent from "./components/AthletePassport.jsx";
 import ReactDOM from "react-dom";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
-  RUN_PLANS, HYROX_STATIONS, FASTING_PROTOCOLS,
+  RUN_PLANS, FASTING_PROTOCOLS,
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
   SectionCard, Spinner, Logo, CC, MuscleMap, FAQItem, BodyFigure,
   calcTDEE, lookupBarcode, useCountUp, autoFocus, getDayMacros,
-  Badge, getTier, getReferralBadge,
+  Badge, getTier,
   hap, hapMed, hapSuccess, hapPR,
+  PaperCard, Pill, MusclePills,
   InfoTip, WorkoutSkeleton, ExerciseSkeleton, CardSkeleton, EmptyState,
-  GOCLUB_REDESIGN } from "./components.jsx";
+  GOCLUB_REDESIGN, WhistleMark } from "./components.jsx";
 import { showToast } from "./utils/toast.js";
 import { sb, ai, streamAI } from "./client.js";
 import { track, EVENTS, trackError, setAnalyticsEnabled } from "./services/analytics.js";
 import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS, GLUTE_PROGRAMS, PROGRAM_LIBRARY } from "./programs.js";
-import { getProgramForUser, getTodayRunWorkout, buildRunEngineInputs, getRunWeek, RUN_SESSION_TITLE, deriveDayModality, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS, getSkillVariant } from "./running_programs.js";
+import { getProgramForUser, getTodayRunWorkout, buildRunEngineInputs, getRunWeek, RUN_SESSION_TITLE, deriveDayModality, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS, HYBRID_TEMPLATE_CYCLES, getSkillVariant, HYROX_STATIONS } from "./running_programs.js";
 import { getHyroxPhase } from "./services/hyroxPeriodisationService.js";
+import { setAIEnabled } from "./services/aiConsent.js";
 import { getRunningPhase } from "./services/runningPeriodisationService.js";
 import { getStrengthPhase } from "./services/strengthPeriodisationService.js";
-import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, EXERCISE_MUSCLE_GROUP } from "./exercise_database.js";
+import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, getSwapOptionsForEquipment, EXERCISE_MUSCLE_GROUP, getMuscleGroup } from "./exercise_database.js";
 import { getPacesFromTime, resolvePaceTokens, computeGoalPace, formatRaceTime, getRacePredictions, enrichRunSession, parseTimeInput } from "./utils/runningPaces.js";
 import { renderWithPaces } from "./services/paceService.js";
 import { buildAdaptiveSession } from "./services/adaptiveSessionService.js";
@@ -32,22 +103,27 @@ import { getWeatherPaceAdjustment, applyWeatherToPaces } from "./services/weathe
 import { scoreReadiness, getReadinessTier, READINESS_CONFIG, applyWeightMod, getCyclePhase, isPriorityExercise, applyMobilitySubstitutions, getCoachingStyle, getLifeFactorMod } from "./utils/ait.js";
 import { lifeStageModifier, ACL_PREHAB, isLegDay, getPostpartumPhase, isCalorieFreeMode, getConsistencyScore, showConsistencyScore, getCycleNutrition } from "./utils/female.js";
 import { getAge, getAgeAppropriateProgram, applyOlderAdultProgram, HEALTH_CONDITIONS_SAFETY } from "./utils/safety.js";
-import { ExerciseDetailModal } from "./ExerciseDetailModal.jsx";
+import { ExerciseDetailModal, COACHING_CUES } from "./ExerciseDetailModal.jsx";
+import { PrivacyPolicy, TermsOfService, HealthDisclaimer, HealthDataNotice, SupportPage } from "./legal.jsx";
 import { getThumbnailUrl } from "./services/exerciseMedia.js";
 import { COOL_DOWN, GENERAL_WARMUP, MOVEMENT_PREP } from "./utils/warmupProtocols.js";
 import WarmupScreen from "./components/WarmupScreen.jsx";
+import WeekEditor from "./components/WeekEditor.jsx";
 import FeatureStrip from "./components/FeatureStrip.jsx";
 import { getAIErrorMessage } from "./utils/errors.js";
-import { ProgramLibraryScreen, CustomRoutineBuilder } from "./ProgramLibrary.jsx";
+import { ProgramLibraryScreen } from "./ProgramLibrary.jsx";
+import { resolveProgram, resolveDisplayWeek } from "./utils/programResolver.js";
+import { estimateActiveKcal } from "./utils/calorieEstimate.js";
 import { CalendarSettingsPanel } from "./LifeAwareTraining.jsx";
 import MuscleRecovery from "./components/MuscleRecovery.jsx";
 import BodyMap from "./components/BodyMap.jsx";
 import { getExerciseData, getMuscleColor } from "./data/exerciseMuscleMap.js";
+import { MUSCLE_TO_BODYMAP, BODYMAP_COLOR, REGION_LABELS, ALL_REGIONS } from "./data/bodyMapRegions.js";
+import { thermalAt, THERMAL_NODATA } from "./data/thermalPalette.js";
 import { getPrescription, getRestTime, getGoalLabel, getGoalContext } from "./data/prescription.js";
 import { calculateTrainingDNA } from "./services/trainingDnaService.js";
-import { getReferralData, getReferrals, REFERRAL_TIERS } from "./services/referralService.js";
 import { getAdaptLimit, trialDaysRemaining, trialExpiringSoon, isExpired, getSubscriptionLabel } from "./utils/subscription.js";
-import { purchaseMonthly, purchaseAnnual, restorePurchases } from "./services/purchaseService.js";
+import { purchaseMonthly, purchaseAnnual, restorePurchases, devUnlockEntitlement } from "./services/purchaseService.js";
 import { getTodaySoreness } from "./services/sorenessService.js";
 import { getProgramImage } from "./data/programImages.js";
 import { triggerEventUnlock } from "./services/featureUnlockService.js";
@@ -55,6 +131,19 @@ import { ACCENT_COLORS, BG_COLORS, isCompatible, isLightBg, applyTheme } from ".
 import { getOutreachPreferences, saveOutreachPreferences, TRIGGER_CATEGORIES, DEFAULT_PREFS } from "./services/outreachService.js";
 import { getOptIn, setOptIn as setPeerOptInSvc } from "./services/peerComparisonService.js";
 
+
+// ─── CARD GLYPH ───────────────────────────────────────────────────────────────
+// fluent-emoji-flat glyph in a uniform accent-tint chip (recolors across all 8 themes;
+// the multicolor flat glyph carries its own color). Used by the run-summary coach cards.
+function CardGlyph({ icon, size = 34 }) {
+  return (
+    <div style={{ width: size, height: size, flexShrink: 0, display: "flex",
+      alignItems: "center", justifyContent: "center", borderRadius: 10,
+      background: "rgba(var(--cm-accent-rgb,255,59,48), 0.12)" }}>
+      <Icon icon={icon} width={Math.round(size * 0.6)} height={Math.round(size * 0.6)} />
+    </div>
+  );
+}
 
 // ─── HYROX SESSION ENRICHER ───────────────────────────────────────────────────
 function enrichHyroxDesc(text, hyroxProfile) {
@@ -72,28 +161,50 @@ function enrichHyroxDesc(text, hyroxProfile) {
 }
 
 // ─── ADAPTIVE COACHING UI COMPONENTS ─────────────────────────────────────────
+// Extracted from an inline IIFE that called useState conditionally (below an early
+// return, inside a conditionally-rendered block) → React #300. As a real component,
+// its hook is per-instance and React mounts/unmounts it safely.
+function RedsOverreachWarning({ reds, over }) {
+  const [expanded, setExpanded] = React.useState(false);
+  if (!reds && !over) return null;
+  const _AF = "'Archivo',sans-serif";
+  const _MO = "'DM Mono',monospace";
+  const title = reds ? 'RED-S Pattern Detected' : 'Overreaching Detected';
+  const msg = reds ? reds.message : over.message;
+  return (
+    <div style={{background:'rgba(255,59,48,0.07)',border:'1.5px solid rgba(255,59,48,0.22)',borderRadius:12,padding:'14px 16px',marginBottom:10}}>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,cursor:'pointer'}} onClick={()=>setExpanded(e=>!e)}>
+        <span style={{fontSize:18}}>⚠️</span>
+        <div style={{fontFamily:_AF,fontWeight:800,fontSize:15,color:'#FF3B30',textTransform:'uppercase'}}>{title}</div>
+        <span style={{marginLeft:'auto',fontFamily:_MO,fontSize:9,color:'rgba(var(--cm-ink-rgb),0.75)'}}>{expanded?'▲':'▼'}</span>
+      </div>
+      {expanded&&<div style={{fontFamily:_MO,fontSize:11,color:'rgba(10,10,10,0.60)',lineHeight:1.65,borderTop:'1px solid rgba(255,59,48,0.12)',paddingTop:10,marginTop:4}}>{msg}</div>}
+    </div>
+  );
+}
+
 function AdaptiveBanner({ modifier, analysis }) {
   const [expanded,setExpanded]=React.useState(false);
   const isRecovery=modifier.label==='recovery';
   const icon=isRecovery?'🔄':'⬇️';
   const title=isRecovery?'Recovery session':'Reduced volume';
   return(
-    <div onClick={()=>setExpanded(e=>!e)} style={{background:'#1a1a1a',borderLeft:'3px solid #FF3B30',borderRadius:'4px 10px 10px 4px',padding:'12px 16px',marginTop:10,cursor:'pointer'}}>
+    <div onClick={()=>setExpanded(e=>!e)} style={{background:'rgba(var(--cm-red-rgb,255,59,48),0.06)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)',borderLeft:'3px solid var(--cm-red,#FF3B30)',borderRadius:'4px 10px 10px 4px',padding:'12px 16px',marginTop:10,cursor:'pointer'}}>
       <div style={{display:'flex',alignItems:'center',gap:10}}>
         <span style={{fontSize:18,flexShrink:0}}>{icon}</span>
         <div style={{flex:1}}>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:16,color:'#f5f5f0',textTransform:'uppercase'}}>{title}</div>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,0.65)',marginTop:2}}>{modifier.reasons?.join(' · ')}</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:16,color:'var(--cm-red,#FF3B30)',textTransform:'uppercase'}}>{title}</div>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(var(--cm-ink-rgb,10,10,10),0.6)',marginTop:2}}>{modifier.reasons?.join(' · ')}</div>
         </div>
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.35)'}}>{expanded?'▲':'▼'}</span>
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(var(--cm-ink-rgb,10,10,10),0.35)'}}>{expanded?'▲':'▼'}</span>
       </div>
       {expanded&&(
-        <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,0.55)',lineHeight:1.6}}>
-            Volume target: <span style={{color:'#f5f5f0'}}>{Math.round(modifier.volumeMultiplier*100)}%</span> of normal.{' '}
-            Intensity: <span style={{color:'#f5f5f0'}}>{Math.round(modifier.intensityMultiplier*100)}%</span>.
+        <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)'}}>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(var(--cm-ink-rgb,10,10,10),0.6)',lineHeight:1.6}}>
+            Volume target: <span style={{color:'var(--cm-ink,#0A0A0A)'}}>{Math.round(modifier.volumeMultiplier*100)}%</span> of normal.{' '}
+            Intensity: <span style={{color:'var(--cm-ink,#0A0A0A)'}}>{Math.round(modifier.intensityMultiplier*100)}%</span>.
           </div>
-          {analysis&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,0.45)',marginTop:6,lineHeight:1.55}}>Weekly insight: {analysis}</div>}
+          {analysis&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(var(--cm-ink-rgb,10,10,10),0.45)',marginTop:6,lineHeight:1.55}}>Weekly insight: {analysis}</div>}
         </div>
       )}
     </div>
@@ -237,9 +348,9 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
     setStep("generated");
     // Build real exercises from programs.js directly — no AI parsing needed
     const daysPerWeek=Object.values(schedule||{}).filter(v=>v==="training").length||3;
-    const startD=new Date(profile?.startDate||Date.now());
+    const startD=new Date(profile?.program_start_date||Date.now()); // [B] today-bootstrap; never tenure startDate
     const dayIdx=Math.max(0,Math.floor((Date.now()-startD.getTime())/86400000))%(daysPerWeek||1);
-    let exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIdx,wPrefs.equipment||"Full Gym",undefined,wPrefs.liftExp||profile?.liftExp);
+    let exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIdx,wPrefs.equipment||"Full Gym",undefined,wPrefs.liftExp||profile?.liftExp,schedule,profile?.program_start_date||null,0);
     exs=applyEquipmentToWorkout(exs?.exercises||exs||[],wPrefs.equipment||"Full Gym");
     setGenExercises(exs.length?exs:[{name:"Session Ready",sets:3,reps:"8-12",weight:"",notes:"Start your session"}]);
     generateWorkout(type,split,runPlanLocal,hybridTemplate); // still call AI for notes in background
@@ -634,7 +745,7 @@ function _UNUSED_ProgramLibraryScreen({wPrefs,setWPrefs,profile,setTrainScreen})
         {libFavorites.length>0&&(()=>{
           const byGroup={};
           libFavorites.forEach(name=>{
-            const g=EXERCISE_MUSCLE_GROUP[name]||"other";
+            const g=getMuscleGroup(name)||"other";
             if(!byGroup[g])byGroup[g]=[];
             byGroup[g].push(name);
           });
@@ -857,7 +968,7 @@ const ADAPT_CATEGORIES = [
 
 
 const ADAPT_CSS = `
-  .adapt-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.97);z-index:300;display:flex;flex-direction:column;overflow:hidden;}
+  .adapt-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.97);z-index:10000;display:flex;flex-direction:column;overflow:hidden;}
   .adapt-header{padding:20px 20px 16px;border-bottom:1px solid rgba(var(--accent-rgb),0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
   .adapt-title{font-family:var(--condensed);font-style:italic;font-size:24px;font-weight:900;letter-spacing:.04em;}
   .adapt-close{width:36px;height:36px;border-radius:50%;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.05);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1188,10 +1299,16 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
 
   const _tier=profile?.subscription_tier||'trial';
   const isPaidPlan=_tier==='monthly'||_tier==='annual';
+  const isExpiredTrial=_tier==='expired';
   const trialDays=_tier==='trial'?trialDaysRemaining(profile):null;
   const resetDisplayDate=adaptResetDate?new Date(new Date(adaptResetDate+"T00:00:00").getTime()+30*86400000).toLocaleDateString("en-US",{month:"short",day:"numeric"}):null;
 
-  if(adaptationsLeft===0)return(
+  // Threshold gates — scale automatically with adaptLimit
+  const _warn75=adaptLimit>0&&adaptationsUsed>=Math.round(adaptLimit*0.75);
+  const _cutoff90=adaptLimit>0&&adaptationsUsed>=Math.round(adaptLimit*0.90);
+
+  // Hard cutoff at 90%
+  if(_cutoff90||adaptationsLeft===0)return(
     <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
       <div className="adapt-header">
         <div>
@@ -1202,16 +1319,16 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
       </div>
       <div className="adapt-body" style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",gap:16,paddingTop:40}}>
         <div style={{fontSize:40,marginBottom:4}}>⚡</div>
-        {isPaidPlan?(
+        {isExpiredTrial?(
           <>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,lineHeight:1.15}}>YOU'VE USED ALL<br/>{adaptLimit} ADAPTATIONS<br/>THIS MONTH.</div>
-            <div style={{fontSize:13,color:"rgba(245,245,240,.5)",lineHeight:1.65,maxWidth:280}}>{resetDisplayDate?`Your quota resets on ${resetDisplayDate}.`:"Your quota resets in the next billing cycle."}</div>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,lineHeight:1.15}}>YOUR FREE TRIAL<br/>HAS ENDED.</div>
+            <div style={{fontSize:13,color:"rgba(245,245,240,.5)",lineHeight:1.65,maxWidth:280}}>Subscribe to keep using AI adapt, AI logging, and recipe generation.</div>
+            <button onClick={()=>{onClose();window.dispatchEvent(new CustomEvent("cm:subscription-required"));}} style={{padding:"14px 28px",background:"var(--red)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--condensed)",fontWeight:700,fontSize:15,letterSpacing:".06em",textTransform:"uppercase",cursor:"pointer",marginTop:4}}>See Plans — Monthly / Annual</button>
           </>
         ):(
           <>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,lineHeight:1.15}}>YOU'VE USED ALL<br/>{adaptLimit}<br/>ADAPTATIONS.</div>
-            <div style={{fontSize:13,color:"rgba(245,245,240,.5)",lineHeight:1.65,maxWidth:280}}>Upgrade to Pro for 10 adaptations per month — plus AI meal logging, recipe generator, and more.</div>
-            <button onClick={()=>{onClose();window.dispatchEvent(new CustomEvent("cm:subscription-required"));}} style={{padding:"14px 28px",background:"var(--red)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--condensed)",fontWeight:700,fontSize:15,letterSpacing:".06em",textTransform:"uppercase",cursor:"pointer",marginTop:4}}>Upgrade → Pro</button>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,lineHeight:1.15}}>YOU'VE REACHED<br/>THIS MONTH'S<br/>AI LIMIT.</div>
+            <div style={{fontSize:13,color:"rgba(245,245,240,.5)",lineHeight:1.65,maxWidth:280}}>{resetDisplayDate?`Your quota resets on ${resetDisplayDate}.`:"Your quota resets at the start of your next cycle."}</div>
           </>
         )}
       </div>
@@ -1232,6 +1349,7 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
         <button className="adapt-close" onClick={onClose}>✕</button>
       </div>
       <div className="adapt-body">
+        {_warn75&&<div style={{background:"rgba(254,160,32,0.08)",border:"1px solid rgba(254,160,32,0.22)",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:"#FEA020",lineHeight:1.5}}>You're using a lot of AI this cycle — {adaptationsLeft} of {adaptLimit} left.{resetDisplayDate?` Resets ${resetDisplayDate}.`:""}</div>}
         {err&&<div style={{background:"rgba(255,77,109,.1)",border:"1px solid rgba(255,77,109,.3)",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12,color:T.prot}}>{err}</div>}
         <div style={{fontSize:12,color:"rgba(245,245,240,.45)",marginBottom:18,lineHeight:1.7}}>What's happening today? We'll adapt your workout to match your situation.</div>
         <div className="adapt-cat-grid">
@@ -1421,14 +1539,14 @@ function MomentumBar({ activeWorkout, history }) {
   if (completedSets === 0) return null;
 
   const label = score >= 90 ? "Elite session" : score >= 75 ? "Strong session" : score >= 60 ? "Solid session" : "Recovery session";
-  const barColor = score >= 90 ? T.green : score >= 75 ? T.fat : score >= 60 ? T.fat : T.prot;
+  const barColor = score >= 90 ? T.green : score >= 75 ? T.fat : score >= 60 ? T.fat : 'var(--cm-red,#FF3B30)';
   return (
-    <div style={{padding:"10px 14px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:12,marginBottom:12}}>
+    <div style={{padding:"10px 14px",background:"var(--cm-paper,#fff)",border:"none",borderRadius:12,marginBottom:12,boxShadow:"0 2px 12px rgba(0,0,0,.12)"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.38)",letterSpacing:"0.18em",textTransform:"uppercase"}}>Workout Momentum</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",letterSpacing:"0.18em",textTransform:"uppercase"}}>Workout Momentum</div>
         <div style={{fontFamily:"var(--mono)",fontSize:11,color:barColor,fontWeight:700}}>{score}% — {label}</div>
       </div>
-      <div style={{height:4,background:"rgba(245,245,240,0.07)",borderRadius:2,overflow:"hidden"}}>
+      <div style={{height:4,background:"rgba(var(--cm-ink-rgb,10,10,10),.10)",borderRadius:2,overflow:"hidden"}}>
         <div style={{height:"100%",width:`${score}%`,background:barColor,borderRadius:2,transition:"width 0.6s ease"}}/>
       </div>
     </div>
@@ -1651,6 +1769,41 @@ function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
 
 // WarmupScreen is now imported from ./components/WarmupScreen.jsx
 
+// Extracted from an inline IIFE in WorkoutSummaryScreen that called useState in render
+// (rules-of-hooks violation / #300 risk). As a component its hook is per-instance & safe.
+function CoolDownSection({ summary }) {
+  const [showCoolDown, setShowCoolDown] = React.useState(false);
+  const isRun = (summary?.title||'').toLowerCase().includes('run') || (summary?.title||'').toLowerCase().includes('cardio');
+  const coolProtocol = isRun ? COOL_DOWN.running : COOL_DOWN.strength;
+  return (
+    <div style={{marginBottom:16}}>
+      {!showCoolDown ? (
+        <button onClick={()=>setShowCoolDown(true)} style={{width:"100%",padding:"13px",background:"rgba(52,211,153,0.08)",border:"1px solid rgba(52,211,153,0.25)",borderRadius:14,color:T.green,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"var(--condensed)",fontStyle:"italic",textTransform:"uppercase",letterSpacing:1}}>
+          View Cool-Down Protocol (5 min)
+        </button>
+      ) : (
+        <div style={{background:"rgba(0,201,167,0.06)",border:"1px solid rgba(0,201,167,0.2)",borderRadius:14,padding:"16px 18px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(0,201,167,0.8)",letterSpacing:".18em",textTransform:"uppercase"}}>Cool-Down — 5 minutes</div>
+            <button onClick={()=>setShowCoolDown(false)} style={{background:"none",border:"none",color:"rgba(245,245,240,.3)",cursor:"pointer",fontSize:16,padding:"0 2px",lineHeight:1}}>×</button>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {coolProtocol.map((step, i) => (
+              <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 0",borderBottom:i<coolProtocol.length-1?"1px solid rgba(var(--accent-rgb),0.05)":"none"}}>
+                <div style={{width:22,height:22,borderRadius:"50%",background:"rgba(52,211,153,0.15)",border:"1px solid rgba(52,211,153,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:T.green,flexShrink:0,marginTop:1}}>{i+1}</div>
+                <div>
+                  <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:2}}>{step.name} <span style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(0,201,167,0.7)",fontWeight:400}}>· {step.duration}</span></div>
+                  <div style={{fontSize:11,color:"rgba(245,245,240,.55)",lineHeight:1.6}}>{step.detail}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogMore, plateausBroken }) {
   const [coachNote, setCoachNote] = useState(null);
   const [noteLoading, setNoteLoading] = useState(true);
@@ -1669,7 +1822,6 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
   if (!summary) return null;
   const wUnit = profile?.wUnit || "lbs";
   const compPct = summary.totalSets > 0 ? Math.round(summary.completedSets / summary.totalSets * 100) : 100;
-
   return (
     <div style={{animation:"fade-in 0.3s"}}>
       <div style={{textAlign:"center",padding:"24px 0 16px"}}>
@@ -1734,38 +1886,7 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
       </div>
 
       {/* Cool-down */}
-      {(()=>{
-        const [showCoolDown, setShowCoolDown] = React.useState(false);
-        const isRun = (summary?.title||'').toLowerCase().includes('run') || (summary?.title||'').toLowerCase().includes('cardio');
-        const coolProtocol = isRun ? COOL_DOWN.running : COOL_DOWN.strength;
-        return (
-          <div style={{marginBottom:16}}>
-            {!showCoolDown ? (
-              <button onClick={()=>setShowCoolDown(true)} style={{width:"100%",padding:"13px",background:"rgba(52,211,153,0.08)",border:"1px solid rgba(52,211,153,0.25)",borderRadius:14,color:T.green,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"var(--condensed)",fontStyle:"italic",textTransform:"uppercase",letterSpacing:1}}>
-                View Cool-Down Protocol (5 min)
-              </button>
-            ) : (
-              <div style={{background:"rgba(0,201,167,0.06)",border:"1px solid rgba(0,201,167,0.2)",borderRadius:14,padding:"16px 18px"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(0,201,167,0.8)",letterSpacing:".18em",textTransform:"uppercase"}}>Cool-Down — 5 minutes</div>
-                  <button onClick={()=>setShowCoolDown(false)} style={{background:"none",border:"none",color:"rgba(245,245,240,.3)",cursor:"pointer",fontSize:16,padding:"0 2px",lineHeight:1}}>×</button>
-                </div>
-                <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                  {coolProtocol.map((step, i) => (
-                    <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 0",borderBottom:i<coolProtocol.length-1?"1px solid rgba(var(--accent-rgb),0.05)":"none"}}>
-                      <div style={{width:22,height:22,borderRadius:"50%",background:"rgba(52,211,153,0.15)",border:"1px solid rgba(52,211,153,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:T.green,flexShrink:0,marginTop:1}}>{i+1}</div>
-                      <div>
-                        <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:2}}>{step.name} <span style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(0,201,167,0.7)",fontWeight:400}}>· {step.duration}</span></div>
-                        <div style={{fontSize:11,color:"rgba(245,245,240,.55)",lineHeight:1.6}}>{step.detail}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      <CoolDownSection summary={summary}/>
 
       {/* Actions */}
       <button onClick={onSaveAndExit} style={{width:"100%",padding:"15px",background:"var(--red)",color:"white",border:"none",borderRadius:14,fontFamily:"var(--condensed)",fontWeight:800,fontSize:16,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",marginBottom:10}}>
@@ -1884,14 +2005,17 @@ function MuscleChips({ name, sets, reps, sugg, history: h, muscleGroup, primaryM
 }
 
 // ─── WEEK STRIP ───────────────────────────────────────────────────────────────
-export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayType }) {
+export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayType, lightSurface = false, weeklyMi = null }) {
   const todayIdx = WDAYS.indexOf(todayKey);
-  // First upcoming training day after today
   const firstUpNextIdx = WDAYS.findIndex((day,idx) => idx > todayIdx && schedule[day] && schedule[day] !== "rest");
 
   return (
-    <div style={{background:GOCLUB_REDESIGN?"rgba(255,255,255,0.04)":T.s1,border:GOCLUB_REDESIGN?"1px solid rgba(255,255,255,0.08)":`1px solid ${T.bd}`,borderRadius:16,padding:"14px 16px"}}>
-      <div className="header-eyebrow" style={{marginBottom:10,fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":undefined,fontStyle:GOCLUB_REDESIGN?"normal":undefined}}>// This Week</div>
+    <div style={lightSurface
+      ? {borderRadius:12,overflow:"hidden"}
+      : {background:GOCLUB_REDESIGN?"rgba(255,255,255,0.04)":T.s1,border:GOCLUB_REDESIGN?"1px solid rgba(255,255,255,0.08)":`1px solid ${T.bd}`,borderRadius:16,padding:"14px 16px"}
+    }>
+      {!lightSurface&&<div className="header-eyebrow" style={{marginBottom:10,fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":undefined,fontStyle:GOCLUB_REDESIGN?"normal":undefined}}>// This Week</div>}
+      {lightSurface&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb),0.55)",marginBottom:14}}>THIS WEEK</div>}
       <div style={{display:"flex",flexDirection:"column"}}>
         {WDAYS.map((day,idx)=>{
           const t = schedule[day];
@@ -1900,13 +2024,25 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
           const isDone = idx < todayIdx && !isRest;
           const isUpNext = idx === firstUpNextIdx;
           const label = dayFocus[day] || (isRest ? "Rest" : DAY_CFG[t]?.label || "Training");
-
-          // Status text lives in the word — color is reinforcement only
           const statusText = isToday ? "today" : isDone ? "done" : isUpNext ? "up next" : "";
-          const rowBg = isToday ? "rgba(var(--accent-rgb),0.06)" : isDone ? "rgba(34,197,94,0.04)" : "transparent";
-          const dayCol = isToday ? "var(--accent)" : isDone ? "#22c55e" : "rgba(245,245,240,0.28)";
-          const labelCol = isToday ? "#ffffff" : isDone ? "rgba(245,245,240,0.85)" : isRest ? "rgba(245,245,240,0.22)" : "rgba(245,245,240,0.55)";
-          const statusCol = isToday ? "var(--accent)" : isDone ? "#22c55e" : isUpNext ? "rgba(245,245,240,0.4)" : "transparent";
+
+          // Dark surface colors (existing)
+          const rowBgDark = isToday ? "rgba(var(--accent-rgb),0.06)" : isDone ? "rgba(34,197,94,0.04)" : "transparent";
+          const dayColDark = isToday ? "var(--accent)" : isDone ? "#22c55e" : "rgba(245,245,240,0.28)";
+          const labelColDark = isToday ? "#ffffff" : isDone ? "rgba(245,245,240,0.85)" : isRest ? "rgba(245,245,240,0.22)" : "rgba(245,245,240,0.55)";
+          const statusColDark = isToday ? "var(--accent)" : isDone ? "#22c55e" : isUpNext ? "rgba(245,245,240,0.4)" : "transparent";
+
+          // Light surface colors (paper card)
+          const rowBgLight = isToday ? "rgba(255,59,48,0.07)" : isDone ? "rgba(34,197,94,0.07)" : "transparent";
+          const dayColLight = isToday ? "#FF3B30" : isDone ? "#16a34a" : "rgba(var(--cm-ink-rgb),0.45)";
+          const labelColLight = isToday ? "#0A0A0A" : isDone ? "var(--cm-ink)" : isRest ? "rgba(var(--cm-ink-rgb),0.40)" : "var(--cm-ink)";
+          const statusColLight = isToday ? "#FF3B30" : isDone ? "#16a34a" : isUpNext ? "rgba(var(--cm-ink-rgb),0.65)" : "transparent";
+
+          const rowBg = lightSurface ? rowBgLight : rowBgDark;
+          const dayCol = lightSurface ? dayColLight : dayColDark;
+          const labelCol = lightSurface ? labelColLight : labelColDark;
+          const statusCol = lightSurface ? statusColLight : statusColDark;
+          const dividerColor = lightSurface ? "rgba(10,10,10,0.06)" : "rgba(245,245,240,0.04)";
 
           return (
             <div key={day} style={{
@@ -1914,28 +2050,31 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
               padding:"9px 10px",
               borderRadius:8,
               background:rowBg,
-              borderBottom: idx < 6 ? "1px solid rgba(245,245,240,0.04)" : "none",
+              borderBottom: idx < 6 ? `1px solid ${dividerColor}` : "none",
             }}>
-              {/* Day abbreviation */}
-              <div style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:dayCol,width:30,flexShrink:0}}>
+              <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--mono)",fontSize:GOCLUB_REDESIGN?11:9,fontWeight:GOCLUB_REDESIGN?600:700,letterSpacing:GOCLUB_REDESIGN?"0.04em":"0.12em",textTransform:"uppercase",color:dayCol,width:30,flexShrink:0}}>
                 {day.toUpperCase()}
               </div>
-              {/* Focus label */}
-              <div style={{flex:1,fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:GOCLUB_REDESIGN?700:900,fontSize:GOCLUB_REDESIGN?14:16,textTransform:"uppercase",color:labelCol,lineHeight:1}}>
+              <div style={{flex:1,fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:GOCLUB_REDESIGN?700:900,fontSize:GOCLUB_REDESIGN?13:16,textTransform:"uppercase",color:labelCol,lineHeight:1}}>
                 {label}
               </div>
-              {/* Status word */}
-              <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",color:statusCol,flexShrink:0,minWidth:44,textAlign:"right"}}>
+              <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--mono)",fontSize:GOCLUB_REDESIGN?11:9,fontWeight:GOCLUB_REDESIGN?600:undefined,letterSpacing:GOCLUB_REDESIGN?"0.04em":"0.1em",textTransform:"uppercase",color:statusCol,flexShrink:0,minWidth:44,textAlign:"right"}}>
                 {statusText}
               </div>
             </div>
           );
         })}
       </div>
+      {weeklyMi!=null&&(
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 10px 2px",marginTop:2,borderTop:lightSurface?"1px solid rgba(10,10,10,0.10)":"1px solid rgba(245,245,240,0.10)"}}>
+          <span style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--mono)",fontSize:GOCLUB_REDESIGN?10:9,fontWeight:700,letterSpacing:GOCLUB_REDESIGN?"0.14em":"0.16em",textTransform:"uppercase",color:lightSurface?"rgba(var(--cm-ink-rgb),0.55)":"rgba(245,245,240,0.45)"}}>WEEKLY</span>
+          <span style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontWeight:800,fontSize:13,color:lightSurface?"#FF3B30":"var(--accent)"}}>{Math.round(weeklyMi)} MI</span>
+        </div>
+      )}
       {sessionCount===0&&todayIdx>1&&todayType==="training"&&(
-        <div style={{marginTop:12,background:"rgba(var(--accent-rgb),0.04)",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:10,padding:"12px 14px"}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>CONSISTENCY BUILDS CHAMPIONS.</div>
-          <div style={{fontFamily:"var(--condensed)",fontSize:15,color:"rgba(245,245,240,0.45)",lineHeight:1.5}}>Missing sessions is normal. What matters is showing up today. Your body is ready.</div>
+        <div style={{marginTop:12,background:lightSurface?"rgba(255,59,48,0.06)":"rgba(var(--accent-rgb),0.04)",border:lightSurface?"1px solid rgba(255,59,48,0.15)":"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:10,padding:"12px 14px"}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FF3B30",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>CONSISTENCY BUILDS CHAMPIONS.</div>
+          <div style={{fontFamily:lightSurface?"'Archivo',sans-serif":"var(--condensed)",fontSize:15,color:lightSurface?"var(--cm-ink)":"rgba(245,245,240,0.45)",lineHeight:1.5}}>Missing sessions is normal. What matters is showing up today. Your body is ready.</div>
         </div>
       )}
     </div>
@@ -1943,13 +2082,259 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
 }
 
 const _TRAIN_GOCLUB_CSS=`
-.goclub.tab-train{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)' opacity='0.04'/%3E%3C/svg%3E") repeat left top/200px 200px,radial-gradient(ellipse at 50% 15%,#1A0A08 0%,#0A0302 40%,#000000 72%)!important}
-.goclub.tab-train .screen-header{padding-top:4px!important}
-.goclub.tab-train .header-eyebrow{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:700!important;font-size:11px!important;letter-spacing:0.16em!important;color:rgba(255,255,255,0.4)!important;text-transform:uppercase!important}
-.goclub.tab-train .header-title{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:800!important;font-size:26px!important;line-height:1.1!important;text-transform:none!important}
+.goclub.tab-train .screen-header{padding-top:4px!important;background:rgba(var(--cm-red-rgb,255,59,48),0.88)!important;backdrop-filter:blur(24px)!important;-webkit-backdrop-filter:blur(24px)!important}
+.goclub.tab-train .header-eyebrow{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:700!important;font-size:11px!important;letter-spacing:0.16em!important;color:rgba(255,255,255,0.55)!important;text-transform:uppercase!important}
+.goclub.tab-train .header-title{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:800!important;font-size:26px!important;line-height:1.1!important;text-transform:none!important;color:#ffffff!important}
 `;
 
-export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,completedWorkout=null,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert,macros=null,todayProtocol=null,showLocalRest=false,localRestSecs=90,onStartLocalRest,onSkipLocalRest,onReduceLocalRest}) {
+function SummaryPortal({completedWorkout,workoutSummary,onClose,todayKey,schedule,dayFocus,sessionCount,macros,isRun=false,imperial=false,onRunDistanceChange}){
+  const _trainEyeRedMo=useReducedMotion();
+  // Run-day distance capture — the structured player has no GPS/manual source, so we ask here.
+  // Reuses the run-tracker input pattern (mi/km + mi→km). Reports km up; blank = no distance (honest).
+  const [runDistIn,setRunDistIn]=useState('');
+  const parseReps=(r)=>{if(typeof r==='number')return r;if(typeof r==='string'){const p=r.split('-');return parseInt(p[0])||0;}return 0;};
+  const srcExercises=completedWorkout?(completedWorkout.exercises||[]):(workoutSummary?.exercises||[]);
+  const exercisesWorked=srcExercises.filter(ex=>(ex.sets||[]).some(s=>s.done));
+  const totalSetsLogged=completedWorkout?exercisesWorked.reduce((acc,ex)=>acc+(ex.sets?.filter(s=>s.done)?.length||0),0):(workoutSummary?.completedSets||0);
+  const totalVolumeLogged=completedWorkout?exercisesWorked.reduce((acc,ex)=>acc+(ex.sets?.filter(s=>s.done)?.reduce((sum,s)=>sum+((parseFloat(s.weight)||0)*parseReps(s.reps)),0)||0),0):(workoutSummary?.totalVolume||0);
+  const workedRegions=new Set();
+  const primaryMuscleNames=new Set();
+  exercisesWorked.forEach(ex=>{
+    const md=getExerciseData(ex.name);
+    if(md)md.primary.forEach(m=>{primaryMuscleNames.add(m);const r=MUSCLE_TO_BODYMAP[m];if(r)workedRegions.add(r);});
+  });
+  const _workedTone=thermalAt(0.62); // #CC1100 — primed/optimal tone, unified with thermal palette
+  const bodyColors={};
+  ALL_REGIONS.forEach(r=>{bodyColors[r]=workedRegions.has(r)?_workedTone:THERMAL_NODATA;});
+  const workedChips=[...workedRegions].map(r=>({label:REGION_LABELS[r]||r,color:_workedTone}));
+  const tomorrowIdx=(WDAYS.indexOf(todayKey)+1)%7;
+  const tomorrowKey=WDAYS[tomorrowIdx];
+  const tomorrowType=schedule?.[tomorrowKey]||'rest';
+  const tomorrowFocus=tomorrowType==='rest'?'REST DAY':(dayFocus?.[tomorrowKey]||tomorrowType.toUpperCase())+' DAY';
+  const tomorrowFullDay=['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'][(new Date().getDay()+1)%7];
+  const dateStr=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}).toUpperCase();
+  const dur=workoutSummary?.duration||0;
+  const durStr=dur>=60?`${Math.floor(dur/60)}H ${dur%60}M`:`${dur||'—'} MINUTES`;
+  const mno={fontFamily:"'DM Mono',monospace"};
+  const cnd={fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900};
+  const isFirstSession=sessionCount<=1;
+  const doneSets=srcExercises.flatMap(ex=>(ex.sets||[]).filter(s=>s.done).map(s=>({weight:parseFloat(s.weight)||0,reps:parseReps(s.reps),exerciseName:ex.name})));
+  const weightedDoneSets=doneSets.filter(s=>s.weight>0);
+  const topSet=weightedDoneSets.length>0?weightedDoneSets.reduce((b,s)=>s.weight>b.weight?s:b):doneSets.length>0?doneSets.reduce((b,s)=>s.reps>b.reps?s:b):null;
+  const prevVol=workoutSummary?.previousVolume??null;
+  const curVol=totalVolumeLogged;
+  const tonnagePct=(prevVol!=null&&prevVol>0&&curVol>0)?Math.round(((curVol-prevVol)/prevVol)*100):null;
+  // ── ANIMATION ──────────────────────────────────────────────────────────────
+  const UNWORKED_COLOR=THERMAL_NODATA;
+  const IGNITE_ORDER=['chest','shoulders-f','biceps','triceps','forearms-f','forearms-b','abs','hip-flexors','traps','lats','rear-delts','lower-back','glutes','quads','hamstrings','calves-f','calves-b'];
+  // litColors drives BodyMap: starts all-unworked (fully lit immediately for reduced-motion)
+  const [litColors,setLitColors]=useState(()=>_trainEyeRedMo?{...bodyColors}:ALL_REGIONS.reduce((c,r)=>({...c,[r]:UNWORKED_COLOR}),{}));
+  const [countReady,setCountReady]=useState(false);
+  const [doneVisible,setDoneVisible]=useState(!!_trainEyeRedMo);
+  // count-up: always call unconditionally; gate = countReady; reduced-motion reads final directly
+  const setsTarget=workoutSummary?.completedSets??totalSetsLogged;
+  const tonnageAbsTarget=tonnagePct!=null?Math.abs(tonnagePct):0;
+  const countedSets=useCountUp(countReady?setsTarget:0,1200);
+  const countedTonnage=useCountUp(countReady?tonnageAbsTarget:0,1200);
+  const displaySets=_trainEyeRedMo?setsTarget:countedSets;
+  const displayTonnage=_trainEyeRedMo?tonnageAbsTarget:countedTonnage;
+  const scrollRef=useRef(null);
+  const bodyMapRef=useRef(null);
+  // stable refs — captured on first render; completedWorkout/workoutSummary don't mutate while portal is open
+  const _igniteBC=useRef(bodyColors);
+  const _igniteWR=useRef(workedRegions);
+  // Effect 1: unlock count-up after 350ms
+  useEffect(()=>{
+    if(_trainEyeRedMo)return;
+    const t=setTimeout(()=>setCountReady(true),350);
+    return()=>clearTimeout(t);
+  },[_trainEyeRedMo]);
+  // Effect 2: auto-scroll to body-map at 1500ms — yields if user already touched/scrolled
+  useEffect(()=>{
+    if(_trainEyeRedMo||!_igniteWR.current.size)return;
+    const el=scrollRef.current;
+    if(!el)return;
+    let userScrolled=false;
+    const mark=()=>{userScrolled=true;};
+    el.addEventListener('scroll',mark,{passive:true});
+    el.addEventListener('touchstart',mark,{passive:true});
+    const t=setTimeout(()=>{
+      if(!userScrolled&&el.scrollTop<40)bodyMapRef.current?.scrollIntoView({behavior:'smooth',block:'start'});
+      el.removeEventListener('scroll',mark);
+      el.removeEventListener('touchstart',mark);
+    },1500);
+    return()=>{clearTimeout(t);el.removeEventListener('scroll',mark);el.removeEventListener('touchstart',mark);};
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+  // Effect 3: ignite muscles in anatomical order starting at 2400ms with colour-flash pulse
+  useEffect(()=>{
+    const bc=_igniteBC.current,wr=_igniteWR.current;
+    if(_trainEyeRedMo){setLitColors({...bc});setDoneVisible(true);return;}
+    // brighter flash colours — each region briefly pops to a lighter variant then settles
+    const FLASH={
+      chest:'#FF8C87','shoulders-f':'#FFC870','rear-delts':'#FFC870',
+      biceps:'#BFA8FF',triceps:'#BFA8FF','forearms-f':'#BFA8FF','forearms-b':'#BFA8FF',
+      abs:'#5DE0D5','hip-flexors':'#5DE0D5',
+      quads:'#6EE78F',hamstrings:'#6EE78F',glutes:'#6EE78F','calves-f':'#6EE78F','calves-b':'#6EE78F',
+      lats:'#93C5FD',traps:'#93C5FD','lower-back':'#93C5FD',
+    };
+    const seq=IGNITE_ORDER.filter(r=>wr.has(r));
+    const ids=[];
+    seq.forEach((region,i)=>{
+      const t0=2400+i*260;
+      ids.push(setTimeout(()=>setLitColors(prev=>({...prev,[region]:FLASH[region]||bc[region]})),t0));
+      ids.push(setTimeout(()=>setLitColors(prev=>({...prev,[region]:bc[region]})),t0+180));
+    });
+    ids.push(setTimeout(()=>setDoneVisible(true),2400+seq.length*260+400));
+    return()=>ids.forEach(clearTimeout);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+  return(
+    <div ref={scrollRef} style={{position:'fixed',inset:0,background:'var(--cm-red,#FF3B30)',zIndex:9001,overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
+      <style>{`@keyframes sumIn{from{opacity:0}to{opacity:1}}@keyframes sumClank{from{transform:scale(0.82)}50%{transform:scale(1.06)}75%{transform:scale(0.99)}to{transform:scale(1)}}@keyframes sumShake{0%{transform:translate(0,0)}20%{transform:translate(-5px,3px)}40%{transform:translate(5px,-2px)}60%{transform:translate(-3px,1px)}80%{transform:translate(2px,-1px)}100%{transform:translate(0,0)}}`}</style>
+      {isFirstSession&&(
+        <div style={{maxWidth:480,margin:'0 auto',padding:'max(env(safe-area-inset-top),40px) 24px 0',boxSizing:'border-box'}}>
+          <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'28px 24px 24px',textAlign:'center',boxShadow:'0 2px 20px rgba(0,0,0,.14)'}}>
+            <div style={{...mno,fontSize:10,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:12}}>{'// FIRST SESSION COMPLETE'}</div>
+            <div style={{...cnd,fontSize:56,color:'var(--cm-ink,#0A0A0A)',lineHeight:0.88,marginBottom:16,textTransform:'uppercase'}}>YOU<br/>SHOWED<br/>UP.</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,color:'rgba(var(--cm-ink-rgb,10,10,10),.6)',lineHeight:1.4,marginBottom:24}}>That's the hardest part. Most people never start. You did.</div>
+            <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap'}}>
+              {['FIRST SESSION','STREAK STARTED','COACH ACTIVE'].map(chip=>(
+                <span key={chip} style={{background:'rgba(var(--accent-rgb),0.08)',border:'1px solid rgba(var(--accent-rgb),0.2)',borderRadius:20,padding:'6px 14px',...mno,fontSize:9,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.1em'}}>{chip} ✓</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      <div style={{animation:_trainEyeRedMo?'sumIn 0.22s ease':'sumIn 0.22s ease,sumShake 0.4s ease-out 0.3s',maxWidth:480,margin:'0 auto',padding:isFirstSession?'24px 24px 0':'max(env(safe-area-inset-top),48px) 24px 0',paddingBottom:'max(env(safe-area-inset-bottom),48px)'}}>
+
+        {/* Close */}
+        <div onClick={onClose} style={{width:36,height:36,borderRadius:10,background:'rgba(255,255,255,0.15)',border:'1px solid rgba(255,255,255,0.2)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',marginBottom:24}}>
+          <span style={{color:'rgba(255,255,255,0.85)',fontSize:16,lineHeight:1,fontFamily:'sans-serif',userSelect:'none'}}>&#x2715;</span>
+        </div>
+
+        {/* Headline */}
+        <div style={{transformOrigin:'center top',animation:_trainEyeRedMo?'none':'sumClank 0.65s ease-out'}}>
+          <div style={{width:56,height:56,borderRadius:'50%',background:'#fff',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:20}}>
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M5 13l6 6 10-10" stroke="var(--cm-red,#FF3B30)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </div>
+          <div style={{...cnd,fontSize:68,color:'#fff',lineHeight:0.9,textTransform:'uppercase',marginBottom:8,letterSpacing:'-0.01em'}}>
+            SESSION<br/>COMPLETE
+          </div>
+          {workoutSummary?.title&&<div style={{...cnd,fontSize:28,color:'rgba(255,255,255,0.85)',textTransform:'uppercase',marginBottom:10,letterSpacing:'0.01em'}}>{workoutSummary.title.toUpperCase()}</div>}
+          <div style={{...mno,fontSize:10,color:'rgba(255,255,255,0.5)',marginBottom:isRun?20:32,letterSpacing:'0.08em'}}>
+            {dateStr} · {durStr}
+          </div>
+          {isRun&&(
+            <div style={{marginBottom:28,textAlign:'left'}}>
+              <div style={{...mno,fontSize:9,color:'rgba(255,255,255,0.55)',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:8}}>How far did you go? ({imperial?'mi':'km'})</div>
+              <input
+                type="number" inputMode="decimal" placeholder="0.00"
+                value={runDistIn}
+                onChange={e=>{setRunDistIn(e.target.value);const v=parseFloat(e.target.value);onRunDistanceChange?.(isFinite(v)&&v>0?(imperial?v*1.609344:v):0);}}
+                style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.12)',border:'1.5px solid rgba(255,255,255,0.3)',borderRadius:12,padding:'14px',color:'#fff',fontSize:22,fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,outline:'none',textAlign:'center'}}
+              />
+              <div style={{...mno,fontSize:8,color:'rgba(255,255,255,0.4)',marginTop:6,letterSpacing:'0.06em'}}>Optional — leave blank if you're not sure</div>
+            </div>
+          )}
+        </div>
+
+        {/* Stats row */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:24}}>
+          <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'14px 10px',textAlign:'center',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+            <div style={{...cnd,fontSize:24,color:'var(--cm-ink,#0A0A0A)',lineHeight:1}}>{displaySets}<span style={{fontSize:15,fontWeight:400,fontStyle:'normal'}}>/{workoutSummary?.totalSets??'?'}</span></div>
+            <div style={{...mno,fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',letterSpacing:'0.12em',marginTop:4}}>SETS DONE</div>
+          </div>
+          <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'14px 10px',textAlign:'center',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+            <div style={{...cnd,fontSize:24,lineHeight:1,color:tonnagePct!=null&&tonnagePct>0?'#22c55e':'var(--cm-ink,#0A0A0A)'}}>
+              {curVol===0?'—':tonnagePct!=null?`${tonnagePct>=0?'+':''}${displayTonnage}%`:'1ST'}
+            </div>
+            <div style={{...mno,fontSize:7,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',letterSpacing:'0.1em',marginTop:4,textTransform:'uppercase',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+              {curVol===0?'TONNAGE':tonnagePct!=null?`VS LAST ${(workoutSummary?.title||'').toUpperCase()}`:`FIRST ${(workoutSummary?.title||'').toUpperCase()}`}
+            </div>
+          </div>
+          <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'14px 10px',textAlign:'center',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+            {topSet&&topSet.weight>0?(
+              <>
+                <div style={{...cnd,fontSize:20,color:'var(--cm-ink,#0A0A0A)',lineHeight:1}}>{topSet.weight}<span style={{fontSize:12}}>×{topSet.reps}</span></div>
+                <div style={{...mno,fontSize:7,color:'rgba(var(--cm-ink-rgb,10,10,10),.4)',letterSpacing:'0.08em',marginTop:3,textTransform:'uppercase',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{topSet.exerciseName}</div>
+              </>
+            ):topSet?(
+              <>
+                <div style={{...cnd,fontSize:20,color:'var(--cm-ink,#0A0A0A)',lineHeight:1}}>{topSet.reps}<span style={{fontSize:12}}> reps</span></div>
+                <div style={{...mno,fontSize:7,color:'rgba(var(--cm-ink-rgb,10,10,10),.4)',letterSpacing:'0.08em',marginTop:3}}>BODYWEIGHT</div>
+              </>
+            ):(
+              <div style={{...cnd,fontSize:26,color:'var(--cm-ink,#0A0A0A)',lineHeight:1}}>—</div>
+            )}
+            <div style={{...mno,fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',letterSpacing:'0.12em',marginTop:4}}>TOP SET</div>
+          </div>
+        </div>
+
+        {/* Muscles worked */}
+        {workedRegions.size>0&&(
+          <div ref={bodyMapRef} style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'20px',marginBottom:20,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+            <div style={{...mno,fontSize:9,color:'rgba(var(--cm-ink-rgb,10,10,10),.4)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:16}}>{'// MUSCLES WORKED'}</div>
+            <BodyMap colors={litColors}/>
+            {workedChips.length>0&&(
+              <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:16}}>
+                {workedChips.map(({label,color})=>(
+                  <span key={label} style={{background:`${color}18`,border:`1px solid ${color}35`,borderRadius:20,padding:'4px 12px',...mno,fontSize:9,color,letterSpacing:'0.1em',textTransform:'uppercase'}}>{label}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* PRs */}
+        {workoutSummary?.prs?.length>0&&(
+          <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'20px',marginBottom:20,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+            <div style={{...mno,fontSize:9,color:'#22c55e',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14,display:'flex',alignItems:'center',gap:6}}><span>🏆</span>NEW PERSONAL RECORD</div>
+            {workoutSummary.prs.map((pr,i)=>(
+              <div key={i} style={{...(i>0?{borderTop:'1px solid rgba(var(--cm-ink-rgb,10,10,10),.07)',paddingTop:12,marginTop:12}:{}),display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <div style={{...cnd,fontSize:18,color:'var(--cm-ink,#0A0A0A)',textTransform:'uppercase'}}>{pr.name}</div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{...cnd,fontSize:26,color:'#22c55e'}}>{pr.weight}<span style={{...mno,fontSize:10,fontStyle:'normal',fontWeight:400}}> lbs</span></div>
+                  {pr.reps&&<div style={{...mno,fontSize:9,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',marginTop:2}}>{pr.reps} REPS</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Fuel up */}
+        <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'20px',marginBottom:20,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+          <div style={{...mno,fontSize:9,color:'rgba(var(--cm-ink-rgb,10,10,10),.4)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// FUEL UP'}</div>
+          <div style={{...cnd,fontSize:20,color:'var(--cm-ink,#0A0A0A)',textTransform:'uppercase',marginBottom:6}}>
+            {macros?`${Math.round((macros.protein||150)*0.35)}G PROTEIN · ${Math.round((macros.carbs||200)*0.3)}G CARBS`:'40–50G PROTEIN · MODERATE CARBS'}
+          </div>
+          <div style={{...mno,fontSize:9,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',lineHeight:1.6}}>
+            Post-workout window is open. Hit protein within the next 45 minutes.
+          </div>
+        </div>
+
+        {/* Next session */}
+        <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'20px',marginBottom:20,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+          <div style={{...mno,fontSize:9,color:'rgba(var(--cm-ink-rgb,10,10,10),.4)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// NEXT UP'}</div>
+          <div style={{...cnd,fontSize:26,color:'var(--cm-ink,#0A0A0A)',textTransform:'uppercase',lineHeight:1,marginBottom:8}}>
+            {tomorrowFullDay} · {tomorrowFocus}
+          </div>
+          <div style={{...mno,fontSize:10,color:'rgba(var(--cm-ink-rgb,10,10,10),.5)',lineHeight:1.6}}>
+            {tomorrowType==='rest'?'Rest day tomorrow. Focus on sleep and nutrition for full recovery.':'Rest well tonight. Your next session is in 24 hours.'}
+          </div>
+        </div>
+
+        {/* Back to home */}
+        <button onClick={onClose} style={{width:'100%',padding:'18px 0',background:'var(--cm-paper,#fff)',border:'none',borderRadius:24,color:'var(--cm-red,#FF3B30)',...mno,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',marginBottom:24,opacity:doneVisible?1:0,transition:'opacity 0.4s ease',pointerEvents:doneVisible?'auto':'none'}}>
+          BACK TO HOME →
+        </button>
+
+      </div>
+    </div>
+  );
+}
+
+export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,pauseWorkout,getSuggestion,history,workoutLogsRaw=[],planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,completedWorkout=null,clearWorkoutSummary,runDistancePrompt=false,onRunDistanceChange,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert,macros=null,todayProtocol=null,showLocalRest=false,localRestSecs=90,onStartLocalRest,onSkipLocalRest,onReduceLocalRest,onProfileUpdate}) {
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [progDetailsExpanded,setProgDetailsExpanded]=useState(false);
   const [exExpanded,setExExpanded]=useState(false);
@@ -1966,6 +2351,23 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const _trainEyeX=useRef(0);
   const _trainEyeY=useRef(0);
   const _trainEyeRedMo=useReducedMotion();
+  const [_switchProgIdx,_setSwitchProgIdx]=useState(0);
+  // Real switchable programs = the whole library MINUS the user's current program (matched the same
+  // way the library screen does: splitKey OR name === wPrefs.splitType). Feeds the living 2.5s cycle
+  // with honest names the user can actually switch TO (replaces a hardcoded 7-item decorative teaser).
+  const _switchNames=useMemo(()=>{
+    const _cur=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs?.splitType||p.name===wPrefs?.splitType);
+    return PROGRAM_LIBRARY.filter(p=>p.id!==_cur?.id).map(p=>p.name);
+  },[wPrefs?.splitType]);
+  useEffect(()=>{
+    // Pause off the main train screen — the rotator is only visible on "today", and leaving the
+    // 2.5s tick running re-renders all of TrainSection (incl. the RunProgramSetup time inputs in
+    // the library sub-screen), which dismisses the iOS soft keyboard. Perf win + unblocks entry.
+    if(_trainEyeRedMo || trainScreen!=='today')return;
+    const _n=_switchNames.length||1;
+    const _t=setInterval(()=>_setSwitchProgIdx(i=>(i+1)%_n),2500);
+    return()=>clearInterval(_t);
+  },[_trainEyeRedMo,trainScreen,_switchNames.length]);
   useEffect(()=>{
     if(!GOCLUB_REDESIGN||!user?.id)return;
     getRecoveryData(user.id).then(d=>{
@@ -2034,25 +2436,47 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   // ── Exercise detail modal ────────────────────────────────────────────────
   const [detailModal,setDetailModal]=useState(null); // {exerciseName, exerciseIdx}
   const longPressTimer=useRef(null);
-  function openDetail(exerciseName,exerciseIdx){setDetailModal({exerciseName,exerciseIdx});}
+  function openDetail(exerciseName,exerciseIdx,sugg){setDetailModal({exerciseName,exerciseIdx,sugg});}
   function startLongPress(exerciseName,exerciseIdx){longPressTimer.current=setTimeout(()=>openDetail(exerciseName,exerciseIdx),500);}
   function cancelLongPress(){if(longPressTimer.current){clearTimeout(longPressTimer.current);longPressTimer.current=null;}}
 
-  // ── Custom routine session handoff ──────────────────────────────────────
+  // ── Exercise coaching (exercise_coaching table) + gif/muscles (exercise_cache) ────────────────
+  // Batch-fetched ONCE per active workout, keyed by exercise_name at the user's skill level. The
+  // player reads key_cue/coaching from here (replaces the hardcoded COACHING_CUES surfaces). "View
+  // Coaching" is gated on a row existing (no row → no button, no error). gif_url drives "View Exercise".
+  const _skillLevel=(()=>{const e=(wPrefs?.liftExp||profile?.liftExp||'beginner').toLowerCase();return e.startsWith('adv')||e.includes('elite')||e.includes('compet')?'advanced':e.startsWith('inter')||e.includes('moder')?'intermediate':'beginner';})();
+  const [coachingMap,setCoachingMap]=useState({});     // { [exercise_name]: { key_cue, coaching } }
+  const _activeExNames=[...new Set((activeWorkout?.exercises||[]).map(e=>_coachKey(e.name)).filter(Boolean))];
+  const _exNamesKey=_activeExNames.join('|');
   useEffect(()=>{
-    if(trainScreen==="active"){
+    if(trainScreen!=="active")return;
+    let cancelled=false;
+    // Fetch ALL coaching rows at the user's skill level (~103) and key by the NORMALIZED name, so the
+    // pill lookup matches generator variant spellings (normKey + _COACH_ALIAS). Filtering the query by
+    // name can't express normalized matching, and 103 rows is a trivial one-time payload. WKWebView +
+    // supabase-js can HANG on the auth lock (no throw), so race a timeout and retry a few times so a
+    // transient stall or empty first read doesn't silently drop the button. [[coach-macro-wkwebview-supabase-gotchas]]
+    const run=async(attempt)=>{
       try{
-        const raw=sessionStorage.getItem("cm_custom_routine_session");
-        if(raw){
-          const parsed=JSON.parse(raw);
-          sessionStorage.removeItem("cm_custom_routine_session");
-          if(parsed?.exercises?.length&&!activeWorkout){
-            setActiveWorkout({title:parsed.title||"Custom Routine",exercises:parsed.exercises});
-          }
-        }
-      }catch{}
-    }
-  },[trainScreen]);
+        const q=sb.from('exercise_coaching').select('exercise_name,key_cue,coaching').eq('level',_skillLevel);
+        const {data:coach}=await Promise.race([q, new Promise((_,rej)=>setTimeout(()=>rej(new Error('coaching-timeout')),4000))]);
+        if(cancelled)return;
+        const cm={}; (coach||[]).forEach(r=>{cm[_normKey(r.exercise_name)]={key_cue:r.key_cue,coaching:r.coaching};});
+        if(Object.keys(cm).length===0 && attempt<2){ setTimeout(()=>{ if(!cancelled) run(attempt+1); }, 900); return; }
+        setCoachingMap(cm);
+      }catch(_){ if(!cancelled && attempt<3){ setTimeout(()=>{ if(!cancelled) run(attempt+1); }, 900); } }
+    };
+    run(0);
+    return()=>{cancelled=true;};
+  },[trainScreen,_skillLevel]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Dev-only coverage warning: surface every generator exercise whose normalized key finds no coaching
+  // row, so remaining gaps are visible (V2 author-backlog) instead of a silently-absent pill.
+  useEffect(()=>{
+    if(!import.meta.env.DEV || trainScreen!=="active" || !Object.keys(coachingMap).length) return;
+    (activeWorkout?.exercises||[]).forEach(e=>{ if(!coachingMap[_coachKey(e.name)])
+      console.warn('[coaching] no row for exercise:', e.name, '→ key:', _coachKey(e.name)); });
+  },[trainScreen,_exNamesKey,coachingMap]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Favorites & Swap state ───────────────────────────────────────────────
   const favorites=wPrefs.favorites||[];
@@ -2112,6 +2536,20 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     }
   }, []);
   useEffect(() => {
+    // Recover an in-progress GPS run after a force-close (offers Resume; time while closed isn't counted).
+    try {
+      const saved = localStorage.getItem(RUN_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.mode === 'gps' && parsed.ts && Date.now() - parsed.ts < 6 * 60 * 60 * 1000 && (parsed.elapsed || 0) >= 20) {
+          setRunResumePrompt(parsed);
+        } else {
+          localStorage.removeItem(RUN_KEY);
+        }
+      }
+    } catch {}
+  }, []);
+  useEffect(() => {
     if (activeWorkout) {
       try { localStorage.setItem(WORKOUT_KEY, JSON.stringify({...activeWorkout, ts: Date.now()})); } catch {}
     }
@@ -2125,6 +2563,21 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
   const [sessionMode,setSessionMode]=useState(null);
   const [editingSet,setEditingSet]=useState(null);
+  const [heroTouched,setHeroTouched]=useState(false); // set-view: has the user engaged the active weight input (faint suggestion → solid)
+  // U-timer morph (Part B): restingSet = the just-logged set whose hero is currently showing the U-timer
+  // (a PRESENTATION flag over the parent's showLocalRest — no timer logic here). restTotal = the rest
+  // duration captured at log time, for the ring's drain fraction.
+  const [restingSet,setRestingSet]=useState(null);
+  const [restTotal,setRestTotal]=useState(90);
+  const [whyRest,setWhyRest]=useState(null); // {secs, reason} for the "Why this rest?" note sheet
+  const [supportPageOpen,setSupportPageOpen]=useState(false); // in-app bundled SupportPage for health CTAs (no external URL)
+  const _prevRestRef=useRef(false);
+  useEffect(()=>{
+    // When the parent's rest ends (complete OR skip), collapse the resting hero → the next set's hero
+    // activates. Light "go" haptic on the transition.
+    if(_prevRestRef.current && !showLocalRest){ setRestingSet(null); _hL(); }
+    _prevRestRef.current=showLocalRest;
+  },[showLocalRest]);
   const [sessionPRs,setSessionPRs]=useState({});
   const [editHintDismissed,setEditHintDismissed]=useState(false);
   const [hyroxWeaknessStation,setHyroxWeaknessStation]=useState(null);
@@ -2137,10 +2590,19 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const [runCalories,setRunCalories]=useState(0);
   const [runGpsError,setRunGpsError]=useState(false);
   const [runManualDist,setRunManualDist]=useState('');
+  const [runManualMin,setRunManualMin]=useState('00');
+  const [runManualSec,setRunManualSec]=useState('00');
   const [runEffort,setRunEffort]=useState(null);
   const [runSummary,setRunSummary]=useState(null);
+  const [runLogId,setRunLogId]=useState(null);
   const runTimerRef=useRef(null);
-  const gpsWatchRef=useRef(null);
+  const gpsWatchRef=useRef(null);      // native watcher id (string) from addWatcher
+  const gpsFilterRef=useRef(null);     // per-run accuracy filter instance
+  const gpsStoppedRef=useRef(false);   // guards the addWatcher-resolves-after-stop race
+  const runStartMsRef=useRef(0);       // wall-clock base → elapsed survives backgrounding/screen-off
+  const runDistBaseRef=useRef(0);      // distance carried across a resume (filter measures distance since resume)
+  const [runResumePrompt,setRunResumePrompt]=useState(null); // in-progress GPS run recovered after force-close
+  const RUN_KEY="cm_active_run";       // localStorage key for the persisted in-progress GPS run
   const [hyroxType,setHyroxType]=useState(null);
   const [hyroxTotalElapsed,setHyroxTotalElapsed]=useState(0);
   const [hyroxSegElapsed,setHyroxSegElapsed]=useState(0);
@@ -2151,6 +2613,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const [hyroxWodCurStation,setHyroxWodCurStation]=useState(0);
   const [hyroxWodCurRound,setHyroxWodCurRound]=useState(0);
   const [hyroxSummary,setHyroxSummary]=useState(null);
+  const [hyroxEdit,setHyroxEdit]=useState(null);
+  const [hyroxEditing,setHyroxEditing]=useState(false);
+  const [hyroxPickerIdx,setHyroxPickerIdx]=useState(null);
   const hyroxTotalTimerRef=useRef(null);
   const hyroxSegTimerRef=useRef(null);
 
@@ -2162,8 +2627,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
   useEffect(()=>{
     return()=>{
-      clearInterval(runTimerRef.current);
-      if(gpsWatchRef.current!=null)navigator.geolocation.clearWatch(gpsWatchRef.current);
+      // Safety-net: leaving Train (tab switch / teardown) stops the GPS watcher so it
+      // can never keep tracking in the background. Keep the persisted run so it can resume.
+      stopRunTracking({clearSaved:false});
       clearInterval(hyroxTotalTimerRef.current);
       clearInterval(hyroxSegTimerRef.current);
     };
@@ -2192,11 +2658,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     _doStartFromProgram(null);
   }
 
-  // ── Explore sheet state ─────────────────────────────────────────────────
-  const [showExploreSheet,setShowExploreSheet]=useState(false);
   const [activeCard,setActiveCard]=useState(0);
   const carouselRef=useRef(null);
   const [sessionDetailExpanded,setSessionDetailExpanded]=useState(false);
+  // Plan screen: which non-today day is expanded (exact pills), and whether the schedule editor is open
+  const [planExpandedDay,setPlanExpandedDay]=useState(null);
 
   // ── Adapt Now state ──────────────────────────────────────────────────────
   const [showAdapt,setShowAdapt]=useState(false);
@@ -2236,7 +2702,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     const _toast=_adaptRemaining>0
       ?`Session adapted. ${_adaptRemaining} of ${adaptLimit} adaptations remaining this month.`
       :_tier==='expired'
-        ?`Upgrade to Pro to unlock Adapt Now.`
+        ?`Subscribe to unlock Adapt Now — Monthly or Annual.`
         :`You have used all ${adaptLimit} adaptations this month.`;
     setAdaptToast(_toast);
     setTimeout(()=>setAdaptToast(""),4500);
@@ -2252,18 +2718,19 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   // ── Program detection ────────────────────────────────────────────────────
   const trainingDays=WDAYS.filter(d=>schedule[d]==="training");
   const daysPerWeek=trainingDays.length||3;
-  const startDate=profile?.startDate?new Date(profile.startDate):new Date();
+  const startDate=profile?.program_start_date?new Date(profile.program_start_date):new Date(); // [B] today-bootstrap; never tenure startDate
   const daysSinceStart=Math.max(0,Math.floor((new Date()-startDate)/86400000));
   const weekNum=Math.floor(daysSinceStart/7)+1;
   const dayIndex=daysSinceStart%(daysPerWeek||1);
-  const isLifting=!wPrefs.isHyrox&&!wPrefs.isHybrid&&!profile?.run_race_type;
+  // Canonical mode from the single resolver (drift-proof): _libraryId wins, then
+  // explicit isHyrox/isHybrid flags, then name/run_race_type fallback — so a
+  // switched-to-lifting account no longer gets forced into run mode by a stale
+  // run_race_type. Maps 1:1 onto the old prescType values; conditioning routes as
+  // lifting (today's behavior). isGVTWeek + all downstream consumers are unchanged.
+  const _programMode = resolveProgram(wPrefs, profile).mode;
+  const prescType = _programMode === 'conditioning' ? 'lifting' : _programMode;
+  const isLifting = prescType === 'lifting';
   const isGVTWeek=isLifting&&(wPrefs?.gvt===true||(wPrefs?.gvt!==false&&weekNum%4===0))&&todayType==="training";
-
-  let prescType="lifting";
-  if(wPrefs.isHyrox&&wPrefs.isHybrid)prescType="hybrid-hyrox";
-  else if(wPrefs.isHyrox)prescType="hyrox";
-  else if(wPrefs.isHybrid)prescType="hybrid";
-  else if(profile?.run_race_type)prescType="running";
 
   // Full generated week for run-focused accounts; drives WeekStrip labels + week card
   const runWeek = prescType === "running"
@@ -2311,10 +2778,14 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         }, {})
       : dayFocus;
 
-  let todayPrescription=null;
-  let todayProgObj=null;
-  if(prescType==="lifting"&&todayType==="training"){
-    let exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIndex,wPrefs.equipment||"Full Gym",undefined,wPrefs.liftExp||profile?.liftExp);
+  // Shared lifting-content builder (Stage-1): getWorkoutForDay → equipment → permanentSwaps/
+  // favorites → GVT overlay → session-length cap → soreness reduction. Pure-lifting calls it with
+  // session-index walk (schedule+start anchor); hybrid lift days call it with {positional:true} so
+  // dayIndex is used directly (dayKeys[dayIndex]) to index the dayPlan cycle position.
+  const buildLiftingPrescription=(splitType,dayIndex,opts={})=>{
+    const _sched=opts.positional?null:schedule;
+    const _start=opts.positional?null:(profile?.program_start_date||null);
+    let exs=getWorkoutForDay(daysPerWeek,splitType,dayIndex,wPrefs.equipment||"Full Gym",undefined,wPrefs.liftExp||profile?.liftExp,_sched,_start,0);
     exs=applyEquipmentToWorkout(exs?.exercises||exs||[],wPrefs.equipment||"Full Gym");
     exs=exs.map(ex=>{const c=ex.originalName||ex.name;const sw=permanentSwaps[c];return{...ex,name:sw||ex.name,swappedFrom:sw?c:undefined,isFavorite:favorites.includes(c)};});
     if(showGVT&&isGVTWeek)exs=[...exs.slice(0,2).map(e=>({...e,sets:GVT_OVERLAY.sets,reps:GVT_OVERLAY.reps,notes:GVT_OVERLAY.note})),...exs.slice(2)];
@@ -2327,13 +2798,19 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       const _soreGrps=new Set((todaySoreness.sore_muscles||[]).map(m=>_CHIP_TO_GRP[m]).filter(Boolean));
       const _reduction=todaySoreness.soreness_score>=7?2:1;
       exs=exs.map(ex=>{
-        const _grp=_NORM[EXERCISE_MUSCLE_GROUP[ex.name]||''];
+        const _grp=_NORM[getMuscleGroup(ex.name)||''];
         if(!_grp||!_soreGrps.has(_grp))return ex;
         const _newSets=Math.max(1,Number(ex.sets||3)-_reduction);
         return{...ex,sets:_newSets,notes:(ex.notes?ex.notes+' — sets reduced for recovery':'Sets reduced for recovery')};
       });
     }
-    todayPrescription=exs;
+    return exs;
+  };
+
+  let todayPrescription=null;
+  let todayProgObj=null;
+  if(prescType==="lifting"&&todayType==="training"){
+    todayPrescription=buildLiftingPrescription(wPrefs.splitType||"Full Body",dayIndex,{});
   }else if(prescType==="running"){
     // ── Generative engine — Phase B ──────────────────────────────────────────
     todayPrescription = getTodayRunWorkout(profile, wPrefs, schedule, todayKey, weekNum);
@@ -2392,19 +2869,33 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         if(weatherAdjustment?.note) todayPrescription = { ...todayPrescription, description: `⚠️ ${weatherAdjustment.note}\n` + (todayPrescription.description || "") };
       }
     } else {
-      // Lift day or no-dayPlan (backward compat) — existing hybrid template, byte-for-byte unchanged
+      // Lift day → pure-lifting content via the shared helper, indexed by the dayPlan cycle
+      // position (Option 3). No dayPlan / unmapped template → legacy static card (backward compat).
       const _hybridTemplate=wPrefs.hybridTemplate||"Balanced Hybrid";
       todayProgObj=HYBRID_PROGRAMS[_hybridTemplate];
-      todayPrescription=getTodayHybridWorkout(_hybridTemplate,todayKey,weekNum);
-      if(todayPrescription){
-        const _vdotPaces=profile?.runProfile?.paces??null;
-        if(_vdotPaces) todayPrescription={...todayPrescription,description:renderWithPaces(todayPrescription.description||"",_vdotPaces)};
+      const _liftSplit=HYBRID_TEMPLATE_CYCLES[_hybridTemplate];
+      const _k=hybridModality?.liftDays?.indexOf(todayKey)??-1;
+      if(_liftSplit&&_k>=0){
+        todayPrescription=buildLiftingPrescription(_liftSplit,_k,{positional:true});
+      }else{
+        todayPrescription=getTodayHybridWorkout(_hybridTemplate,todayKey,weekNum);
+        if(todayPrescription){
+          const _vdotPaces=profile?.runProfile?.paces??null;
+          if(_vdotPaces) todayPrescription={...todayPrescription,description:renderWithPaces(todayPrescription.description||"",_vdotPaces)};
+        }
       }
     }
   }
 
+  // Pause: sets resumePrompt (TrainSection-local state) then delegates session cleanup to ob_screens2.
+  // setResumePrompt lives here, not in ob_screens2, so this wrapper is the right place for it.
+  function _handlePause(){
+    if(activeWorkout)setResumePrompt({...activeWorkout,ts:Date.now()});
+    pauseWorkout?.();
+  }
+
   function startFromProgram(){
-    if(prescType==="lifting"&&Array.isArray(todayPrescription)&&!sessionReadiness){
+    if(Array.isArray(todayPrescription)&&!sessionReadiness){
       setRdAnswers({sleep:null,stress:null,energy:null});
       setShowReadiness(true);
       return;
@@ -2413,14 +2904,23 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   }
 
   function _doStartFromProgram(readiness){
+    // Belt-and-suspenders: never launch into an empty lifting session.
+    // getWorkoutForDay now filters rest days, but guard here catches any future edge case.
+    if(Array.isArray(todayPrescription)&&todayPrescription.length===0){
+      showToast("No exercises for today — check your schedule or program.","info");
+      return;
+    }
     let exercises;
-    if(prescType==="lifting"&&Array.isArray(todayPrescription)){
+    if(Array.isArray(todayPrescription)){
       const style=getCoachingStyle(wPrefs?.trainingAge);
       const baseSetCount=style.sets?.min||3;
       const weightMod=readiness?.config?.weightMod||1.0;
       const lifeFactorMod=getLifeFactorMod(wPrefs?.stressLevel,profile?.sleepQuality||wPrefs?.sleepQuality,wPrefs?.jobPhysicality);
       const volMod=(readiness?.config?.volumeMod||1.0)*lifeFactorMod;
-      const trainingGoal=profile?.primaryGoal||wPrefs?.primaryGoal;
+      // Goal lives in profiles.goal (the real column, e.g. "build_muscle"); older code read the
+      // never-populated primaryGoal. Normalize case/spacing so "Build Muscle"/"Build_muscle" all map to
+      // the PRESCRIPTION key "build_muscle" (keys: build_muscle/get_stronger/lose_fat/recomp/train_for_race/get_faster).
+      const trainingGoal=(()=>{const g=profile?.goal||profile?.primaryGoal||wPrefs?.primaryGoal||wPrefs?.goal;return g?String(g).toLowerCase().trim().replace(/\s+/g,'_'):null;})();
       const skillLevel=wPrefs?.liftExp||profile?.liftExp||"beginner";
       const goalLabel=trainingGoal?getGoalLabel(trainingGoal):null;
       const goalCtx=trainingGoal?getGoalContext(trainingGoal):null;
@@ -2541,91 +3041,138 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     return `${_p2(m)}:${_p2(s)}`;
   }
 
-  function startGPSRun(){
+  // ── Centralized run-tracking stop — the single teardown used by EVERY exit path
+  //    (finish, abandon/unmount, resume-replace). Idempotent + safe to call twice.
+  //    Kills the timer AND the native GPS watcher (→ blue indicator disappears) and,
+  //    unless we're preserving state for resume, clears the persisted in-progress run.
+  function stopRunTracking({clearSaved=true}={}){
+    clearInterval(runTimerRef.current); runTimerRef.current=null;
+    gpsStoppedRef.current=true;
+    if(gpsWatchRef.current!=null){ BackgroundGeolocation.removeWatcher({id:gpsWatchRef.current}).catch(()=>{}); gpsWatchRef.current=null; }
+    if(clearSaved){ try{localStorage.removeItem(RUN_KEY);}catch{} }
+  }
+
+  function startGPSRun(resume=null){
+    // Guard against a stale/orphaned watcher from a prior run before starting a new/resumed one.
+    if(gpsWatchRef.current!=null){ BackgroundGeolocation.removeWatcher({id:gpsWatchRef.current}).catch(()=>{}); gpsWatchRef.current=null; }
+    clearInterval(runTimerRef.current);
     setSessionMode('run-gps');
-    setRunElapsed(0);setRunDistance(0);setRunCoords([]);setRunLaps([]);setRunCurrentPace('--:--');setRunAvgPace('--:--');setRunCalories(0);setRunGpsError(false);
-    runTimerRef.current=setInterval(()=>setRunElapsed(p=>p+1),1000);
-    if(navigator.geolocation){
-      gpsWatchRef.current=navigator.geolocation.watchPosition(
-        pos=>{
-          const {latitude:lat,longitude:lon,altitude}=pos.coords;
-          setRunCoords(prev=>{
-            if(prev.length>0){
-              const last=prev[prev.length-1];
-              const d=haversineKm(last.lat,last.lon,lat,lon);
-              if(d>0.003){
-                setRunDistance(pd=>{
-                  setRunElapsed(pe=>{
-                    setRunCurrentPace(fmtPace(pd+d>0.01?(pd+d):0.001,pe));
-                    setRunAvgPace(fmtPace(pd+d,pe));
-                    return pe;
-                  });
-                  return pd+d;
-                });
-              }
-            }
-            return [...prev,{lat,lon,alt:altitude||0,ts:Date.now()}];
-          });
-        },
-        _err=>{setRunGpsError(true);},
-        {enableHighAccuracy:true,maximumAge:1000,timeout:5000}
-      );
-    } else {
-      setRunGpsError(true);
+    setRunLogId(null);
+    const _imp=(profile?.wUnit||wPrefs?.wUnit)==='lbs';
+    const paceMult=_imp?1.609344:1;   // sec/km → sec/mi for pace display
+    if(resume){
+      setRunDistance(resume.distance||0);setRunCoords([]);setRunLaps([]);setRunCurrentPace('--:--');setRunAvgPace('--:--');setRunCalories(0);setRunGpsError(false);
+      runDistBaseRef.current=resume.distance||0;                    // filter measures NEW distance; base carries the pre-close total
+      runStartMsRef.current=Date.now()-((resume.elapsed||0)*1000);  // continue from saved elapsed (time while force-closed is NOT counted)
+      setRunElapsed(resume.elapsed||0);
+    }else{
+      setRunElapsed(0);setRunDistance(0);setRunCoords([]);setRunLaps([]);setRunCurrentPace('--:--');setRunAvgPace('--:--');setRunCalories(0);setRunGpsError(false);
+      runDistBaseRef.current=0;
+      runStartMsRef.current=Date.now();
     }
+    // Timestamp-based timer — elapsed = now − start, so it stays correct through
+    // background / screen-off (a suspended tick self-corrects the instant it resumes).
+    runTimerRef.current=setInterval(()=>setRunElapsed(Math.max(0,Math.floor((Date.now()-runStartMsRef.current)/1000))),1000);
+    const _gf=createGpsFilter(); gpsFilterRef.current=_gf;
+    gpsStoppedRef.current=false;
+    const _fmtSpk=(spk)=>(spk==null||!isFinite(spk))?'--:--':`${Math.floor(spk/60)}:${String(Math.round(spk%60)).padStart(2,'0')}`;
+    BackgroundGeolocation.addWatcher(
+      // backgroundMessage → keeps GPS + JS alive while backgrounded during an active,
+      // user-initiated run (When-In-Use); iOS shows the blue location indicator.
+      // distanceFilter:5 keeps it battery-light. Watcher is stopped on every exit (stopRunTracking).
+      { backgroundMessage:"Tracking your run — distance, pace, and route.", backgroundTitle:"Coach Macro — run in progress", requestPermissions:true, stale:false, distanceFilter:5 },
+      (location,error)=>{
+        if(error){ setRunGpsError(true); return; }
+        if(!location) return;
+        const r=_gf.push({ latitude:location.latitude, longitude:location.longitude, accuracy:location.accuracy, time:(typeof location.time==='number'?location.time:Date.now()) });
+        if(r.accepted){
+          setRunCoords(prev=>[...prev,{lat:location.latitude,lon:location.longitude,alt:location.altitude||0,ts:location.time||Date.now()}]);
+          if(r.reason!=='anchor'){
+            const _dist=runDistBaseRef.current+r.totalKm;
+            const _el=Math.max(0,Math.floor((Date.now()-runStartMsRef.current)/1000));
+            setRunDistance(_dist);
+            setRunCurrentPace(_fmtSpk(r.currentPaceSecPerKm==null?null:r.currentPaceSecPerKm*paceMult));
+            setRunAvgPace(_fmtSpk(r.avgPaceSecPerKm==null?null:r.avgPaceSecPerKm*paceMult));
+            // Persist for resume-after-force-close (throttled naturally by distanceFilter).
+            try{localStorage.setItem(RUN_KEY,JSON.stringify({mode:'gps',elapsed:_el,distance:_dist,ts:Date.now()}));}catch{}
+          }
+        }
+      }
+    ).then(id=>{
+      // If a stop fired before the watcher id resolved, remove it immediately (no leak).
+      if(gpsStoppedRef.current){ BackgroundGeolocation.removeWatcher({id}).catch(()=>{}); }
+      else gpsWatchRef.current=id;
+    }).catch(()=>setRunGpsError(true));
   }
 
   function startManualRun(){
     setSessionMode('run-manual');
+    setRunLogId(null);setRunManualMin('00');setRunManualSec('00');
     setRunElapsed(0);
     runTimerRef.current=setInterval(()=>setRunElapsed(p=>p+1),1000);
   }
 
   function stopManualRunAndShowForm(){
     clearInterval(runTimerRef.current);
+    // Seed the MIN/SEC wheels from the live timer; the user can override with the real run time.
+    setRunManualMin(String(Math.min(600,Math.floor(runElapsed/60))).padStart(2,'0'));
+    setRunManualSec(String(runElapsed%60).padStart(2,'0'));
     setSessionMode('run-manual-finish');
   }
 
   function finishGPSRun(){
-    clearInterval(runTimerRef.current);
-    if(gpsWatchRef.current!=null)navigator.geolocation.clearWatch(gpsWatchRef.current);
+    stopRunTracking();                 // stops timer + GPS watcher (blue indicator off) + clears persisted run
+    setRunResumePrompt(null);
     const elapsed=runElapsed;
     const dist=runDistance;
     const avgPace=fmtPace(dist,elapsed);
-    const cals=Math.round(elapsed/60*8.5);
+    const _durMin=Math.round(elapsed/60);
+    const {kcal:cals,tier:_tier,bmr:_bmr}=estimateActiveKcal({hkType:"running",durationMin:_durMin,profile});
     setRunSummary({mode:'gps',elapsed,distance:dist,avgPace,calories:cals,laps:runLaps,gpsError:runGpsError});
     setSessionMode('run-summary');
     if(user){
       sb.from('workout_logs').insert({
         user_id:user.id,
         date:new Date().toISOString().split('T')[0],
-        type:'run',
-        duration_min:Math.round(elapsed/60),
-        distance_m:Math.round(dist*1000),
-        calories:cals,
-        workout:{focus:todayFocus,type:'run',mode:'gps',duration_sec:elapsed,distance_km:dist,avg_pace:avgPace,laps:runLaps,coords:runCoords.filter((_,i)=>i%5===0)}
-      }).catch(()=>{});
+        source:'coach_macro',
+        session_duration_mins:_durMin,
+        workout:{focus:todayFocus,type:'run',mode:'gps',duration_sec:elapsed,distance_km:dist,avg_pace:avgPace,calories_burned:cals,laps:runLaps,coords:runCoords.filter((_,i)=>i%5===0)}
+      }).then(({error})=>{if(error){console.error('[finishGPSRun]',error);return;}window.dispatchEvent(new CustomEvent('workoutCompleted',{detail:{userId:user.id}}));}).catch(e=>console.error('[finishGPSRun]',e));
+      // Best-effort Apple Health write (active-only kcal + real GPS distance).
+      (async()=>{try{const{saveWorkoutToHealth}=await import("./services/appleHealth.js");await saveWorkoutToHealth({durationMinutes:_durMin,activeCalories:cals,workoutType:"running",userId:user.id,tier:_tier,bmr:_bmr,distanceMeters:Math.round((dist||0)*1000)});}catch{}})();
     }
   }
 
   function finishManualRun(){
     clearInterval(runTimerRef.current);
-    const elapsed=runElapsed;
-    const dist=parseFloat(runManualDist)||0;
+    // Honest duration from the bounded MIN/SEC wheels (fixes durationMinutes:0 AND the colon-less
+    // "2830"→2830min ambiguity). Defensive clamp mirrors the wheel bounds. All stats derive from `elapsed`.
+    const _min=Math.min(600,Math.max(0,parseInt(runManualMin,10)||0));
+    const _sec=Math.min(59,Math.max(0,parseInt(runManualSec,10)||0));
+    const elapsed=_min*60+_sec;
+    const _imperial=(profile?.wUnit||wPrefs?.wUnit)==='lbs';
+    const _entered=parseFloat(runManualDist)||0;
+    const dist=_imperial?_entered*1.609344:_entered;
     const avgPace=fmtPace(dist,elapsed);
-    const cals=Math.round(elapsed/60*8.5);
+    const _durMin=Math.round(elapsed/60);
+    const {kcal:cals,tier:_tier,bmr:_bmr}=estimateActiveKcal({hkType:"running",durationMin:_durMin,profile});
     setRunSummary({mode:'manual',elapsed,distance:dist,avgPace,calories:cals,effort:runEffort,laps:[]});
     setSessionMode('run-summary');
     if(user&&elapsed>0){
-      sb.from('workout_logs').insert({
+      const _payload={
         user_id:user.id,
         date:new Date().toISOString().split('T')[0],
-        type:'run',
-        duration_min:Math.round(elapsed/60),
-        distance_m:dist>0?Math.round(dist*1000):null,
-        calories:cals,
-        workout:{focus:todayFocus,type:'run',mode:'manual',duration_sec:elapsed,distance_km:dist,avg_pace:avgPace,effort:runEffort}
-      }).catch(()=>{});
+        source:'coach_macro',
+        session_duration_mins:_durMin,
+        workout:{focus:todayFocus,type:'run',mode:'manual',duration_sec:elapsed,distance_km:dist,avg_pace:avgPace,calories_burned:cals,effort:runEffort}
+      };
+      // Edit → re-save UPDATES the same row (no duplicate log); first save INSERTS. DB write stays before HealthKit.
+      const _q=runLogId
+        ?sb.from('workout_logs').update(_payload).eq('id',runLogId).eq('user_id',user.id).select('id').single()
+        :sb.from('workout_logs').insert(_payload).select('id').single();
+      _q.then(({data,error})=>{if(error){console.error('[finishManualRun]',error);return;}if(data?.id)setRunLogId(data.id);window.dispatchEvent(new CustomEvent('workoutCompleted',{detail:{userId:user.id}}));}).catch(e=>console.error('[finishManualRun]',e));
+      // Best-effort Apple Health write (active-only kcal + entered distance) — first save only, to avoid duplicate HealthKit workouts on edit.
+      if(!runLogId)(async()=>{try{const{saveWorkoutToHealth}=await import("./services/appleHealth.js");await saveWorkoutToHealth({durationMinutes:_durMin,activeCalories:cals,workoutType:"running",userId:user.id,tier:_tier,bmr:_bmr,distanceMeters:Math.round((dist||0)*1000)});}catch{}})();
     }
   }
 
@@ -2668,7 +3215,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       const allTimes=[...hyroxSegTimes,{...seg,elapsed:segTime}];
       setHyroxSummary({type:'race_sim',totalElapsed:hyroxTotalElapsed,segments:allTimes});
       setSessionMode('hyrox-summary');
-      saveHyroxSession('race_sim',hyroxTotalElapsed,allTimes);
+      setHyroxEdit(allTimes);setHyroxEditing(false);
     } else {
       setHyroxCurrentSeg(p=>p+1);
       startHyroxSegTimer();
@@ -2711,7 +3258,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         const allTimes=[...hyroxSegTimes,{...st,round:hyroxWodCurRound+1,elapsed:segTime}];
         setHyroxSummary({type:'station_wod',totalElapsed:hyroxTotalElapsed,segments:allTimes,rounds:hyroxWodRounds});
         setSessionMode('hyrox-summary');
-        saveHyroxSession('station_wod',hyroxTotalElapsed,allTimes);
+        setHyroxEdit(allTimes);setHyroxEditing(false);
       } else {
         setHyroxWodCurRound(nextRound);
         setHyroxWodCurStation(0);
@@ -2727,49 +3274,54 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     if(!user)return;
     const station_times={};
     segments.forEach(seg=>{
-      const key=seg.type==='run'?`Run${seg.index+1}`:seg.name;
+      const key=seg.type==='run'?`Run${(seg.index||0)+1}`:(seg.name||HYROX_STATIONS[seg.index]?.name||`Station${(seg.index||0)+1}`);
       station_times[key]=seg.elapsed;
     });
+    const _durMin=Math.round(totalSec/60);
+    const {kcal:_cals,tier:_tier,bmr:_bmr}=estimateActiveKcal({hkType:"highIntensityIntervalTraining",durationMin:_durMin,profile});
     sb.from('workout_logs').insert({
       user_id:user.id,
       date:new Date().toISOString().split('T')[0],
-      type:'hyrox',
-      duration_min:Math.round(totalSec/60),
+      source:'coach_macro',
+      session_duration_mins:_durMin,
       workout:{
         focus:todayFocus,type:'hyrox',session_mode:mode,
         station_times,total_time:totalSec,
-        stations_completed:segments.filter(s=>s.type==='station').length
+        stations_completed:segments.filter(s=>s.type==='station').length,
+        calories_burned:_cals
       }
-    }).catch(()=>{});
+    }).then(({error})=>{if(error){console.error('[saveHyroxSession]',error);return;}window.dispatchEvent(new CustomEvent('workoutCompleted',{detail:{userId:user.id}}));}).catch(e=>console.error('[saveHyroxSession]',e));
+    // Best-effort Apple Health write — hyrox → HIIT. (totalSec is wall-clock; see deferred note.)
+    (async()=>{try{const{saveWorkoutToHealth}=await import("./services/appleHealth.js");await saveWorkoutToHealth({durationMinutes:_durMin,activeCalories:_cals,workoutType:"highIntensityIntervalTraining",userId:user.id,tier:_tier,bmr:_bmr});}catch{}})();
   }
 
   function renderRunPicker(){
+    const _MO="'DM Mono',monospace";
+    const _BC="'Barlow Condensed',sans-serif";
     const todayRun=todayPrescription;
     const headline=(todayRun?.label||todayRun?.type||'RUN').toUpperCase();
     const target=todayRun?.duration?`TARGET: ${todayRun.duration} min`:todayRun?.distance?`TARGET: ${todayRun.distance} km`:'';
     return(
       <div style={{padding:"24px 0"}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// TODAY'S RUN</div>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,lineHeight:0.9,marginBottom:16,textTransform:"uppercase"}}>
-          {headline}<span style={{color:"var(--accent)"}}>.</span>
-        </div>
-        {target&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",marginBottom:24,textTransform:"uppercase"}}>{target}</div>}
-        <div onClick={startGPSRun} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",gap:14,cursor:"pointer",alignItems:"flex-start"}}>
-          <div style={{background:"rgba(var(--accent-rgb),0.1)",borderRadius:10,padding:12,flexShrink:0}}>
-            <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinecap="round"><circle cx={12} cy={12} r={3}/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Today's Run</div>
+        <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:36,lineHeight:0.9,marginBottom:16,textTransform:"uppercase",color:"#fff"}}>{headline}</div>
+        {target&&<div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:"0.1em",marginBottom:24,textTransform:"uppercase"}}>{target}</div>}
+        <div onClick={startGPSRun} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:16,padding:18,marginBottom:10,display:"flex",gap:14,cursor:"pointer",alignItems:"flex-start",boxShadow:"0 2px 12px rgba(0,0,0,.10)",WebkitTapHighlightColor:"transparent"}}>
+          <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",borderRadius:10,padding:12,flexShrink:0}}>
+            <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth={2} strokeLinecap="round"><circle cx={12} cy={12} r={3}/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
           </div>
           <div>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",marginBottom:4}}>TRACK WITH GPS.</div>
-            <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>Live pace, distance, and route tracking using your phone GPS.</div>
+            <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--cm-ink,#0A0A0A)",marginBottom:4,textTransform:"uppercase"}}>Track with GPS</div>
+            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.55)",lineHeight:1.5}}>Live pace, distance, and route tracking using your phone GPS.</div>
           </div>
         </div>
-        <div onClick={startManualRun} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,display:"flex",gap:14,cursor:"pointer",alignItems:"flex-start"}}>
-          <div style={{background:"rgba(245,245,240,0.06)",borderRadius:10,padding:12,flexShrink:0}}>
-            <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.5)" strokeWidth={2} strokeLinecap="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        <div onClick={startManualRun} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:16,padding:18,display:"flex",gap:14,cursor:"pointer",alignItems:"flex-start",boxShadow:"0 2px 12px rgba(0,0,0,.10)",WebkitTapHighlightColor:"transparent"}}>
+          <div style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:10,padding:12,flexShrink:0}}>
+            <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="rgba(var(--cm-ink-rgb,10,10,10),0.5)" strokeWidth={2} strokeLinecap="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           </div>
           <div>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",marginBottom:4}}>LOG MANUALLY.</div>
-            <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>For treadmill or when you track with another device. Enter distance and time at the end.</div>
+            <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--cm-ink,#0A0A0A)",marginBottom:4,textTransform:"uppercase"}}>Log Manually</div>
+            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.55)",lineHeight:1.5}}>For treadmill or when you track with another device. Enter distance and time at the end.</div>
           </div>
         </div>
       </div>
@@ -2777,137 +3329,307 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   }
 
   function renderGPSRunScreen(){
+    const _MO="'DM Mono',monospace";
+    const _BC="'Barlow Condensed',sans-serif";
     return(
       <div style={{textAlign:"center",paddingTop:20,position:"relative"}}>
-        <div style={{position:"absolute",top:-60,left:"50%",transform:"translateX(-50%)",width:300,height:300,borderRadius:"50%",background:"radial-gradient(circle,rgba(var(--accent-rgb),0.12) 0%,transparent 70%)",pointerEvents:"none"}}/>
-        {runGpsError&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(var(--accent-rgb),0.7)",marginBottom:12,padding:"6px 12px",background:"rgba(var(--accent-rgb),0.08)",borderRadius:8}}>GPS unavailable — tracking time only</div>}
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:64,color:"#f5f5f0",lineHeight:1,marginBottom:16,fontVariantNumeric:"tabular-nums"}}>{fmtTime(runElapsed)}</div>
+        {runGpsError&&<div style={{fontFamily:_MO,fontSize:10,color:"#fff",marginBottom:12,padding:"6px 12px",background:"rgba(255,255,255,0.16)",borderRadius:8,display:"inline-block"}}>GPS unavailable — tracking time only</div>}
+        <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:64,color:"#fff",lineHeight:1,marginBottom:16,fontVariantNumeric:"tabular-nums"}}>{fmtTime(runElapsed)}</div>
         <div style={{display:"flex",justifyContent:"center",gap:32,marginBottom:32}}>
           <div>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0"}}>{runCurrentPace}</div>
-            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em"}}>pace /km</div>
+            <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:26,color:"#fff"}}>{runCurrentPace}</div>
+            <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.1em"}}>pace /{(profile?.wUnit||wPrefs?.wUnit)==='lbs'?'mi':'km'}</div>
           </div>
           <div>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"var(--accent)"}}>{runDistance.toFixed(2)}</div>
-            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em"}}>km</div>
+            <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:26,color:"#fff"}}>{((profile?.wUnit||wPrefs?.wUnit)==='lbs'?runDistance*0.621371:runDistance).toFixed(2)}</div>
+            <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{(profile?.wUnit||wPrefs?.wUnit)==='lbs'?'mi':'km'}</div>
           </div>
         </div>
         <div style={{display:"flex",gap:8,marginBottom:28}}>
-          {[{l:"AVG PACE",v:runAvgPace},{l:"CALORIES",v:Math.round(runElapsed/60*8.5)},{l:"LAPS",v:runLaps.length}].map(({l,v})=>(
-            <div key={l} style={{flex:1,background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:10,padding:"10px 6px",textAlign:"center"}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>{l}</div>
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0"}}>{v}</div>
+          {[{l:"AVG PACE",v:runAvgPace},{l:"CALORIES",v:estimateActiveKcal({hkType:"running",durationMin:Math.round(runElapsed/60),profile}).kcal},{l:"LAPS",v:runLaps.length}].map(({l,v})=>(
+            <div key={l} style={{flex:1,background:"rgba(255,255,255,0.14)",borderRadius:12,padding:"11px 6px",textAlign:"center"}}>
+              <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:5}}>{l}</div>
+              <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:18,color:"#fff"}}>{v}</div>
             </div>
           ))}
         </div>
         <div style={{display:"flex",gap:10}}>
-          <button onClick={()=>{setRunLaps(p=>[...p,{km:runLaps.length+1,time:runElapsed,dist:runDistance}]);}} style={{width:64,height:64,borderRadius:"50%",background:"rgba(245,245,240,0.06)",border:"1px solid rgba(245,245,240,0.1)",color:"#f5f5f0",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,cursor:"pointer",flexShrink:0}}>LAP</button>
-          <button onClick={finishGPSRun} style={{flex:1,padding:"16px 24px",background:"var(--accent)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>FINISH RUN →</button>
+          <button onClick={()=>{setRunLaps(p=>[...p,{km:runLaps.length+1,time:runElapsed,dist:runDistance}]);}} style={{width:64,height:64,borderRadius:"50%",background:"rgba(255,255,255,0.16)",border:"1px solid rgba(255,255,255,0.25)",color:"#fff",fontFamily:_MO,fontSize:10,fontWeight:700,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"}}>LAP</button>
+          <button onClick={finishGPSRun} style={{flex:1,padding:"16px 24px",background:"var(--cm-paper,#FFFFFF)",border:"none",borderRadius:14,color:"var(--cm-red,#FF3B30)",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>FINISH RUN →</button>
         </div>
       </div>
     );
   }
 
   function renderManualRunScreen(){
+    const _MO="'DM Mono',monospace";
+    const _BC="'Barlow Condensed',sans-serif";
     return(
       <div style={{paddingTop:20}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// MANUAL RUN</div>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,color:"#f5f5f0",lineHeight:1,marginBottom:8,textAlign:"center",fontVariantNumeric:"tabular-nums"}}>{fmtTime(runElapsed)}</div>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",textAlign:"center",marginBottom:32}}>ELAPSED TIME</div>
-        <button onClick={stopManualRunAndShowForm} style={{width:"100%",padding:"16px",background:"var(--accent)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>FINISH RUN →</button>
+        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>// MANUAL RUN</div>
+        <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:48,color:"#fff",lineHeight:1,marginBottom:8,textAlign:"center",fontVariantNumeric:"tabular-nums"}}>{fmtTime(runElapsed)}</div>
+        <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.45)",textAlign:"center",marginBottom:32}}>ELAPSED TIME</div>
+        <button onClick={stopManualRunAndShowForm} style={{width:"100%",padding:"16px",background:"var(--cm-paper,#FFFFFF)",border:"none",borderRadius:14,color:"var(--cm-red,#FF3B30)",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>FINISH RUN →</button>
       </div>
     );
   }
 
   function renderManualRunFinishScreen(){
+    const _MO="'DM Mono',monospace";
+    const _BC="'Barlow Condensed',sans-serif";
+    const _minItems=Array.from({length:601},(_,i)=>String(i).padStart(2,'0'));   // 00–600
+    const _secItems=Array.from({length:60},(_,i)=>String(i).padStart(2,'0'));     // 00–59
+    const _totalSec=(parseInt(runManualMin,10)||0)*60+(parseInt(runManualSec,10)||0);
     return(
       <div style={{paddingTop:20}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// LOG YOUR RUN</div>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,marginBottom:24}}>HOW FAR DID YOU GO<span style={{color:"var(--accent)"}}>?</span></div>
+        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>// LOG YOUR RUN</div>
+        <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:32,color:"#fff",marginBottom:24}}>HOW FAR DID YOU GO<span style={{color:"rgba(255,255,255,0.5)"}}>?</span></div>
         <div style={{marginBottom:16}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>DISTANCE (km)</div>
+          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>DISTANCE ({(profile?.wUnit||wPrefs?.wUnit)==='lbs'?'mi':'km'})</div>
           <input
             type="number"
             inputMode="decimal"
             placeholder="0.00"
             value={runManualDist}
             onChange={e=>setRunManualDist(e.target.value)}
-            style={{width:"100%",boxSizing:"border-box",background:"#0d0d0d",border:"1.5px solid rgba(var(--accent-rgb),0.3)",borderRadius:12,padding:"16px",color:"#f5f5f0",fontSize:24,fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,outline:"none",textAlign:"center"}}
+            style={{width:"100%",boxSizing:"border-box",background:"var(--cm-paper,#FFFFFF)",border:"1.5px solid rgba(var(--cm-red-rgb,255,59,48),0.4)",borderRadius:12,padding:"16px",color:"var(--cm-ink,#0A0A0A)",fontSize:24,fontFamily:_BC,fontStyle:"italic",fontWeight:900,outline:"none",textAlign:"center"}}
           />
         </div>
         <div style={{marginBottom:24}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>EFFORT LEVEL</div>
+          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>EFFORT LEVEL</div>
           <div style={{display:"flex",gap:8}}>
             {[{v:1,l:"Easy"},{v:2,l:"Moderate"},{v:3,l:"Hard"},{v:4,l:"Max"}].map(({v,l})=>(
-              <button key={v} onClick={()=>setRunEffort(v)} style={{flex:1,padding:"10px 4px",background:runEffort===v?"rgba(var(--accent-rgb),0.15)":"#0d0d0d",border:`1.5px solid ${runEffort===v?"var(--accent)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:runEffort===v?"var(--accent)":"rgba(245,245,240,0.5)",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,cursor:"pointer",textTransform:"uppercase"}}>{l}</button>
+              <button key={v} onClick={()=>setRunEffort(v)} style={{flex:1,padding:"10px 4px",background:runEffort===v?"rgba(255,255,255,0.22)":"rgba(255,255,255,0.10)",border:`1.5px solid ${runEffort===v?"rgba(255,255,255,0.8)":"rgba(255,255,255,0.18)"}`,borderRadius:10,color:runEffort===v?"#fff":"rgba(255,255,255,0.55)",fontFamily:_MO,fontSize:9,fontWeight:700,cursor:"pointer",textTransform:"uppercase",WebkitTapHighlightColor:"transparent"}}>{l}</button>
             ))}
           </div>
         </div>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginBottom:16,textAlign:"center"}}>Time: {fmtTime(runElapsed)}</div>
-        <button onClick={finishManualRun} style={{width:"100%",padding:"16px",background:"var(--accent)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>SAVE RUN →</button>
+        <div style={{marginBottom:24}}>
+          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>DURATION</div>
+          {/* Bounded MIN/SEC wheels — no colon to type, seconds physically 0–59, minutes capped 600. */}
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:12,border:"1.5px solid rgba(var(--cm-red-rgb,255,59,48),0.4)",padding:"8px 8px 12px",display:"flex",alignItems:"center",justifyContent:"center",gap:0}}>
+            <Rolodex items={_minItems} sel={runManualMin} onChange={setRunManualMin} itemH={44} bgColor="var(--cm-paper,#FFFFFF)" selectedColor="var(--cm-ink,#0A0A0A)" adjacentColor="rgba(var(--cm-ink-rgb,10,10,10),0.35)" farColor="rgba(var(--cm-ink-rgb,10,10,10),0.12)"/>
+            <span style={{fontFamily:_MO,fontWeight:700,fontSize:22,color:"var(--cm-ink,#0A0A0A)",flexShrink:0,padding:"0 2px"}}>:</span>
+            <Rolodex items={_secItems} sel={runManualSec} onChange={setRunManualSec} itemH={44} bgColor="var(--cm-paper,#FFFFFF)" selectedColor="var(--cm-ink,#0A0A0A)" adjacentColor="rgba(var(--cm-ink-rgb,10,10,10),0.35)" farColor="rgba(var(--cm-ink-rgb,10,10,10),0.12)"/>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",padding:"6px 12px 0"}}>
+            <span style={{fontFamily:"'Archivo',sans-serif",fontSize:8.5,fontWeight:700,color:"rgba(255,255,255,0.45)",letterSpacing:"0.12em",textTransform:"uppercase"}}>Minutes</span>
+            <span style={{fontFamily:"'Archivo',sans-serif",fontSize:8.5,fontWeight:700,color:"rgba(255,255,255,0.45)",letterSpacing:"0.12em",textTransform:"uppercase"}}>Seconds</span>
+          </div>
+          <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.55)",marginTop:8,textAlign:"center"}}>Run time <span style={{fontFamily:_MO,fontWeight:700,color:"#fff"}}>{runManualMin}:{runManualSec}</span></div>
+        </div>
+        <button onClick={_totalSec>0?finishManualRun:undefined} disabled={_totalSec<=0} style={{width:"100%",padding:"16px",background:"var(--cm-paper,#FFFFFF)",border:"none",borderRadius:14,color:"var(--cm-red,#FF3B30)",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:_totalSec>0?"pointer":"not-allowed",opacity:_totalSec>0?1:0.5,WebkitTapHighlightColor:"transparent"}}>{_totalSec>0?"SAVE RUN →":"SET A DURATION"}</button>
       </div>
     );
   }
 
   function renderRunSummary(){
     if(!runSummary)return null;
-    const {elapsed,distance,avgPace,calories,laps}=runSummary;
+    const {elapsed,distance,calories,laps,mode,effort}=runSummary;
+    const _isGps=mode==='gps';
+    const _effortLabel={1:"Easy",2:"Moderate",3:"Hard",4:"Max"}[effort]||"—";
+    // ── unit helpers ──────────────────────────────────────────────────────────
+    const _imperial=(profile?.wUnit||wPrefs?.wUnit)==='lbs';
+    const _distU=_imperial?'mi':'km';
+    const _convD=(km)=>_imperial?km*0.621371:km;
+    const _pace=(km,sec)=>{const d=_imperial?km*0.621371:km;if(d<0.01||sec<5)return'--:--';const s=sec/d;return`${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}`;};
+    // ── race predictions — HONESTY RULE: "Reached" = distance ACTUALLY covered this run;
+    //    "projected" = extrapolated BEYOND it. Thresholds are the real race distances (5.0/10.0 km),
+    //    NOT the mile-rounded 3.1/6.2 (those are label text only). ──────────────────────────────
+    const _paceSecPerKm=(distance>0&&elapsed>5)?elapsed/distance:0;
+    const _predTime=(km)=>_paceSecPerKm>0?fmtTime(Math.round(_paceSecPerKm*km)):'--:--';
+    const _reached5k=distance>=5.0;
+    const _reached10k=distance>=10.0;
+    const _racePreds=[];
+    if(_paceSecPerKm>0){
+      if(_reached5k) _racePreds.push({label:"5K", time:_predTime(5),      tag:"Reached",  note:"actual, at mile 3.1"});
+      if(_reached10k)_racePreds.push({label:"10K",time:_predTime(10),     tag:"Reached",  note:"actual, at mile 6.2"});
+      if(_reached10k)     _racePreds.push({label:"HALF",time:_predTime(21.0975),tag:"projected",note:"extrapolated at this pace"});
+      else if(_reached5k) _racePreds.push({label:"10K", time:_predTime(10),     tag:"projected",note:"extrapolated at this pace"});
+      else                _racePreds.push({label:"5K",  time:_predTime(5),      tag:"projected",note:"extrapolated at this pace"});
+    }
+    // ── race phase (same logic as Train hero) ─────────────────────────────────
+    const _raceDate=profile?.runProfile?.raceDate||profile?.run_race_date||null;
+    const _phase=getRunningPhase(_raceDate);
+    // ── fonts ─────────────────────────────────────────────────────────────────
+    const _AF="'Archivo',sans-serif";
+    const _MO="'DM Mono',monospace";
+    // ── lap times ─────────────────────────────────────────────────────────────
+    const lapTimes=(laps||[]).map((lap,i)=>i===0?lap.time:lap.time-laps[i-1].time);
+    const fastestLap=lapTimes.length?Math.min(...lapTimes):0;
+    const slowestLap=lapTimes.length?Math.max(...lapTimes):0;
+    const lapRange=Math.max(1,slowestLap-fastestLap);
+    // ── NEXT UP (tomorrow) — this block was copied from SummaryPortal without its deps,
+    //    causing "Can't find variable: tomorrowFullDay". Same chain, scoped to this render. ──
+    const tomorrowKey=WDAYS[(WDAYS.indexOf(todayKey)+1)%7];
+    const tomorrowType=schedule?.[tomorrowKey]||'rest';
+    const tomorrowFocus=tomorrowType==='rest'?'REST DAY':(dayFocus?.[tomorrowKey]||tomorrowType.toUpperCase())+' DAY';
+    const tomorrowFullDay=['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'][(new Date().getDay()+1)%7];
     return(
-      <div style={{paddingTop:20}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// RUN COMPLETE</div>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:0.9,marginBottom:24}}>
-          NICE WORK<span style={{color:"var(--accent)"}}>.</span>
+      // RED CANVAS — subtle 178deg gradient; cards float on it with red gutters as intentional spacing.
+      // Recolors across all 8 themes (--cm-accent === accent.hex, --cm-accent-deep === darkened accent).
+      <div style={{margin:"0 -18px",minHeight:"100vh",background:"linear-gradient(178deg, var(--cm-accent,#FF3B30) 0%, var(--cm-accent-deep,#C2321F) 62%)",padding:"14px 16px max(env(safe-area-inset-bottom,20px),28px)"}}>
+
+        {/* ── HERO (no card — sits directly on red, white text) ─── */}
+        <div style={{padding:"10px 6px 2px"}}>
+          {/* Eyebrow + phase pill (white pill, accent-deep text) */}
+          <div style={{display:"flex",alignItems:"center",gap:9,flexWrap:"wrap",marginBottom:14}}>
+            <span style={{fontFamily:_AF,fontSize:12.5,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(255,255,255,0.9)"}}>Run complete</span>
+            {_phase&&(
+              <span style={{display:"inline-flex",alignItems:"center",gap:5,fontFamily:_AF,fontSize:10,fontWeight:800,letterSpacing:"0.10em",textTransform:"uppercase",background:"#fff",color:"var(--cm-accent-deep,#C2321F)",padding:"3px 9px",borderRadius:20}}>
+                <span style={{width:6,height:6,borderRadius:"50%",background:_phase.color,display:"inline-block",flexShrink:0}}/>
+                {_phase.label}
+              </span>
+            )}
+          </div>
+          {/* Distance — MONO numeral, sans unit baseline-aligned (not floating mid-height) */}
+          <div style={{display:"flex",alignItems:"baseline",gap:10,marginTop:14,marginBottom:8}}>
+            <div style={{fontFamily:_MO,fontWeight:700,fontSize:76,lineHeight:0.86,color:"#fff",letterSpacing:"-0.04em"}}>
+              {distance>0?_convD(distance).toFixed(2):"—"}
+            </div>
+            {distance>0&&<div style={{fontFamily:_AF,fontWeight:800,fontSize:26,lineHeight:1,color:"rgba(255,255,255,0.9)"}}>{_distU}</div>}
+          </div>
+          {/* Sub-line */}
+          <div style={{fontFamily:_AF,fontWeight:600,fontSize:13,color:"rgba(255,255,255,0.82)",letterSpacing:"0.02em"}}>
+            {(todayFocus||"Run")} · {new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+          </div>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
+
+        {/* ── BIG STAT TRIO (one white card, hairline dividers) ─── */}
+        <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:22,padding:"22px 10px",display:"flex",boxShadow:"0 10px 30px rgba(120,30,10,.16)"}}>
           {[
-            {l:"DISTANCE",v:distance>0?`${distance.toFixed(2)} km`:"—"},
-            {l:"TIME",v:fmtTime(elapsed)},
-            {l:"AVG PACE",v:avgPace},
-            {l:"CALORIES",v:`${calories} kcal`}
-          ].map(({l,v})=>(
-            <div key={l} style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12,padding:"16px",textAlign:"center"}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>{l}</div>
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0"}}>{v}</div>
+            {l:"TIME",    v:fmtTime(elapsed),         suf:null,         mono:true},
+            {l:"AVG PACE",v:_pace(distance,elapsed),  suf:`/${_distU}`, mono:true},
+            // GPS has no effort input → show CALS (mono); manual → show entered EFFORT word (sans).
+            _isGps
+              ? {l:"CALS",  v:String(calories), suf:"kcal", mono:true}
+              : {l:"EFFORT",v:_effortLabel,     suf:null,   mono:false},
+          ].map(({l,v,suf,mono},i)=>(
+            <div key={l} style={{flex:1,textAlign:"center",borderLeft:i>0?"1px solid rgba(var(--cm-ink-rgb,10,10,10),.07)":"none"}}>
+              <div style={{fontFamily:_AF,fontWeight:700,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",letterSpacing:"0.1em",textTransform:"uppercase"}}>{l}</div>
+              <div style={{fontFamily:mono?_MO:_AF,fontWeight:mono?700:800,fontSize:mono?30:23,color:"var(--cm-ink,#0A0A0A)",lineHeight:1,letterSpacing:"-0.02em",marginTop:7,display:"flex",alignItems:"baseline",justifyContent:"center",gap:2}}>
+                {v}
+                {suf&&<span style={{fontFamily:_MO,fontSize:14,fontWeight:700,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)"}}>{suf}</span>}
+              </div>
             </div>
           ))}
         </div>
-        {laps?.length>0&&<>
-          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.16em",marginBottom:8}}>// Splits</div>
-          {laps.map((lap,i)=>{
-            const lapTime=i===0?lap.time:lap.time-laps[i-1].time;
-            const avgLapTime=elapsed/Math.max(laps.length,1);
-            const isFaster=lapTime<avgLapTime;
-            return(
-              <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid rgba(245,245,240,0.06)"}}>
-                <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase"}}>KM {i+1}</span>
-                <span style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:isFaster?"#22c55e":"var(--accent)"}}>{fmtTime(lapTime)}</span>
+
+        {/* ── AT THIS PACE (race predictions — HONESTY RULE preserved: Reached = distance actually run,
+             Projected = extrapolated; real 5.0/10.0km thresholds in the preamble). ─── */}
+        {_racePreds.length>0&&(
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:22,marginTop:14,padding:"18px 18px",boxShadow:"0 8px 24px rgba(120,30,10,.13)"}}>
+            <div style={{fontFamily:_AF,fontSize:12,fontWeight:800,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.4)",marginBottom:12}}>At this pace</div>
+            {_racePreds.map((p,i)=>{
+              const _rch=p.tag==="Reached";
+              return(
+                <div key={i} style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,paddingTop:i>0?14:0,marginTop:i>0?14:0,borderTop:i>0?"1px solid rgba(var(--cm-ink-rgb,10,10,10),.07)":"none"}}>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontFamily:_AF,fontWeight:800,fontSize:22,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"-0.01em",lineHeight:1}}>{p.label}</div>
+                    {/* Reached (accent-deep on accent-tint) vs Projected (muted) — distinction must stay obvious */}
+                    <span style={{display:"inline-block",fontFamily:_AF,fontSize:10,fontWeight:800,letterSpacing:"0.06em",textTransform:"uppercase",padding:"3px 8px",borderRadius:6,marginTop:7,background:_rch?"rgba(var(--cm-accent-rgb,255,59,48),0.12)":"rgba(var(--cm-ink-rgb,10,10,10),0.06)",color:_rch?"var(--cm-accent-deep,#C2321F)":"rgba(var(--cm-ink-rgb,10,10,10),0.45)"}}>{_rch?"Reached":"Projected"}</span>
+                    <div style={{fontFamily:_AF,fontWeight:500,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",marginTop:8}}>{p.note}</div>
+                  </div>
+                  <span style={{fontFamily:_MO,fontWeight:700,fontSize:30,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"-0.02em",fontVariantNumeric:"tabular-nums",flexShrink:0}}>{p.time}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── CALORIES (quiet, manual only — GPS shows CALS in the stat trio, so no dupe) ─── */}
+        {!_isGps&&(
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:22,marginTop:14,padding:"16px 18px",boxShadow:"0 8px 24px rgba(120,30,10,.13)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <span style={{fontFamily:_AF,fontWeight:600,fontSize:14,color:"rgba(var(--cm-ink-rgb,10,10,10),.55)"}}>Calories (est.)</span>
+            <span style={{fontFamily:_MO,fontWeight:700,fontSize:19,color:"var(--cm-ink,#0A0A0A)",display:"flex",alignItems:"baseline",gap:4}}>{calories}<span style={{fontFamily:_AF,fontSize:11,fontWeight:600,color:"rgba(var(--cm-ink-rgb,10,10,10),.5)"}}>kcal</span></span>
+          </div>
+        )}
+
+        {/* ── SPLITS (own card) — GPS: lap-based bars (real per-mile derivation from runCoords is a Tier-3 TODO);
+             MANUAL: dashed "Splits need GPS" prompt (NEVER fabricate splits from total dist+time). ─── */}
+        <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:22,marginTop:14,padding:"18px 18px",boxShadow:"0 8px 24px rgba(120,30,10,.13)"}}>
+          <div>
+            <div style={{fontFamily:_AF,fontSize:12,fontWeight:800,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.4)",marginBottom:14}}>Splits</div>
+            {lapTimes.length>0?lapTimes.map((lapTime,i)=>{
+              const isFastest=lapTime===fastestLap;
+              const isSlowest=lapTime===slowestLap&&lapTimes.length>1;
+              const barPct=70+30*((slowestLap-lapTime)/lapRange);
+              return(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:isFastest?13:8}}>
+                  <span style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:isFastest?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),.45)",width:30,flexShrink:0}}>
+                    {_distU.toUpperCase()} {i+1}
+                  </span>
+                  <div style={{flex:1,background:"rgba(var(--cm-ink-rgb,10,10,10),.08)",borderRadius:3,height:isFastest?11:7,overflow:"hidden"}}>
+                    <div style={{width:`${barPct}%`,height:"100%",borderRadius:3,background:isFastest?"var(--cm-red,#FF3B30)":isSlowest?"rgba(var(--cm-ink-rgb,10,10,10),.35)":"var(--cm-ink,#0A0A0A)",transition:"width 0.6s cubic-bezier(0.2,0.7,0.3,1)"}}/>
+                  </div>
+                  <span style={{fontFamily:isFastest?_AF:_MO,fontWeight:isFastest?800:400,fontSize:isFastest?15:11,color:isFastest?"var(--cm-red,#FF3B30)":isSlowest?"rgba(var(--cm-ink-rgb,10,10,10),.40)":"var(--cm-ink,#0A0A0A)",letterSpacing:isFastest?"-0.01em":"0",minWidth:44,textAlign:"right"}}>
+                    {fmtTime(lapTime)}
+                  </span>
+                </div>
+              );
+            }):(
+              <div style={{border:"1.5px dashed rgba(var(--cm-ink-rgb,10,10,10),.2)",borderRadius:16,padding:"18px 16px",textAlign:"center"}}>
+                <div style={{fontFamily:_AF,fontWeight:800,fontSize:14,color:"var(--cm-ink,#0A0A0A)",marginBottom:5}}>Splits need GPS</div>
+                <div style={{fontFamily:_AF,fontWeight:500,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),.5)",lineHeight:1.5,maxWidth:250,marginLeft:"auto",marginRight:"auto"}}>A manual log has total distance &amp; time. Start a GPS run to see per-mile pace.</div>
               </div>
-            );
-          })}
-        </>}
-        <button onClick={()=>{setSessionMode(null);clearWorkoutSummary();}} style={{width:"100%",marginTop:24,padding:"16px",background:"var(--accent)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>SAVE & EXIT →</button>
+            )}
+          </div>
+        </div>
+
+        {/* ── COACH (one card, two rows: Fuel + Next-up) — CardGlyph flat-emoji chips, hairline divider ─── */}
+        <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:22,marginTop:14,padding:"18px 18px",boxShadow:"0 8px 24px rgba(120,30,10,.13)"}}>
+          {/* Fuel */}
+          <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+            <CardGlyph icon="fluent-emoji-flat:fork-and-knife-with-plate" />
+            <div style={{minWidth:0}}>
+              <div style={{fontFamily:_AF,fontWeight:800,fontSize:16,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"-0.01em",lineHeight:1.2}}>{macros?`${Math.round((macros.protein||140)*0.3)}g protein · ${Math.round((macros.carbs||200)*0.35)}g carbs`:'30–40g protein · fast carbs'}</div>
+              <div style={{fontFamily:_AF,fontWeight:500,fontSize:12.5,color:"rgba(var(--cm-ink-rgb,10,10,10),.5)",lineHeight:1.45,marginTop:3}}>Refuel within 45 minutes — carbs refill glycogen, protein repairs.</div>
+            </div>
+          </div>
+          {/* Next up — sleeping-face glyph only when tomorrow is actually a rest day; else a training glyph */}
+          <div style={{display:"flex",gap:12,alignItems:"flex-start",marginTop:14,paddingTop:14,borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.07)"}}>
+            <CardGlyph icon={tomorrowType==='rest'?"fluent-emoji-flat:sleeping-face":"fluent-emoji-flat:person-lifting-weights"} />
+            <div style={{minWidth:0}}>
+              <div style={{fontFamily:_AF,fontWeight:800,fontSize:16,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"-0.01em",lineHeight:1.2}}>{tomorrowFullDay[0]+tomorrowFullDay.slice(1).toLowerCase()} · {tomorrowFocus[0]+tomorrowFocus.slice(1).toLowerCase()}</div>
+              <div style={{fontFamily:_AF,fontWeight:500,fontSize:12.5,color:"rgba(var(--cm-ink-rgb,10,10,10),.5)",lineHeight:1.45,marginTop:3}}>{tomorrowType==='rest'?'Rest tomorrow. Sleep and nutrition do the work now.':'Next session in ~24 hours. Recover well tonight.'}</div>
+            </div>
+          </div>
+        </div>
+        {/* ── ACTIONS — in-flow on the red canvas: Edit (translucent white, manual only) + Save & exit (white, accent-deep). ─── */}
+        <div style={{display:"flex",gap:12,marginTop:22,padding:"0 2px"}}>
+          {!_isGps&&(
+            <button onClick={()=>setSessionMode('run-manual-finish')} style={{flex:1,padding:"17px",background:"rgba(255,255,255,0.16)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:16,color:"#fff",fontFamily:_AF,fontWeight:800,fontSize:15,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>Edit</button>
+          )}
+          <button onClick={()=>{setSessionMode(null);clearWorkoutSummary();}} style={{flex:_isGps?1:1.5,padding:"17px",background:"#fff",border:"none",borderRadius:16,color:"var(--cm-accent-deep,#C2321F)",fontFamily:_AF,fontWeight:800,fontSize:15,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>Save &amp; exit →</button>
+        </div>
+        {user&&elapsed>0&&(
+          <div style={{display:"flex",gap:7,justifyContent:"center",alignItems:"center",marginTop:14,fontFamily:_AF,fontWeight:600,fontSize:11.5,color:"rgba(255,255,255,0.85)"}}>
+            <span style={{width:6,height:6,borderRadius:"50%",background:"#fff",display:"inline-block"}}/>Synced to Apple Health
+          </div>
+        )}
       </div>
     );
   }
 
   function renderHyroxPicker(){
+    const _MO="'DM Mono',monospace";
+    const _BC="'Barlow Condensed',sans-serif";
     return(
       <div style={{paddingTop:20}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FC4C02",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// HYROX SESSION</div>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:0.9,marginBottom:24}}>
-          WHAT TYPE OF<br/><span style={{color:"#FC4C02"}}>SESSION?</span>
+        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Hyrox Session</div>
+        <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:34,lineHeight:0.9,color:"#fff",textTransform:"uppercase",marginBottom:24}}>
+          What type of<br/>session?
         </div>
         {[
-          {e:"🏁",l:"RACE SIMULATION.",sub:"Full race · All 8 stations · Race distances · 60-90 min",fn:startRaceSim},
-          {e:"⚡",l:"STATION WOD.",sub:`Coach picks your weakest stations · Multiple rounds · 20-40 min`,fn:()=>{setHyroxType('station_wod');startWOD();}},
-          {e:"🎯",l:"WEAKNESS FOCUS.",sub:"Single station deep work · Intervals · Build the station costing you time",fn:()=>{setHyroxWeaknessStation(null);setSessionMode('hyrox-weakness-picker');}},
-          {e:"🏃",l:"RUN INTERVALS.",sub:"Race-pace running · Builds the 8km running fitness most Hyrox athletes neglect",fn:()=>{setSessionMode('run-picker');}},
+          {e:"🏁",l:"Race Simulation",sub:"Full race · All 8 stations · Race distances · 60–90 min",fn:startRaceSim},
+          {e:"⚡",l:"Station WOD",sub:"Coach picks your weakest stations · Multiple rounds · 20–40 min",fn:()=>{setHyroxType('station_wod');startWOD();}},
+          {e:"🎯",l:"Weakness Focus",sub:"Single station deep work · Intervals · Build the station costing you time",fn:()=>{setHyroxWeaknessStation(null);setSessionMode('hyrox-weakness-picker');}},
+          {e:"🏃",l:"Run Intervals",sub:"Race-pace running · Builds the 8km running fitness most Hyrox athletes neglect",fn:()=>{setSessionMode('run-picker');}},
         ].map((o,i)=>(
-          <div key={i} onClick={o.fn} style={{background:"#0d0d0d",border:"1px solid rgba(252,76,2,0.12)",borderRadius:14,padding:"18px",marginBottom:10,cursor:"pointer",display:"flex",gap:16,alignItems:"flex-start"}}>
-            <div style={{fontSize:28,flexShrink:0}}>{o.e}</div>
-            <div>
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",marginBottom:4}}>{o.l}</div>
-              <div style={{fontFamily:"var(--body)",fontSize:12,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>{o.sub}</div>
+          <div key={i} onClick={o.fn} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)",borderRadius:16,padding:"16px",marginBottom:10,cursor:"pointer",WebkitTapHighlightColor:"transparent",display:"flex",gap:14,alignItems:"center",boxShadow:"0 2px 12px rgba(0,0,0,.08)"}}>
+            <div style={{width:46,height:46,flexShrink:0,borderRadius:12,background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{o.e}</div>
+            <div style={{flex:1}}>
+              <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",lineHeight:1,marginBottom:4}}>{o.l}</div>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",lineHeight:1.4}}>{o.sub}</div>
             </div>
           </div>
         ))}
@@ -2916,19 +3638,21 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   }
 
   function renderHyroxRaceSim(){
+    const _MO="'DM Mono',monospace";
+    const _BC="'Barlow Condensed',sans-serif";
     const seg=HYROX_RACE_SEGS[hyroxCurrentSeg]||HYROX_RACE_SEGS[0];
     const isRun=seg.type==='run';
     return(
       <div style={{paddingTop:20}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:18}}>
           <div>
-            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FC4C02",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// RACE SIMULATION</div>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,lineHeight:1,color:"#f5f5f0",fontVariantNumeric:"tabular-nums"}}>{fmtTime(hyroxTotalElapsed)}</div>
-            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase"}}>total time</div>
+            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:4}}>Race Simulation</div>
+            <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:40,lineHeight:1,color:"#fff",fontVariantNumeric:"tabular-nums"}}>{fmtTime(hyroxTotalElapsed)}</div>
+            <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>total time</div>
           </div>
           <div style={{textAlign:"right"}}>
-            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:2}}>segment</div>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:isRun?"#22c55e":"#FC4C02"}}>{hyroxCurrentSeg+1}/16</div>
+            <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:2}}>segment</div>
+            <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:22,color:"#fff"}}>{hyroxCurrentSeg+1}/16</div>
           </div>
         </div>
         <div style={{display:"flex",gap:4,marginBottom:20,alignItems:"center"}}>
@@ -2937,32 +3661,34 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             const done=stationSegIdx<hyroxCurrentSeg;
             const current=stationSegIdx===hyroxCurrentSeg;
             const isRunCurrent=stationSegIdx-1===hyroxCurrentSeg;
+            const active=current||isRunCurrent;
             return(
               <div key={i} style={{flex:1,textAlign:"center"}}>
-                <div style={{width:"100%",height:6,borderRadius:3,background:done?"#22c55e":current||isRunCurrent?"#FC4C02":"rgba(245,245,240,0.1)",transition:"background 0.3s"}}/>
-                <div style={{fontFamily:"var(--mono)",fontSize:6,color:done?"#22c55e":current?"#FC4C02":"rgba(245,245,240,0.2)",marginTop:2,textTransform:"uppercase"}}>{i+1}</div>
+                <div style={{width:"100%",height:active?8:6,borderRadius:4,background:done?"rgba(255,255,255,0.9)":active?"#fff":"rgba(255,255,255,0.25)",transition:"all 0.3s"}}/>
+                <div style={{fontFamily:_MO,fontSize:6,fontWeight:700,color:done?"rgba(255,255,255,0.7)":active?"#fff":"rgba(255,255,255,0.3)",marginTop:3,textTransform:"uppercase"}}>{i+1}</div>
               </div>
             );
           })}
         </div>
-        <div style={{background:isRun?"rgba(34,197,94,0.06)":"#0d0d0d",border:`1px solid ${isRun?"rgba(34,197,94,0.2)":"rgba(252,76,2,0.2)"}`,borderRadius:14,padding:18,marginBottom:20}}>
-          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:26,color:"#f5f5f0",marginBottom:4}}>
-            {isRun?"1KM RUN.":(seg.name||"STATION")+"."}<span style={{color:isRun?"#22c55e":"#FC4C02"}}>.</span>
+        <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:16,padding:20,marginBottom:18,boxShadow:"0 4px 20px rgba(0,0,0,.12)"}}>
+          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>{isRun?`Run ${seg.index+1} of 8`:`Station ${seg.index+1} of 8`}</div>
+          <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:30,lineHeight:0.95,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",marginBottom:isRun?8:4}}>
+            {isRun?"1KM Run":(seg.name||"Station")}
           </div>
-          {!isRun&&<div style={{fontFamily:"var(--condensed)",fontWeight:700,fontSize:18,color:"rgba(245,245,240,0.6)",marginBottom:8}}>{seg.distance||seg.reps||""}</div>}
-          {isRun&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",marginBottom:8}}>RECOVER AND PACE.</div>}
-          {!isRun&&seg.tip&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",fontStyle:"italic",lineHeight:1.5,marginBottom:14}}>{seg.tip}</div>}
-          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,color:isRun?"#22c55e":"#FC4C02",fontVariantNumeric:"tabular-nums",marginBottom:16}}>{fmtTime(hyroxSegElapsed)}</div>
-          <button onClick={completeHyroxSegment} style={{width:"100%",padding:"16px",background:isRun?"#22c55e":"#FC4C02",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>
-            {isRun?"COMPLETE RUN →":"COMPLETE STATION →"}
+          {!isRun&&(seg.distance||seg.reps)&&<div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:700,fontSize:18,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",textTransform:"uppercase",marginBottom:8}}>{seg.distance||seg.reps}</div>}
+          {isRun&&<div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:8}}>Recover and pace</div>}
+          {!isRun&&seg.tip&&<div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",fontStyle:"italic",lineHeight:1.5,marginBottom:14}}>{seg.tip}</div>}
+          <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:52,color:"var(--cm-red,#FF3B30)",fontVariantNumeric:"tabular-nums",lineHeight:1,marginBottom:16}}>{fmtTime(hyroxSegElapsed)}</div>
+          <button onClick={completeHyroxSegment} style={{width:"100%",padding:"16px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+            {isRun?"Complete Run →":"Complete Station →"}
           </button>
         </div>
         {hyroxSegTimes.length>0&&<div style={{marginBottom:16}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>// Completed</div>
+          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:8}}>Completed</div>
           {hyroxSegTimes.slice(-3).map((s,i)=>(
-            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid rgba(245,245,240,0.05)"}}>
-              <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.45)",textTransform:"uppercase"}}>{s.type==='run'?`Run ${s.index+1}`:s.name}</span>
-              <span style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:14,color:s.type==='run'?"#22c55e":"#f5f5f0"}}>{fmtTime(s.elapsed)}</span>
+            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid rgba(255,255,255,0.12)"}}>
+              <span style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.7)",textTransform:"uppercase",letterSpacing:"0.04em"}}>{s.type==='run'?`Run ${s.index+1}`:s.name}</span>
+              <span style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:15,color:"#fff"}}>{fmtTime(s.elapsed)}</span>
             </div>
           ))}
         </div>}
@@ -2971,51 +3697,58 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   }
 
   function renderHyroxWOD(){
+    const _MO="'DM Mono',monospace";
+    const _BC="'Barlow Condensed',sans-serif";
     const st=hyroxWodStations[hyroxWodCurStation];
     if(!st)return null;
     const totalSteps=hyroxWodRounds*hyroxWodStations.length;
     const doneSteps=hyroxWodCurRound*hyroxWodStations.length+hyroxWodCurStation;
     return(
       <div style={{paddingTop:20}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FC4C02",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// STATION WOD</div>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0"}}>{fmtTime(hyroxTotalElapsed)}</div>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)"}}>ROUND {hyroxWodCurRound+1} of {hyroxWodRounds}</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:14}}>
+          <div>
+            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:4}}>Station WOD</div>
+            <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:1,color:"#fff",fontVariantNumeric:"tabular-nums"}}>{fmtTime(hyroxTotalElapsed)}</div>
+          </div>
+          <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.75)",textTransform:"uppercase",letterSpacing:"0.06em"}}>Round {hyroxWodCurRound+1} of {hyroxWodRounds}</div>
         </div>
-        <div style={{height:3,background:"rgba(245,245,240,0.06)",borderRadius:2,marginBottom:20,overflow:"hidden"}}>
-          <div style={{height:"100%",background:"#FC4C02",width:`${(doneSteps/totalSteps)*100}%`,transition:"width 0.4s"}}/>
+        <div style={{height:4,background:"rgba(255,255,255,0.2)",borderRadius:2,marginBottom:20,overflow:"hidden"}}>
+          <div style={{height:"100%",background:"#fff",width:`${(doneSteps/totalSteps)*100}%`,transition:"width 0.4s"}}/>
         </div>
-        <div style={{background:"#0d0d0d",border:"1px solid rgba(252,76,2,0.2)",borderRadius:14,padding:18,marginBottom:20}}>
-          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:26,color:"#f5f5f0",marginBottom:4}}>{(st.name||"").toUpperCase()}<span style={{color:"#FC4C02"}}>.</span></div>
-          {st.isSubstituted&&<div style={{marginBottom:6}}><span style={{display:"inline-block",background:"rgba(254,160,32,0.08)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"rgba(254,160,32,0.7)",letterSpacing:"0.08em",textTransform:"uppercase"}}>// EQUIPMENT SUBSTITUTION</span></div>}
-          {(st.distance||st.reps)&&<div style={{fontFamily:"var(--condensed)",fontWeight:700,fontSize:18,color:"rgba(245,245,240,0.6)",marginBottom:8}}>{st.distance||st.reps}</div>}
-          {st.tip&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",fontStyle:"italic",lineHeight:1.5,marginBottom:14}}>{st.tip}</div>}
-          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,color:"#FC4C02",fontVariantNumeric:"tabular-nums",marginBottom:16}}>{fmtTime(hyroxSegElapsed)}</div>
-          <button onClick={completeWODStation} style={{width:"100%",padding:"16px",background:"#FC4C02",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>COMPLETE STATION →</button>
+        <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:16,padding:20,marginBottom:18,boxShadow:"0 4px 20px rgba(0,0,0,.12)"}}>
+          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>Current Station</div>
+          <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:30,lineHeight:0.95,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",marginBottom:4}}>{st.name||"Station"}</div>
+          {st.isSubstituted&&<div style={{marginBottom:8}}><span style={{display:"inline-block",background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)",borderRadius:6,padding:"3px 9px",fontFamily:_MO,fontSize:8,fontWeight:700,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.08em",textTransform:"uppercase"}}>Equipment Substitution</span></div>}
+          {(st.distance||st.reps)&&<div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:700,fontSize:18,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",textTransform:"uppercase",marginBottom:8}}>{st.distance||st.reps}</div>}
+          {st.tip&&<div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",fontStyle:"italic",lineHeight:1.5,marginBottom:14}}>{st.tip}</div>}
+          <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:52,color:"var(--cm-red,#FF3B30)",fontVariantNumeric:"tabular-nums",lineHeight:1,marginBottom:16}}>{fmtTime(hyroxSegElapsed)}</div>
+          <button onClick={completeWODStation} style={{width:"100%",padding:"16px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>Complete Station →</button>
         </div>
       </div>
     );
   }
 
   function renderHyroxWeaknessPicker(){
+    const _MO="'DM Mono',monospace";
+    const _BC="'Barlow Condensed',sans-serif";
     return(
       <div style={{paddingTop:20}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FC4C02",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// WEAKNESS FOCUS</div>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:0.9,marginBottom:6}}>
-          PICK YOUR<br/><span style={{color:"#FC4C02"}}>STATION.</span>
+        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Weakness Focus</div>
+        <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:0.9,color:"#fff",textTransform:"uppercase",marginBottom:6}}>
+          Pick your<br/>station
         </div>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginBottom:20,lineHeight:1.5}}>Single station · 5 rounds · Build the weakness costing you time</div>
+        <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.6)",marginBottom:20,lineHeight:1.5,letterSpacing:"0.04em",textTransform:"uppercase"}}>Single station · 5 rounds · Build the weakness costing you time</div>
         <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
           {HYROX_STATIONS.map((st,i)=>{
             const sel=hyroxWeaknessStation===st.name;
             return(
-              <div key={i} onClick={()=>setHyroxWeaknessStation(st.name)} style={{background:sel?"rgba(252,76,2,0.12)":"#0d0d0d",border:`1px solid ${sel?"rgba(252,76,2,0.4)":"rgba(252,76,2,0.1)"}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all .2s"}}>
+              <div key={i} onClick={()=>setHyroxWeaknessStation(st.name)} style={{background:"var(--cm-paper,#FFFFFF)",border:sel?"2px solid var(--cm-red,#FF3B30)":"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)",borderRadius:12,padding:"14px 16px",cursor:"pointer",WebkitTapHighlightColor:"transparent",display:"flex",justifyContent:"space-between",alignItems:"center",boxShadow:"0 2px 12px rgba(0,0,0,.06)",transition:"border-color .15s"}}>
                 <div>
-                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:17,color:"#f5f5f0"}}>{st.name}</div>
-                  {st.distance&&<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2,textTransform:"uppercase"}}>{st.distance}</div>}
+                  <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase"}}>{st.name}</div>
+                  {st.distance&&<div style={{fontFamily:_MO,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",marginTop:2,textTransform:"uppercase",letterSpacing:"0.08em"}}>{st.distance}</div>}
                 </div>
-                {sel&&<div style={{width:20,height:20,borderRadius:"50%",background:"#FC4C02",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  <svg width={10} height={10} viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                {sel&&<div style={{width:22,height:22,borderRadius:"50%",background:"var(--cm-red,#FF3B30)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <svg width={11} height={11} viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </div>}
               </div>
             );
@@ -3039,92 +3772,346 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             startHyroxSegTimer();
           }}
           disabled={!hyroxWeaknessStation}
-          style={{width:"100%",padding:"16px",background:hyroxWeaknessStation?"#FC4C02":"rgba(245,245,240,0.08)",border:"none",borderRadius:12,color:hyroxWeaknessStation?"#fff":"rgba(245,245,240,0.3)",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:hyroxWeaknessStation?"pointer":"not-allowed",transition:"all .2s"}}
-        >START FOCUS SESSION →</button>
+          style={{width:"100%",padding:"16px",background:hyroxWeaknessStation?"var(--cm-red,#FF3B30)":"rgba(255,255,255,0.18)",border:"none",borderRadius:14,color:hyroxWeaknessStation?"#fff":"rgba(255,255,255,0.5)",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:hyroxWeaknessStation?"pointer":"not-allowed",transition:"all .2s"}}
+        >Start Focus Session →</button>
       </div>
     );
   }
 
   function renderHyroxSummary(){
     if(!hyroxSummary)return null;
-    const {type,totalElapsed,segments}=hyroxSummary;
+    const _MO="'DM Mono',monospace";
+    const _BC="'Barlow Condensed',sans-serif";
+    const segs=hyroxEdit||hyroxSummary.segments||[];
+    const stnName=(s)=>s.name||HYROX_STATIONS[s.index]?.name||'Station';
+    const segLabel=(s)=>s.type==='run'?`Run ${(s.index||0)+1}`:(s.round!=null?`${stnName(s)} · R${s.round}`:stnName(s));
+    const totalElapsed=segs.length?segs.reduce((a,s)=>a+(s.elapsed||0),0):(hyroxSummary.totalElapsed||0);
+    const hasRuns=segs.some(s=>s.type==='run');
+    const isRounds=segs.some(s=>s.round!=null);
+    const dateStr=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}).toUpperCase();
+    const modeLabel=hasRuns?'RACE SIMULATION':isRounds?(new Set(segs.map(s=>stnName(s))).size>1?'STATION WOD':'WEAKNESS FOCUS'):'SESSION';
+    let tiles=[],rows=[];
+    if(hasRuns){
+      const runSegs=segs.filter(s=>s.type==='run');
+      const stationSegs=segs.filter(s=>s.type==='station');
+      const runTotal=runSegs.reduce((a,s)=>a+(s.elapsed||0),0);
+      const stationTotal=stationSegs.reduce((a,s)=>a+(s.elapsed||0),0);
+      const avgKm=runSegs.length?Math.round(runTotal/runSegs.length):0;
+      tiles=[{label:'RUN TOTAL',value:fmtTime(runTotal)},{label:'STATIONS',value:fmtTime(stationTotal)},{label:'AVG /KM',value:fmtTime(avgKm)}];
+      rows=stationSegs.map(s=>({name:stnName(s),t:s.elapsed||0}));
+    }else if(isRounds){
+      const byRound={};
+      segs.forEach(s=>{const r=s.round||1;byRound[r]=(byRound[r]||0)+(s.elapsed||0);});
+      const roundKeys=Object.keys(byRound).map(Number).sort((a,b)=>a-b);
+      const roundTimes=roundKeys.map(r=>byRound[r]);
+      const numRounds=roundKeys.length;
+      const avgRound=numRounds?Math.round(totalElapsed/numRounds):0;
+      const bestRound=roundTimes.length?Math.min(...roundTimes):0;
+      tiles=[{label:'ROUNDS',value:String(numRounds)},{label:'AVG ROUND',value:fmtTime(avgRound)},{label:'BEST ROUND',value:fmtTime(bestRound)}];
+      rows=roundKeys.map(r=>({name:`ROUND ${r}`,t:byRound[r]}));
+    }else{
+      rows=segs.map((s)=>({name:stnName(s),t:s.elapsed||0}));
+    }
+    let slowestIdx=-1,slowT=-1;
+    rows.forEach((r,i)=>{if(r.t>slowT){slowT=r.t;slowestIdx=i;}});
+    const leakName=slowestIdx>=0?rows[slowestIdx].name:null;
+    const maxT=rows.reduce((m,r)=>Math.max(m,r.t),0)||1;
+    const finishExit=()=>{saveHyroxSession(hyroxSummary.type||'race_sim',totalElapsed,segs);setHyroxEdit(null);setHyroxEditing(false);setHyroxPickerIdx(null);setHyroxSummary(null);setSessionMode(null);clearWorkoutSummary();};
+    const ITEM=40;
+    const mins=Array.from({length:31},(_,i)=>i);
+    const secs=Array.from({length:12},(_,i)=>i*5);
     return(
-      <div style={{paddingTop:20}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FC4C02",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// SESSION COMPLETE</div>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:0.9,marginBottom:20}}>
-          DONE<span style={{color:"#FC4C02"}}>.</span>
+      <div style={{paddingTop:20,paddingBottom:24}}>
+        <div style={{width:56,height:56,borderRadius:'50%',background:'#fff',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:20}}>
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M5 13l6 6 10-10" stroke="var(--cm-red,#FF3B30)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
-        <div style={{background:"#0d0d0d",border:"1px solid rgba(252,76,2,0.08)",borderRadius:12,padding:16,marginBottom:16,textAlign:"center"}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>TOTAL TIME</div>
-          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0"}}>{fmtTime(totalElapsed)}</div>
+        <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:60,color:'#fff',lineHeight:0.9,textTransform:'uppercase',marginBottom:8,letterSpacing:'-0.01em'}}>SESSION<br/>COMPLETE</div>
+        <div style={{fontFamily:_MO,fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.6)',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:24}}>{modeLabel} · {dateStr}</div>
+        <div style={{background:'var(--cm-paper,#FFFFFF)',borderRadius:22,padding:'18px 16px',marginBottom:12,textAlign:'center',boxShadow:'0 2px 12px rgba(0,0,0,.10)'}}>
+          <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.45)',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:4}}>Total Time</div>
+          <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:52,color:'var(--cm-ink,#0A0A0A)',lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{fmtTime(totalElapsed)}</div>
         </div>
-        <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>// Segment Splits</div>
-        {segments.map((s,i)=>(
-          <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid rgba(245,245,240,0.05)"}}>
-            <span style={{fontFamily:"var(--mono)",fontSize:9,color:s.type==='run'?"rgba(34,197,94,0.7)":"rgba(245,245,240,0.55)",textTransform:"uppercase"}}>{s.type==='run'?`Run ${s.index+1}`:s.round!=null?`${s.name||""} R${s.round}`:(s.name||"")}</span>
-            <span style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:s.type==='run'?"#22c55e":"#f5f5f0"}}>{fmtTime(s.elapsed)}</span>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:12}}>
+          {tiles.map((tl,i)=>(
+            <div key={i} style={{background:'var(--cm-paper,#FFFFFF)',borderRadius:22,padding:'14px 8px',textAlign:'center',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+              <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:22,color:'var(--cm-ink,#0A0A0A)',lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{tl.value}</div>
+              <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.45)',letterSpacing:'0.1em',textTransform:'uppercase',marginTop:4}}>{tl.label}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{background:'var(--cm-paper,#FFFFFF)',borderRadius:22,padding:'20px',marginBottom:12,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)',letterSpacing:'0.16em',textTransform:'uppercase'}}>{hyroxEditing?'Edit Times':hasRuns?'Stations · Biggest Leak':'Rounds · Slowest'}</div>
+            <div onClick={()=>setHyroxEditing(e=>!e)} style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.08em',textTransform:'uppercase',cursor:'pointer',WebkitTapHighlightColor:'transparent',padding:'4px 6px'}}>{hyroxEditing?'Done':'Edit'}</div>
           </div>
-        ))}
-        <button onClick={()=>{setSessionMode(null);clearWorkoutSummary();}} style={{width:"100%",marginTop:24,padding:"16px",background:"#FC4C02",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>SAVE & EXIT →</button>
+          {hyroxEditing?(
+            <div>
+              {segs.map((s,i)=>(
+                <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 0',borderBottom:i===segs.length-1?'none':'1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)'}}>
+                  <span style={{fontFamily:_BC,fontStyle:'italic',fontWeight:700,fontSize:14,color:'rgba(var(--cm-ink-rgb,10,10,10),0.85)',textTransform:'uppercase'}}>{segLabel(s)}</span>
+                  <div onClick={()=>setHyroxPickerIdx(i)} style={{display:'flex',alignItems:'center',gap:7,cursor:'pointer',WebkitTapHighlightColor:'transparent',background:'rgba(var(--cm-red-rgb,255,59,48),0.08)',padding:'6px 12px',borderRadius:10}}>
+                    <span style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:16,color:'var(--cm-red,#FF3B30)',fontVariantNumeric:'tabular-nums'}}>{fmtTime(s.elapsed||0)}</span>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="var(--cm-red,#FF3B30)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </div>
+                </div>
+              ))}
+              <div style={{fontFamily:_MO,fontSize:9,fontStyle:'italic',color:'rgba(var(--cm-ink-rgb,10,10,10),0.5)',marginTop:12,lineHeight:1.5}}>Tap any time to adjust it. The total updates automatically.</div>
+            </div>
+          ):(
+            <div>
+              {rows.map((r,i)=>{
+                const isLeak=i===slowestIdx;
+                const w=Math.round((r.t/maxT)*100);
+                return(
+                  <div key={i} style={{marginBottom:i===rows.length-1?0:12}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:5}}>
+                      <span style={{fontFamily:_BC,fontStyle:'italic',fontWeight:isLeak?900:700,fontSize:isLeak?16:14,color:isLeak?'var(--cm-red,#FF3B30)':'rgba(var(--cm-ink-rgb,10,10,10),0.85)',textTransform:'uppercase'}}>
+                        {r.name}{isLeak&&<span style={{fontFamily:_MO,fontSize:8,fontWeight:700,marginLeft:8,padding:'2px 7px',borderRadius:6,background:'rgba(var(--cm-red-rgb,255,59,48),0.1)',color:'var(--cm-red,#FF3B30)',letterSpacing:'0.06em',verticalAlign:'middle'}}>LEAK</span>}
+                      </span>
+                      <span style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:isLeak?16:15,color:isLeak?'var(--cm-red,#FF3B30)':'var(--cm-ink,#0A0A0A)',fontVariantNumeric:'tabular-nums'}}>{fmtTime(r.t)}</span>
+                    </div>
+                    <div style={{height:isLeak?8:6,borderRadius:4,background:'rgba(var(--cm-ink-rgb,10,10,10),0.07)',overflow:'hidden'}}>
+                      <div style={{height:'100%',width:`${w}%`,borderRadius:4,background:isLeak?'var(--cm-red,#FF3B30)':'rgba(var(--cm-ink-rgb,10,10,10),0.28)'}}/>
+                    </div>
+                  </div>
+                );
+              })}
+              {leakName&&<div style={{fontFamily:_MO,fontSize:9,fontStyle:'italic',color:'rgba(var(--cm-ink-rgb,10,10,10),0.5)',lineHeight:1.5,marginTop:14}}>Biggest leak: {leakName}. Target this to find your fastest gains.</div>}
+            </div>
+          )}
+        </div>
+        <button onClick={finishExit} style={{width:'100%',padding:'18px 0',background:'var(--cm-paper,#FFFFFF)',border:'none',borderRadius:24,color:'var(--cm-red,#FF3B30)',fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>Save &amp; Exit →</button>
+        {hyroxPickerIdx!=null&&segs[hyroxPickerIdx]&&(()=>{
+          const s=segs[hyroxPickerIdx];
+          const cur=s.elapsed||0;
+          const initMin=Math.min(30,Math.floor(cur/60));
+          const initSecIdx=Math.min(11,Math.round((cur%60)/5));
+          const sel={min:initMin,sec:initSecIdx};
+          const commit=()=>setHyroxEdit(prev=>(prev||hyroxSummary.segments||[]).map((x,idx)=>idx===hyroxPickerIdx?{...x,elapsed:sel.min*60+sel.sec*5}:x));
+          const wheel=(items,initIdx,onIdx,fmt)=>(
+            <div ref={el=>{if(el&&el.dataset.pk!==String(hyroxPickerIdx)){el.dataset.pk=String(hyroxPickerIdx);el.scrollTop=initIdx*ITEM;}}}
+              onScroll={e=>{const el=e.currentTarget;clearTimeout(el._t);el._t=setTimeout(()=>{const i=Math.max(0,Math.min(items.length-1,Math.round(el.scrollTop/ITEM)));el.scrollTop=i*ITEM;onIdx(i);commit();},110);}}
+              style={{height:ITEM*5,overflowY:'scroll',scrollSnapType:'y mandatory',WebkitOverflowScrolling:'touch',flex:1,textAlign:'center',WebkitMaskImage:'linear-gradient(to bottom,transparent,#000 34%,#000 66%,transparent)',maskImage:'linear-gradient(to bottom,transparent,#000 34%,#000 66%,transparent)'}}>
+              <div style={{height:ITEM*2}}/>
+              {items.map((it,i)=>(<div key={i} style={{height:ITEM,lineHeight:`${ITEM}px`,scrollSnapAlign:'center',fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:26,color:'var(--cm-ink,#0A0A0A)',fontVariantNumeric:'tabular-nums'}}>{fmt(it)}</div>))}
+              <div style={{height:ITEM*2}}/>
+            </div>
+          );
+          return(
+            <div onClick={()=>setHyroxPickerIdx(null)} style={{position:'fixed',inset:0,zIndex:10050,background:'rgba(0,0,0,0.45)',display:'flex',alignItems:'flex-end'}}>
+              <div onClick={e=>e.stopPropagation()} style={{width:'100%',background:'var(--cm-paper,#FFFFFF)',borderTopLeftRadius:24,borderTopRightRadius:24,padding:'20px 20px max(env(safe-area-inset-bottom),20px)',boxSizing:'border-box'}}>
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.5)',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:6,textAlign:'center'}}>{segLabel(s)}</div>
+                <div style={{position:'relative',display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
+                  <div style={{position:'absolute',left:'15%',right:'15%',top:ITEM*2,height:ITEM,background:'rgba(var(--cm-red-rgb,255,59,48),0.08)',borderTop:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.25)',borderBottom:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.25)',pointerEvents:'none',borderRadius:8}}/>
+                  {wheel(mins,initMin,(i)=>{sel.min=i;},(m)=>String(m))}
+                  <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:24,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)'}}>:</div>
+                  {wheel(secs,initSecIdx,(i)=>{sel.sec=i;},(x)=>String(x).padStart(2,'0'))}
+                </div>
+                <div style={{display:'flex',justifyContent:'center',gap:'28%',marginTop:4,marginBottom:14}}>
+                  <span style={{fontFamily:_MO,fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)',letterSpacing:'0.1em',textTransform:'uppercase'}}>min</span>
+                  <span style={{fontFamily:_MO,fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)',letterSpacing:'0.1em',textTransform:'uppercase'}}>sec</span>
+                </div>
+                <button onClick={()=>setHyroxPickerIdx(null)} style={{width:'100%',padding:'15px 0',background:'var(--cm-red,#FF3B30)',border:'none',borderRadius:14,color:'#fff',fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>Done</button>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     );
   }
 
   return (
-    <div className={GOCLUB_REDESIGN?"goclub tab-train":"page-enter"} style={{paddingBottom:isMobile?20:0,background:GOCLUB_REDESIGN?"#000":undefined}}>
+    <div className={GOCLUB_REDESIGN?"goclub tab-train":"page-enter"} style={{paddingBottom:isMobile?20:0}}>
       {GOCLUB_REDESIGN&&<style>{_TRAIN_GOCLUB_CSS}</style>}
       {/* Adapt Now Modal */}
       {showAdapt&&<AdaptNowModal wPrefs={wPrefs} profile={profile} todayFocus={todayFocus} todayExercises={Array.isArray(todayPrescription)?todayPrescription:[]} adaptationsLeft={adaptLeft} adaptationsUsed={adaptUsed} adaptLimit={adaptLimit} adaptResetDate={adaptResetDate} onUseAdapted={useAdaptedSession} onClose={()=>setShowAdapt(false)} user={user} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey}/>}
 
       {/* Swap Exercise Modal */}
       {swapModal&&(()=>{
-        const opts=getSwapOptions(swapModal.originalName,wPrefs.equipment||"Full Gym");
+        const _equipOpts=getSwapOptionsForEquipment(swapModal.originalName,wPrefs.equipment||"Full Gym");
+        const opts=_equipOpts.length>0?_equipOpts:getSwapOptions(swapModal.originalName,wPrefs.equipment||"Full Gym");
         return(
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(8px)",zIndex:250,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setSwapModal(null)}>
-            <div style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:"18px 18px 0 0",padding:"20px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
-              <div style={{width:32,height:3,background:"rgba(var(--accent-rgb),0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
-              <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>SWAP EXERCISE</div>
-              <div style={{fontSize:18,fontWeight:700,marginBottom:2}}>{swapModal.exerciseName}</div>
-              <div style={{fontSize:12,color:"rgba(245,245,240,.4)",marginBottom:18}}>Choose a replacement — same muscle group</div>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",backdropFilter:"blur(8px)",zIndex:10000,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setSwapModal(null)}>
+            <div style={{background:"var(--cm-paper,#fff)",border:"none",borderRadius:"24px 24px 0 0",padding:"20px 20px",paddingBottom:"max(env(safe-area-inset-bottom),32px)",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
+              <div style={{width:36,height:4,background:"rgba(var(--cm-ink-rgb,10,10,10),.12)",borderRadius:2,margin:"0 auto 20px"}}/>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:".14em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",marginBottom:6}}>SWAP EXERCISE</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",lineHeight:1,marginBottom:4}}>{swapModal.exerciseName}</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),.50)",marginBottom:16}}>Choose a replacement — same muscle group</div>
               {opts.length>0
                 ?<div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:18}}>
                   {opts.map((opt,i)=>(
                     <button key={i} onClick={()=>setSelectedSwap(selectedSwap===opt.name?null:opt.name)}
-                      style={{padding:"12px 16px",background:selectedSwap===opt.name?"rgba(var(--accent-rgb),.12)":"rgba(var(--accent-rgb),0.04)",border:`1.5px solid ${selectedSwap===opt.name?"rgba(var(--accent-rgb),.45)":"rgba(var(--accent-rgb),0.08)"}`,borderRadius:10,textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",fontFamily:"inherit"}}>
-                      <span style={{fontSize:14,fontWeight:600,color:"#fff"}}>{opt.name}</span>
-                      {selectedSwap===opt.name&&<span style={{fontSize:14,color:T.prot}}>✓</span>}
+                      style={{padding:"12px 16px",background:selectedSwap===opt.name?"rgba(255,59,48,.07)":"rgba(var(--cm-ink-rgb,10,10,10),.04)",border:`1.5px solid ${selectedSwap===opt.name?"rgba(255,59,48,.30)":"rgba(var(--cm-ink-rgb,10,10,10),.10)"}`,borderRadius:12,textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",fontFamily:"inherit"}}>
+                      <span style={{fontSize:14,fontWeight:600,color:"var(--cm-ink,#0A0A0A)"}}>{opt.name}</span>
+                      {selectedSwap===opt.name&&<span style={{fontSize:16,color:"var(--cm-red,#FF3B30)",fontWeight:700}}>✓</span>}
                     </button>
                   ))}
                 </div>
-                :<div style={{fontSize:13,color:"rgba(245,245,240,.4)",textAlign:"center",padding:"16px 0",marginBottom:18}}>No alternatives for this equipment setup.</div>
+                :<div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),.40)",textAlign:"center",padding:"16px 0",marginBottom:18}}>No alternatives for this equipment setup.</div>
               }
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18,padding:"12px 14px",background:"rgba(var(--accent-rgb),0.03)",borderRadius:10,border:"1px solid rgba(var(--accent-rgb),0.06)"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18,padding:"12px 14px",background:"rgba(var(--cm-ink-rgb,10,10,10),.04)",borderRadius:12,border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.08)"}}>
                 <div>
-                  <div style={{fontSize:13,fontWeight:600,color:"#fff"}}>Make permanent</div>
-                  <div style={{fontSize:11,color:"rgba(245,245,240,.4)"}}>Always replace this exercise in my plan</div>
+                  <div style={{fontSize:13,fontWeight:600,color:"var(--cm-ink,#0A0A0A)"}}>Make permanent</div>
+                  <div style={{fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),.50)"}}>Always replace this exercise in my plan</div>
                 </div>
-                <button onClick={()=>setSwapPermanent(p=>!p)} style={{width:40,height:24,borderRadius:12,border:"none",background:swapPermanent?T.prot:"rgba(var(--accent-rgb),0.12)",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0}}>
-                  <div style={{width:18,height:18,borderRadius:"50%",background:"#fff",position:"absolute",top:3,transition:"left .2s",left:swapPermanent?19:3}}/>
+                <button onClick={()=>setSwapPermanent(p=>!p)} style={{width:48,height:28,borderRadius:"999px",border:"none",background:swapPermanent?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),.14)",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0,minHeight:"auto"}}>
+                  <div style={{width:22,height:22,borderRadius:"50%",background:"#fff",position:"absolute",top:3,transition:"left .18s",left:swapPermanent?23:3,boxShadow:"0 1px 4px rgba(0,0,0,.20)"}}/>
                 </button>
               </div>
               <button onClick={()=>selectedSwap&&applySwap(swapModal.exerciseIdx,selectedSwap,swapPermanent,swapModal.originalName)} disabled={!selectedSwap}
-                style={{width:"100%",padding:15,background:selectedSwap?T.prot:"rgba(var(--accent-rgb),0.05)",color:selectedSwap?"#fff":"rgba(245,245,240,.25)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:selectedSwap?"pointer":"not-allowed",fontFamily:"inherit",marginBottom:10,transition:"all .2s"}}>
+                style={{width:"100%",padding:15,background:selectedSwap?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),.06)",color:selectedSwap?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),.35)",border:"none",borderRadius:14,fontWeight:700,fontSize:15,cursor:selectedSwap?"pointer":"not-allowed",fontFamily:"inherit",marginBottom:10,transition:"all .2s"}}>
                 Swap Exercise →
               </button>
-              <button onClick={()=>setSwapModal(null)} style={{width:"100%",padding:13,background:"transparent",color:"rgba(245,245,240,.4)",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={()=>setSwapModal(null)} style={{width:"100%",padding:13,background:"transparent",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.12)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
             </div>
           </div>
         );
       })()}
 
       {/* Pre-session Readiness Modal */}
-      {showReadiness&&(
+      {/* ── Pre-session check-in — paper/ink (GOCLUB redesign) ── */}
+      {showReadiness&&GOCLUB_REDESIGN&&(()=>{
+        const _ciMO="'DM Mono',monospace";
+        const _ciBC="'Barlow Condensed',sans-serif";
+        const _ciAF="'Barlow',sans-serif";
+        const _dispWk=resolveDisplayWeek(programCurrentWeek,weekNum,wPrefs,profile);
+        // shared pill style builders (no T.* tokens)
+        const _pillSel={background:"var(--cm-red)",color:"#fff",border:"1.5px solid var(--cm-red)"};
+        const _pillOff={background:"rgba(var(--cm-ink-rgb),.05)",color:"var(--cm-ink)",border:"1.5px solid rgba(var(--cm-ink-rgb),.12)"};
+        const _pillBase={borderRadius:9,fontWeight:700,cursor:"pointer",fontFamily:_ciAF,transition:"all .15s",minHeight:"auto",minWidth:"auto"};
+        const _labelStyle={fontFamily:_ciMO,fontSize:10,fontWeight:700,letterSpacing:".13em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb),.50)",marginBottom:8};
+        return(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",backdropFilter:"blur(4px)",zIndex:260,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={skipReadiness}>
+            <div style={{background:"var(--cm-paper)",borderRadius:"26px 26px 0 0",maxWidth:480,width:"100%",overflow:"hidden",boxShadow:"0 -6px 40px rgba(0,0,0,.18)"}} onClick={e=>e.stopPropagation()}>
+              {/* Drag handle */}
+              <div style={{width:36,height:4,borderRadius:2,background:"rgba(var(--cm-ink-rgb),.12)",margin:"14px auto 0"}}/>
+              {/* Red hero strip */}
+              <div style={{background:"var(--cm-red)",padding:"16px 20px 18px",marginTop:12}}>
+                <div style={{fontFamily:_ciMO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.65)",marginBottom:5}}>
+                  {todayFocus} · Week {_dispWk}
+                </div>
+                <div style={{fontFamily:_ciBC,fontStyle:"italic",fontWeight:900,fontSize:28,color:"#fff",lineHeight:0.95,textTransform:"uppercase"}}>
+                  Ready to train?
+                </div>
+              </div>
+              {/* Form */}
+              <div style={{padding:"20px 20px 36px",overflowY:"auto",maxHeight:"65vh"}}>
+                {/* Sleep */}
+                <div style={{marginBottom:18}}>
+                  <div style={_labelStyle}>Last Night's Sleep</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {["4","5","6","7","8","9+"].map(v=>(
+                      <button key={v} onClick={()=>setRdAnswers(a=>({...a,sleep:v}))}
+                        style={{..._pillBase,...(rdAnswers.sleep===v?_pillSel:_pillOff),padding:"8px 14px",fontSize:14}}>
+                        {v}h
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Stress */}
+                <div style={{marginBottom:18}}>
+                  <div style={_labelStyle}>Stress Level</div>
+                  <div style={{display:"flex",gap:8}}>
+                    {[["low","Low"],["medium","Medium"],["high","High"]].map(([v,l])=>(
+                      <button key={v} onClick={()=>setRdAnswers(a=>({...a,stress:v}))}
+                        style={{..._pillBase,...(rdAnswers.stress===v?_pillSel:_pillOff),flex:1,padding:"10px 6px",fontSize:13,textAlign:"center"}}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Energy */}
+                <div style={{marginBottom:18}}>
+                  <div style={_labelStyle}>Energy</div>
+                  <div style={{display:"flex",gap:8}}>
+                    {[["low","Low"],["normal","Normal"],["high","High"]].map(([v,l])=>(
+                      <button key={v} onClick={()=>setRdAnswers(a=>({...a,energy:v}))}
+                        style={{..._pillBase,...(rdAnswers.energy===v?_pillSel:_pillOff),flex:1,padding:"10px 6px",fontSize:13,textAlign:"center"}}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Pain level */}
+                <div style={{marginBottom:18}}>
+                  <div style={_labelStyle}>Any Soreness?</div>
+                  <div style={{display:"flex",gap:8}}>
+                    {[["none","None"],["minor","A little"],["significant","A lot"]].map(([v,l])=>(
+                      <button key={v} onClick={()=>setRdAnswers(a=>({...a,painLevel:v,painRegions:[],painType:null}))}
+                        style={{..._pillBase,...(rdAnswers.painLevel===v?_pillSel:_pillOff),flex:1,padding:"10px 6px",fontSize:13,textAlign:"center"}}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Pain regions — shown only when non-None selected (already gated) */}
+                {(rdAnswers.painLevel==="minor"||rdAnswers.painLevel==="significant")&&(
+                  <div style={{marginBottom:18}}>
+                    <div style={_labelStyle}>Where?</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                      {["shoulder","elbow","wrist","lower_back","hip","knee","ankle","neck","quads","hamstrings","calves","glutes","shins","other"].map(r=>{
+                        const sel=(rdAnswers.painRegions||[]).includes(r);
+                        return(
+                          <button key={r}
+                            onClick={()=>setRdAnswers(a=>{const cur=a.painRegions||[];return{...a,painRegions:sel?cur.filter(x=>x!==r):[...cur,r]};})}
+                            style={{..._pillBase,...(sel?_pillSel:_pillOff),padding:"7px 12px",fontSize:12,textTransform:"capitalize"}}>
+                            {r.replace("_"," ")}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {/* Pain type — shown only when regions selected (already gated) */}
+                {(rdAnswers.painLevel==="minor"||rdAnswers.painLevel==="significant")&&(rdAnswers.painRegions||[]).length>0&&(
+                  <div style={{marginBottom:18}}>
+                    <div style={_labelStyle}>What kind?</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                      {[["soreness","Soreness"],["sharp_pain","Sharp Pain"],["stiffness","Stiffness"],["weakness","Weakness"],["swelling","Swelling"]].map(([v,l])=>(
+                        <button key={v} onClick={()=>setRdAnswers(a=>({...a,painType:v}))}
+                          style={{..._pillBase,...(rdAnswers.painType===v?_pillSel:_pillOff),padding:"7px 12px",fontSize:12}}>
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Readiness preview — semantic color retained; text in ink tokens */}
+                {rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy&&(()=>{
+                  const s=scoreReadiness({sleep:rdAnswers.sleep,stress:rdAnswers.stress,energy:rdAnswers.energy});
+                  const tier=getReadinessTier(s);
+                  const cfg=READINESS_CONFIG[tier];
+                  return(
+                    <div style={{background:`${cfg.color}14`,border:`1.5px solid ${cfg.color}45`,borderRadius:12,padding:"12px 16px",marginBottom:18}}>
+                      <div style={{fontSize:10,color:cfg.color,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:3}}>{cfg.badge}</div>
+                      <div style={{fontFamily:_ciBC,fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-ink)",lineHeight:1.1}}>{cfg.label}</div>
+                      <div style={{fontFamily:_ciMO,fontSize:10,color:"rgba(var(--cm-ink-rgb),.55)",marginTop:3,lineHeight:1.5}}>{cfg.sub}</div>
+                    </div>
+                  );
+                })()}
+                {/* Submit */}
+                <button onClick={confirmReadiness} disabled={!rdAnswers.sleep||!rdAnswers.stress||!rdAnswers.energy}
+                  style={{width:"100%",padding:15,background:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"var(--cm-red)":"rgba(var(--cm-ink-rgb),.08)",color:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"#fff":"rgba(var(--cm-ink-rgb),.3)",border:"none",borderRadius:14,fontWeight:700,fontSize:16,cursor:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"pointer":"not-allowed",fontFamily:_ciBC,fontStyle:"italic",textTransform:"uppercase",letterSpacing:".04em",marginBottom:10,transition:"all .2s",minHeight:"auto"}}>
+                  Start Session →
+                </button>
+                {/* Skip — quiet ink link */}
+                <button onClick={skipReadiness}
+                  style={{width:"100%",padding:10,background:"transparent",color:"rgba(var(--cm-ink-rgb),.40)",border:"none",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:_ciAF,minHeight:"auto"}}>
+                  Skip check-in
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Pre-session check-in — dark legacy (non-redesign) ── */}
+      {showReadiness&&!GOCLUB_REDESIGN&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(8px)",zIndex:260,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={skipReadiness}>
           <div style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:"18px 18px 0 0",padding:"24px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
             <div style={{width:32,height:3,background:"rgba(var(--accent-rgb),0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
             <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:".14em",textTransform:"uppercase",marginBottom:4,fontFamily:"var(--mono)"}}>Pre-Session Check-In</div>
             <div style={{fontFamily:"var(--condensed)",fontSize:24,fontWeight:900,marginBottom:20}}>How are you feeling?</div>
-            {/* Sleep */}
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Sleep last night</div>
               <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -3133,7 +4120,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 ))}
               </div>
             </div>
-            {/* Stress */}
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Stress level</div>
               <div style={{display:"flex",gap:8}}>
@@ -3142,7 +4128,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 ))}
               </div>
             </div>
-            {/* Energy */}
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Energy</div>
               <div style={{display:"flex",gap:8}}>
@@ -3151,69 +4136,42 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 ))}
               </div>
             </div>
-            {/* Pain check */}
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Any pain or discomfort?</div>
               <div style={{display:"flex",gap:8}}>
                 {[["none","None"],["minor","Minor"],["significant","Significant"]].map(([v,l])=>(
-                  <button key={v} onClick={()=>setRdAnswers(a=>({...a,painLevel:v,painRegions:[],painType:null}))}
-                    style={{flex:1,padding:"10px 6px",borderRadius:9,border:`1.5px solid ${rdAnswers.painLevel===v?T.prot:T.bd}`,
-                    background:rdAnswers.painLevel===v?`rgba(var(--accent-rgb),0.09)`:T.s2,color:rdAnswers.painLevel===v?T.prot:"#fff",
-                    fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>
+                  <button key={v} onClick={()=>setRdAnswers(a=>({...a,painLevel:v,painRegions:[],painType:null}))} style={{flex:1,padding:"10px 6px",borderRadius:9,border:`1.5px solid ${rdAnswers.painLevel===v?T.prot:T.bd}`,background:rdAnswers.painLevel===v?`rgba(var(--accent-rgb),0.09)`:T.s2,color:rdAnswers.painLevel===v?T.prot:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>
                 ))}
               </div>
             </div>
-            {/* Pain regions */}
             {(rdAnswers.painLevel==="minor"||rdAnswers.painLevel==="significant")&&(
               <div style={{marginBottom:16}}>
                 <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Where?</div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                  {["shoulder","elbow","wrist","lower_back","hip","knee","ankle","neck","other"].map(r=>{
+                  {["shoulder","elbow","wrist","lower_back","hip","knee","ankle","neck","quads","hamstrings","calves","glutes","shins","other"].map(r=>{
                     const sel=(rdAnswers.painRegions||[]).includes(r);
-                    const label=r.replace("_"," ");
-                    return(
-                      <button key={r} onClick={()=>setRdAnswers(a=>{const cur=a.painRegions||[];return{...a,painRegions:sel?cur.filter(x=>x!==r):[...cur,r]};})}
-                        style={{padding:"7px 12px",borderRadius:8,border:`1.5px solid ${sel?T.prot:T.bd}`,
-                        background:sel?`rgba(var(--accent-rgb),0.09)`:T.s2,color:sel?T.prot:"#fff",fontSize:12,fontWeight:600,
-                        cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize"}}>{label}</button>
-                    );
+                    return(<button key={r} onClick={()=>setRdAnswers(a=>{const cur=a.painRegions||[];return{...a,painRegions:sel?cur.filter(x=>x!==r):[...cur,r]};})} style={{padding:"7px 12px",borderRadius:8,border:`1.5px solid ${sel?T.prot:T.bd}`,background:sel?`rgba(var(--accent-rgb),0.09)`:T.s2,color:sel?T.prot:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize"}}>{r.replace("_"," ")}</button>);
                   })}
                 </div>
               </div>
             )}
-            {/* Pain type */}
             {(rdAnswers.painLevel==="minor"||rdAnswers.painLevel==="significant")&&(rdAnswers.painRegions||[]).length>0&&(
               <div style={{marginBottom:16}}>
                 <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>What kind?</div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                   {[["soreness","Soreness"],["sharp_pain","Sharp Pain"],["stiffness","Stiffness"],["weakness","Weakness"],["swelling","Swelling"]].map(([v,l])=>(
-                    <button key={v} onClick={()=>setRdAnswers(a=>({...a,painType:v}))}
-                      style={{padding:"7px 12px",borderRadius:8,border:`1.5px solid ${rdAnswers.painType===v?T.prot:T.bd}`,
-                      background:rdAnswers.painType===v?`rgba(var(--accent-rgb),0.09)`:T.s2,color:rdAnswers.painType===v?T.prot:"#fff",
-                      fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
+                    <button key={v} onClick={()=>setRdAnswers(a=>({...a,painType:v}))} style={{padding:"7px 12px",borderRadius:8,border:`1.5px solid ${rdAnswers.painType===v?T.prot:T.bd}`,background:rdAnswers.painType===v?`rgba(var(--accent-rgb),0.09)`:T.s2,color:rdAnswers.painType===v?T.prot:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
                   ))}
                 </div>
               </div>
             )}
-            {/* Preview tier when all answered */}
             {rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy&&(()=>{
               const s=scoreReadiness({sleep:rdAnswers.sleep,stress:rdAnswers.stress,energy:rdAnswers.energy});
               const tier=getReadinessTier(s);
               const cfg=READINESS_CONFIG[tier];
-              return(
-                <div style={{background:`${cfg.color}12`,border:`1.5px solid ${cfg.color}40`,borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div>
-                    <div style={{fontSize:10,color:cfg.color,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:3}}>{cfg.badge}</div>
-                    <div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{cfg.label}</div>
-                    <div style={{fontSize:11,color:T.mu,marginTop:2,maxWidth:220}}>{cfg.sub}</div>
-                  </div>
-                </div>
-              );
+              return(<div style={{background:`${cfg.color}12`,border:`1.5px solid ${cfg.color}40`,borderRadius:12,padding:"12px 16px",marginBottom:16}}><div style={{fontSize:10,color:cfg.color,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:3}}>{cfg.badge}</div><div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{cfg.label}</div><div style={{fontSize:11,color:T.mu,marginTop:2,maxWidth:220}}>{cfg.sub}</div></div>);
             })()}
-            <button onClick={confirmReadiness} disabled={!rdAnswers.sleep||!rdAnswers.stress||!rdAnswers.energy}
-              style={{width:"100%",padding:15,background:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?T.prot:"rgba(var(--accent-rgb),0.06)",color:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"#fff":"rgba(245,245,240,.3)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"pointer":"not-allowed",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1,marginBottom:10,transition:"all .2s"}}>
-              Start Session →
-            </button>
+            <button onClick={confirmReadiness} disabled={!rdAnswers.sleep||!rdAnswers.stress||!rdAnswers.energy} style={{width:"100%",padding:15,background:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?T.prot:"rgba(var(--accent-rgb),0.06)",color:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"#fff":"rgba(245,245,240,.3)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"pointer":"not-allowed",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1,marginBottom:10,transition:"all .2s"}}>Start Session →</button>
             <button onClick={skipReadiness} style={{width:"100%",padding:13,background:"transparent",color:"rgba(245,245,240,.4)",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Skip Check-In</button>
           </div>
         </div>
@@ -3267,544 +4225,608 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               })():(
                 <div className="header-eyebrow">// {todayFocus||cfg.label}</div>
               )}
-              <div className="header-title">{trainScreen==="today"?"Today's Session":trainScreen==="plan"?"My Program":trainScreen==="library"?"Exercise Library":trainScreen==="routine-builder"?"My Routines":trainScreen==="warmup-protocols"?"Protocols":trainScreen==="builder"?"Lift Smarter":trainScreen==="progress"?"Progress":"Train"}</div>
+              <div className="header-title">{trainScreen==="today"?"Today's Session":trainScreen==="plan"?"My Program":trainScreen==="library"?"Exercise Library":trainScreen==="warmup-protocols"?"Protocols":trainScreen==="builder"?"Lift Smarter":trainScreen==="progress"?"Progress":"Train"}</div>
             </div>
           </div>
         </div>
       )}
 
-      <div style={{padding:trainScreen==="routine-builder"?0:isMobile?"12px 18px":"0"}}>
+      <div style={{padding:GOCLUB_REDESIGN&&(trainScreen==="today"||trainScreen==="plan")?0:isMobile?"12px 18px":"0"}}>
 
-        {/* ── Resume Workout Prompt ── */}
-        {resumePrompt&&!activeWorkout&&(
-          <div style={{margin:"0 0 14px",padding:"14px 16px",background:"rgba(var(--accent-rgb),0.06)",border:"1px solid rgba(var(--accent-rgb),0.25)",borderRadius:14,display:"flex",alignItems:"center",gap:12,animation:"toast-in 0.22s ease forwards"}}>
-            <div style={{flexShrink:0,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="10" width="4" height="4" rx="1" fill={T.prot}/><rect x="18" y="10" width="4" height="4" rx="1" fill={T.prot}/><rect x="6" y="8" width="12" height="8" rx="2" fill={T.prot} opacity="0.7"/><rect x="10" y="11" width="4" height="2" rx="1" fill={T.prot}/></svg>
+        {/* ── Resume GPS Run Prompt — recovered after force-close, today surface only ── */}
+        {runResumePrompt&&sessionMode!=='run-gps'&&trainScreen==="today"&&(()=>{
+          const _imp=(profile?.wUnit||wPrefs?.wUnit)==='lbs';
+          const _d=_imp?(runResumePrompt.distance||0)*0.621371:(runResumePrompt.distance||0);
+          const _mn=Math.floor((runResumePrompt.elapsed||0)/60);
+          const _sub=`${_mn} min · ${_d.toFixed(2)} ${_imp?'mi':'km'} so far`;
+          return(
+            <div className="cm-resume-card" style={{margin:'12px 12px 0',padding:'13px 14px',background:'var(--cm-paper,#fff)',borderRadius:17,boxShadow:'0 8px 26px rgba(0,0,0,.22)',display:'flex',alignItems:'center',gap:12}}>
+              <div style={{flexShrink:0,width:9,height:9,borderRadius:'50%',background:'var(--cm-red,#FF3B30)',boxShadow:'0 0 0 4px rgba(255,59,48,.15)'}}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,fontWeight:700,color:'var(--cm-ink,#0A0A0A)',lineHeight:1.2,marginBottom:2}}>Unfinished run</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:10.5,color:'rgba(var(--cm-ink-rgb,10,10,10),.55)',lineHeight:1.4}}>{_sub}</div>
+              </div>
+              <div style={{display:'flex',gap:8,flexShrink:0,alignItems:'center'}}>
+                <button onClick={()=>{const _r=runResumePrompt;setRunResumePrompt(null);startGPSRun(_r);hapMed&&hapMed();}} style={{padding:'8px 13px',background:'var(--cm-red,#FF3B30)',border:'none',borderRadius:20,color:'#fff',fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',cursor:'pointer',whiteSpace:'nowrap',minHeight:'auto'}}>Resume →</button>
+                <button onClick={()=>{setRunResumePrompt(null);try{localStorage.removeItem(RUN_KEY);}catch{}}} style={{width:30,height:30,borderRadius:'50%',background:'rgba(var(--cm-ink-rgb,10,10,10),.06)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',padding:0,fontSize:14,color:'var(--cm-ink,#0A0A0A)',flexShrink:0,lineHeight:1,minHeight:'auto'}}>✕</button>
+              </div>
             </div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:2}}>Unfinished session</div>
-              <div style={{fontSize:11,color:"rgba(245,245,240,0.5)"}}>You left a workout in progress. Continue where you left off?</div>
+          );
+        })()}
+        {/* ── Resume Workout Prompt — today surface only ── */}
+        {resumePrompt&&!activeWorkout&&trainScreen==="today"&&(
+          GOCLUB_REDESIGN?(()=>{
+            const _minsAgo=resumePrompt?.ts?Math.round((Date.now()-resumePrompt.ts)/60000):0;
+            const _ta=_minsAgo<1?'':_minsAgo<60?`${_minsAgo}m ago`:`${Math.floor(_minsAgo/60)}h ago`;
+            const _sub=[todayFocus,_ta].filter(Boolean).join(' · ')||'Resume where you left off.';
+            return(
+              <div className="cm-resume-card" style={{margin:'12px 12px 0',padding:'13px 14px',background:'var(--cm-paper,#fff)',borderRadius:17,boxShadow:'0 8px 26px rgba(0,0,0,.22)',display:'flex',alignItems:'center',gap:12}}>
+                <div style={{flexShrink:0,width:9,height:9,borderRadius:'50%',background:'var(--cm-red,#FF3B30)',boxShadow:'0 0 0 4px rgba(255,59,48,.15)'}}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,fontWeight:700,color:'var(--cm-ink,#0A0A0A)',lineHeight:1.2,marginBottom:2}}>Unfinished session</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:10.5,color:'rgba(var(--cm-ink-rgb,10,10,10),.55)',lineHeight:1.4}}>{_sub}</div>
+                </div>
+                <div style={{display:'flex',gap:8,flexShrink:0,alignItems:'center'}}>
+                  <button onClick={()=>{setActiveWorkout(resumePrompt);setTrainScreen("active");setResumePrompt(null);hapMed();showToast("Session resumed","success");}} style={{padding:'8px 13px',background:'var(--cm-red,#FF3B30)',border:'none',borderRadius:20,color:'#fff',fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',cursor:'pointer',whiteSpace:'nowrap',minHeight:'auto'}}>Resume →</button>
+                  <button onClick={()=>{setResumePrompt(null);clearPersistedWorkout();}} style={{width:30,height:30,borderRadius:'50%',background:'rgba(var(--cm-ink-rgb,10,10,10),.06)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',padding:0,fontSize:14,color:'var(--cm-ink,#0A0A0A)',flexShrink:0,lineHeight:1,minHeight:'auto'}}>✕</button>
+                </div>
+              </div>
+            );
+          })():(
+            <div style={{margin:"0 0 14px",padding:"14px 16px",background:"rgba(var(--accent-rgb),0.06)",border:"1px solid rgba(var(--accent-rgb),0.25)",borderRadius:14,display:"flex",alignItems:"center",gap:12,animation:"toast-in 0.22s ease forwards"}}>
+              <div style={{flexShrink:0,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="10" width="4" height="4" rx="1" fill={T.prot}/><rect x="18" y="10" width="4" height="4" rx="1" fill={T.prot}/><rect x="6" y="8" width="12" height="8" rx="2" fill={T.prot} opacity="0.7"/><rect x="10" y="11" width="4" height="2" rx="1" fill={T.prot}/></svg>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:2}}>Unfinished session</div>
+                <div style={{fontSize:11,color:"rgba(245,245,240,0.5)"}}>You left a workout in progress. Continue where you left off?</div>
+              </div>
+              <div style={{display:"flex",gap:8,flexShrink:0}}>
+                <button onClick={()=>{setActiveWorkout(resumePrompt);setTrainScreen("active");setResumePrompt(null);hapMed();showToast("Session resumed","success");}} style={{padding:"8px 14px",background:T.prot,border:"none",borderRadius:9,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>Resume →</button>
+                <button onClick={()=>{setResumePrompt(null);clearPersistedWorkout();}} style={{padding:"8px 10px",background:"none",border:`1px solid ${T.bd}`,borderRadius:9,color:T.mu,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Discard</button>
+              </div>
             </div>
-            <div style={{display:"flex",gap:8,flexShrink:0}}>
-              <button onClick={()=>{setActiveWorkout(resumePrompt);setTrainScreen("active");setResumePrompt(null);hapMed();showToast("Session resumed","success");}} style={{padding:"8px 14px",background:T.prot,border:"none",borderRadius:9,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>Resume →</button>
-              <button onClick={()=>{setResumePrompt(null);clearPersistedWorkout();}} style={{padding:"8px 10px",background:"none",border:`1px solid ${T.bd}`,borderRadius:9,color:T.mu,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Discard</button>
-            </div>
-          </div>
+          )
         )}
 
         {/* ── TODAY ── */}
-        {trainScreen==="today"&&(
-          <div style={{display:"flex",flexDirection:"column",gap:14}}>
-            {/* ── GOCLUB: Week completion + Program arc ── */}
-            {GOCLUB_REDESIGN&&(()=>{
-              const _AF="'Archivo',sans-serif";
-              const _MO="'DM Mono',monospace";
-              const _todayIdx=WDAYS.indexOf(todayKey);
-              const _weekDates=WDAYS.map((_,i)=>{const d=new Date();d.setDate(d.getDate()-_todayIdx+i);return d.toISOString().split('T')[0];});
-              const _thisWeekSet=new Set(_weekDates);
-              const _doneThisWeek=new Set(Object.values(history).flatMap(s=>s.filter(x=>_thisWeekSet.has(x.date)).map(x=>x.date))).size;
-              const _schedThisWeek=WDAYS.filter(d=>schedule[d]&&schedule[d]!=='rest').length;
-              const _progInfo2=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
-              const _totalWks=_progInfo2?.weeks||null;
-              const _dispWk=programCurrentWeek||weekNum;
-              const _wkPct=_totalWks?Math.min(1,(_dispWk-1)/Math.max(1,_totalWks-1)):null;
-              const _r=16,_circ=2*Math.PI*_r;
-              const _donePct=_schedThisWeek>0?_doneThisWeek/_schedThisWeek:0;
-              return(
-                <StaggerItem i={0}>
-                <div style={{display:"flex",gap:10}}>
-                  {/* Week completion */}
-                  <div style={{flex:1,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"14px 16px",display:"flex",alignItems:"center",gap:14}}>
-                    <svg width={42} height={42} viewBox="0 0 42 42" style={{flexShrink:0}}>
-                      <circle cx={21} cy={21} r={_r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={3}/>
-                      <MotionArc cx={21} cy={21} r={_r} pct={_donePct}
-                        stroke="#FF3B30" strokeWidth={3}
-                        transform="rotate(-90 21 21)" />
+        {trainScreen==="today"&&(()=>{
+          // ── shared computed vars (train-today GOCLUB sandwich) ────────────
+          const _AF="'Archivo',sans-serif";
+          const _MO="'DM Mono',monospace";
+          const _localDateStr=(d)=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),da=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${da}`;};
+          const _mondayIdx=(new Date().getDay()+6)%7; // 0=Mon … 6=Sun, matches WDAYS order
+          const _weekDates=WDAYS.map((_,i)=>{const d=new Date();d.setDate(d.getDate()-_mondayIdx+i);return _localDateStr(d);});
+          const _thisWeekSet=new Set(_weekDates);
+          const _doneThisWeek=(workoutLogsRaw||[]).filter(w=>_thisWeekSet.has(w.date)).length;
+          const _schedThisWeek=WDAYS.filter(d=>schedule[d]&&schedule[d]!=='rest').length;
+          const _progInfo2=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
+          const _totalWks=_progInfo2?.weeks||null;
+          const _dispWk=resolveDisplayWeek(programCurrentWeek,weekNum,wPrefs,profile);
+          const _wkPct=_totalWks?Math.min(1,(_dispWk-1)/Math.max(1,_totalWks-1)):null;
+          const _r=16;
+          const _donePct=_schedThisWeek>0?_doneThisWeek/_schedThisWeek:0;
+          const heroLvl=(wPrefs.liftExp||profile?.liftExp||"intermediate").toLowerCase();
+          const heroIsNov=heroLvl==="beginner"||heroLvl==="novice";
+          const heroIsAdv=heroLvl==="advanced"||heroLvl==="elite";
+          const heroLevelColor=heroIsNov?"var(--green)":heroIsAdv?"#F87171":"var(--blue)";
+          const heroLvlBadge=heroIsNov?"Beginner":heroIsAdv?"Advanced":"Intermediate";
+          const _raceTypeLabels={half_marathon:'Half Marathon',half:'Half Marathon','5k':'5K','10k':'10K',marathon:'Marathon',general:'General Fitness'};
+          const _raceLabel=_raceTypeLabels[(profile?.run_race_type||'').toLowerCase()]||profile?.run_race_type||'';
+          const progLabel=
+            wPrefs.isHyrox&&wPrefs.isHybrid?(wPrefs.hybridTemplate||"Hyrox Hybrid"):
+            wPrefs.isHyrox?(wPrefs.hyroxProgram||"Hyrox"):
+            wPrefs.isHybrid?(_raceLabel?`${wPrefs.hybridTemplate||"Hybrid"} · ${_raceLabel}`:(profile?.runProfile?.raceGoal===false?`${wPrefs.hybridTemplate||"Hybrid"} · General Fitness`:(wPrefs.hybridTemplate||"Hybrid"))):
+            prescType==="running"?(_raceLabel||wPrefs.runPlan||"Running"):
+            wPrefs.splitType||"My Program";
+          const muscleDesc=FOCUS_MUSCLES[todayFocus]||"Full body movement";
+          const exCount=Array.isArray(todayPrescription)?todayPrescription.length:0;
+          const totalSets=Array.isArray(todayPrescription)?todayPrescription.reduce((a,ex)=>a+(Number(ex.sets)||3),0):0;
+          const estMin=exCount>0?Math.round(exCount*9+12):0;
+          // race countdown — single source of phase truth via getRunningPhase
+          const _raceDate = profile?.runProfile?.raceDate || profile?.run_race_date || null;
+          const _phase = getRunningPhase(_raceDate);
+          return (
+            <div>
+              {/* ══ RED HERO ═══════════════════════════════════════════════════ */}
+              <div style={{paddingLeft:20,paddingRight:20,paddingTop:0,paddingBottom:160}}>
+                {/* Eyebrow: program */}
+                  <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)",marginBottom:(_phase&&prescType!=="lifting")?16:10}}>
+                    <span>{progLabel}</span>
+                  </div>
+                  {/* ── RACE COUNTDOWN ── only for race-bearing modes; a stale run_race_date
+                       on a switched-to-lifting account must NOT resurrect the countdown ── */}
+                  {_phase&&prescType!=="lifting"&&(()=>{
+                    const _msDay=86400000;
+                    const _p=String(_raceDate).slice(0,10).split('-');
+                    let _days=null;
+                    if(_p.length===3){const _rd=new Date(+_p[0],+_p[1]-1,+_p[2]);_rd.setHours(0,0,0,0);const _td=new Date();_td.setHours(0,0,0,0);_days=Math.round((_rd-_td)/_msDay);}
+                    const _isRaceDay=_days!=null&&_days<=0;
+                    const _useDays=_days!=null&&_days>0&&_days<=14;
+                    const _num=_useDays?_days:_phase.weeksUntilRace;
+                    const _unit=_useDays?(_days===1?"Day":"Days"):(_phase.weeksUntilRace===1?"Week":"Weeks");
+                    return (
+                      <div style={{marginBottom:18}}>
+                        {_isRaceDay?(
+                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,lineHeight:0.85,color:"#fff",textTransform:"uppercase",letterSpacing:"-0.02em",marginBottom:8}}>Race Day</div>
+                        ):(
+                          <div style={{display:"flex",alignItems:"flex-end",gap:11,marginBottom:8}}>
+                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:64,lineHeight:0.78,color:"#fff",letterSpacing:"-0.03em"}}>{_num}</div>
+                            <div style={{paddingBottom:6}}>
+                              <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,lineHeight:0.9,color:"#fff",textTransform:"uppercase"}}>{_unit}</div>
+                              <div style={{fontFamily:_MO,fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(255,255,255,0.6)"}}>to race day</div>
+                            </div>
+                          </div>
+                        )}
+                        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                          <span style={{display:"inline-flex",alignItems:"center",gap:6,fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",background:"rgba(255,255,255,0.16)",color:"#fff",padding:"4px 10px",borderRadius:6}}>
+                            <span style={{width:6,height:6,borderRadius:"50%",background:_phase.color,display:"inline-block"}}></span>
+                            {_phase.label}
+                          </span>
+                          {_phase.focusWorkout&&<span style={{fontFamily:_MO,fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",color:"rgba(255,255,255,0.75)"}}>{_phase.focusWorkout}</span>}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                {/* BIG session title */}
+                <div style={{fontFamily:_AF,fontWeight:800,fontSize:54,lineHeight:0.88,textTransform:"uppercase",color:"#ffffff",letterSpacing:"-0.02em",marginBottom:4}}>
+                  {(prescType==="running"||hybridRunDay)?(resolvedDayFocus[todayKey]||"Run Day"):todayFocus}
+                </div>
+                {/* Session brief */}
+                {exCount>0&&(
+                  <div style={{fontFamily:_AF,fontWeight:700,fontSize:11,color:"#ffffff",letterSpacing:0,textTransform:"uppercase",marginTop:12,display:"flex",gap:10,alignItems:"center"}}>
+                    <span>~{estMin} min</span>
+                    <span style={{color:"rgba(255,255,255,0.45)"}}>·</span>
+                    <span>{exCount} exercises</span>
+                    <span style={{color:"rgba(255,255,255,0.45)"}}>·</span>
+                    <span>{totalSets} sets</span>
+                  </div>
+                )}
+                {/* Stat chips: week completion ring + program arc */}
+                <div style={{display:"flex",gap:10,marginTop:22}}>
+                  <div style={{flex:1,background:"rgba(255,255,255,0.14)",borderRadius:16,padding:"12px 14px",display:"flex",alignItems:"center",gap:12}}>
+                    <svg width={38} height={38} viewBox="0 0 38 38" style={{flexShrink:0}}>
+                      <circle cx={19} cy={19} r={_r} fill="none" stroke="rgba(255,255,255,0.20)" strokeWidth={3}/>
+                      <MotionArc cx={19} cy={19} r={_r} pct={_donePct} stroke="#ffffff" strokeWidth={3} transform="rotate(-90 19 19)"/>
                     </svg>
                     <div>
                       <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"#fff",lineHeight:1}}>
-                        <MN value={_doneThisWeek} /><span style={{color:"rgba(255,255,255,0.35)"}}>/<MN value={_schedThisWeek} /></span>
+                        <MN value={_doneThisWeek}/><span style={{color:"rgba(255,255,255,0.35)"}}>/<MN value={_schedThisWeek}/></span>
                       </div>
-                      <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginTop:4}}>sessions this week</div>
+                      <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.50)",letterSpacing:"0.12em",textTransform:"uppercase",marginTop:3}}>sessions</div>
                     </div>
                   </div>
-                  {/* Program arc */}
                   {_totalWks&&(
-                    <div style={{flex:1,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"14px 16px"}}>
-                      <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>program</div>
-                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"#fff",lineHeight:1,marginBottom:10}}>
-                        Wk <MN value={_dispWk} /><span style={{color:"rgba(255,255,255,0.35)"}}> / {_totalWks}</span>
+                    <div style={{flex:1,background:"rgba(255,255,255,0.14)",borderRadius:16,padding:"12px 14px"}}>
+                      <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.50)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:6}}>program</div>
+                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"#fff",lineHeight:1,marginBottom:8}}>
+                        Wk <MN value={_dispWk}/><span style={{color:"rgba(255,255,255,0.35)"}}> / {_totalWks}</span>
                       </div>
-                      <div style={{height:3,background:"rgba(255,255,255,0.08)",borderRadius:2}}>
-                        <div style={{height:"100%",width:`${_wkPct*100}%`,background:"#FF3B30",borderRadius:2,transition:"width 0.6s cubic-bezier(0.2,0.7,0.3,1)"}}/>
+                      <div style={{height:3,background:"rgba(255,255,255,0.20)",borderRadius:2}}>
+                        <div style={{height:"100%",width:`${(_wkPct||0)*100}%`,background:"#fff",borderRadius:2,transition:"width 0.6s cubic-bezier(0.2,0.7,0.3,1)"}}/>
                       </div>
                     </div>
                   )}
                 </div>
-                </StaggerItem>
-              );
-            })()}
-            {/* Race periodization banner */}
-            {(()=>{
-              const rp=profile?.runProfile;
-              if(!rp?.raceDate)return null;
-              const today=new Date(),race=new Date(rp.raceDate);
-              const weeksToRace=Math.ceil((race-today)/(7*24*60*60*1000));
-              const total=rp.planWeeks??12;
-              const done=total-weeksToRace;
-              const phase=weeksToRace>total*0.6?'Base':weeksToRace>total*0.3?'Build':weeksToRace>total*0.15?'Peak':weeksToRace>0?'Taper':'Race Week';
-              const phaseColor=phase==='Taper'?'#FF9500':phase==='Race Week'?'#FF3B30':'rgba(245,245,240,0.6)';
-              return(
-                <div style={{fontFamily:"var(--mono)",fontSize:11,color:phaseColor,letterSpacing:"0.14em",textTransform:"uppercase",padding:"4px 0"}}>
-                  Week {Math.max(1,done)} of {total} — {phase}
-                </div>
-              );
-            })()}
-            {/* TODAY HERO CARD */}
-            {(()=>{
-              const heroLvl=(wPrefs.liftExp||profile?.liftExp||"intermediate").toLowerCase();
-              const heroIsNov=heroLvl==="beginner"||heroLvl==="novice";
-              const heroIsAdv=heroLvl==="advanced"||heroLvl==="elite";
-              const heroLevelColor=heroIsNov?"var(--green)":heroIsAdv?"#F87171":"var(--blue)";
-              const heroLvlBadge=heroIsNov?"Beginner":heroIsAdv?"Advanced":"Intermediate";
-              const _raceTypeLabels={half_marathon:'Half Marathon',half:'Half Marathon','5k':'5K','10k':'10K',marathon:'Marathon',general:'General Fitness'};
-              const _raceLabel=_raceTypeLabels[(profile?.run_race_type||'').toLowerCase()]||profile?.run_race_type||'';
-              const progLabel=
-                wPrefs.isHyrox&&wPrefs.isHybrid ? (wPrefs.hybridTemplate||"Hyrox Hybrid") :
-                wPrefs.isHyrox   ? (wPrefs.hyroxProgram||"Hyrox") :
-                wPrefs.isHybrid  ? (_raceLabel?`${wPrefs.hybridTemplate||"Hybrid"} · ${_raceLabel}`:(wPrefs.hybridTemplate||"Hybrid")) :
-                prescType==="running" ? (_raceLabel||wPrefs.runPlan||"Running") :
-                wPrefs.splitType||"My Program";
-              const muscleDesc=FOCUS_MUSCLES[todayFocus]||"Full body movement — hit all major muscle patterns";
-              const exCount=Array.isArray(todayPrescription)?todayPrescription.length:0;
-              const totalSets=Array.isArray(todayPrescription)?todayPrescription.reduce((a,ex)=>a+(Number(ex.sets)||3),0):0;
-              const estMin=exCount>0?Math.round(exCount*9+12):0;
-              return(
-            <StaggerItem i={1}>
-            <div style={{background:GOCLUB_REDESIGN?"rgba(255,255,255,0.05)":T.s2,border:GOCLUB_REDESIGN?"1px solid rgba(255,255,255,0.08)":"1px solid var(--white-border)",borderRadius:14,padding:16,borderLeft:"3px solid #FF3B30"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
-                <div>
-                  <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--red)",textTransform:"uppercase",marginBottom:6}}>// {progLabel}</div>
-                  <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:GOCLUB_REDESIGN?800:900,fontSize:GOCLUB_REDESIGN?34:30,lineHeight:1,textTransform:"uppercase",marginTop:6}}>{(prescType==="running"||hybridRunDay)?(resolvedDayFocus[todayKey]||"Run Day"):todayFocus}</div>
-                  {prescType==="lifting"&&<div style={{marginTop:8,display:"flex",gap:6,flexWrap:"wrap"}}>
-                    <span style={{padding:"4px 9px",borderRadius:6,background:`${heroLevelColor}22`,border:`1px solid ${heroLevelColor}55`,fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",color:heroLevelColor,textTransform:"uppercase"}}>{heroLvlBadge} PROGRAM</span>
-                    {(profile?.primaryGoal||wPrefs?.primaryGoal)&&<span style={{padding:"4px 9px",borderRadius:6,background:"rgba(var(--accent-rgb),0.12)",border:"1px solid rgba(var(--accent-rgb),0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",color:"var(--accent)",textTransform:"uppercase"}}>{getGoalLabel(profile?.primaryGoal||wPrefs?.primaryGoal)}</span>}
-                  </div>}
-                </div>
               </div>
-              <div style={{display:"flex",gap:14,marginTop:14,fontFamily:"var(--mono)",fontSize:11,color:"var(--white-dim)",letterSpacing:"0.06em"}}>
-                <div>{muscleDesc?.replace(/\s*[\.\!\?].*$/,"").toUpperCase?.()}</div>
-              </div>
-              {exCount>0&&(
-                <div style={{display:"flex",gap:18,marginTop:6,fontFamily:"var(--mono)",fontSize:11,color:"var(--white)"}}>
-                  <div>~{estMin} min</div><div>{exCount} exercises</div><div>Volume: {totalSets} sets</div>
+
+              {/* ══ PAPER CARD 1 — SESSION DETAILS ═════════════════════════════ */}
+              <PaperCard animate style={{margin:"-136px 12px 0",position:"relative",padding:"22px 18px 20px"}}>
+                {/* Pill row */}
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}}>
+                  <span className="cm-pill" style={{background:"#FF3B30",color:"#fff"}} onClick={()=>_hL()}>{prescType==="lifting"?"Lifting":prescType==="running"?"Running":prescType.charAt(0).toUpperCase()+prescType.slice(1)}</span>
+                  {prescType==="lifting"&&<span className="cm-pill" style={{background:heroLevelColor+"22",color:heroLevelColor}}>{heroLvlBadge}</span>}
+                  {(profile?.primaryGoal||wPrefs?.primaryGoal)&&<span className="cm-pill" style={{background:"rgba(255,59,48,0.10)",color:"#FF3B30"}}>{getGoalLabel(profile?.primaryGoal||wPrefs?.primaryGoal)}</span>}
                 </div>
-              )}
-              {/* ── Adaptive coaching banners ── */}
-              {/* RED-S / Overreaching priority alert */}
-              {(()=>{
-                const reds=profile?.adaptive_profile?.redsDetected;
-                const over=profile?.adaptive_profile?.overreachDetected;
-                const alert=reds||over;
-                if(!alert)return null;
-                const [expanded,setExpanded]=React.useState(false);
-                const title=reds?'RED-S Pattern Detected':'Overreaching Detected';
-                const msg=reds?reds.message:over.message;
-                return(
-                  <div style={{background:'#1a0000',border:'2px solid #FF3B30',borderRadius:12,padding:'14px 16px',marginTop:10}}>
-                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,cursor:'pointer'}} onClick={()=>setExpanded(e=>!e)}>
-                      <span style={{fontSize:18}}>⚠️</span>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:16,color:'#FF3B30',textTransform:'uppercase'}}>{title}</div>
-                      <span style={{marginLeft:'auto',fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,.4)'}}>{expanded?'▲':'▼'}</span>
-                    </div>
-                    {expanded&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,.75)',lineHeight:1.65,borderTop:'1px solid rgba(255,59,48,.2)',paddingTop:10,marginTop:4}}>{msg}</div>}
-                  </div>
-                );
-              })()}
-              {adaptiveSession?.injuryRisk==="high"&&adaptiveSession?.injuryNote&&(
-                <div style={{background:"rgba(255,59,48,0.10)",border:"1.5px solid rgba(255,59,48,0.35)",borderRadius:10,padding:"10px 14px",marginTop:10,display:"flex",gap:10,alignItems:"flex-start"}}>
-                  <span style={{fontSize:16,flexShrink:0}}>⚠️</span>
-                  <div>
-                    <div style={{fontFamily:"var(--mono)",fontSize:10,color:"#FF3B30",letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:700,marginBottom:3}}>Injury Risk</div>
-                    <div style={{fontSize:12,color:"rgba(245,245,240,0.85)",lineHeight:1.55}}>{adaptiveSession.injuryNote}</div>
-                    <div style={{fontSize:11,color:"rgba(245,245,240,0.45)",marginTop:3}}>Consider seeing a physio before continuing.</div>
-                  </div>
+                {/* Muscle focus */}
+                <div style={{fontFamily:_AF,fontWeight:700,fontSize:11,color:"var(--cm-ink)",letterSpacing:0,textTransform:"uppercase",marginBottom:14,lineHeight:1.5}}>
+                  {muscleDesc?.replace(/\s*[\.\!\?].*$/,"").toUpperCase?.()}
                 </div>
-              )}
-              {adaptiveSession?.modifier?.label&&adaptiveSession.modifier.label!=="full"&&(
-                <AdaptiveBanner modifier={adaptiveSession.modifier} analysis={adaptiveSession?.analysisInsight}/>
-              )}
-              {/* Session spacing alert */}
-              {adaptiveSession?.spacingAlert&&(
-                <div style={{background:adaptiveSession.spacingAlert.severity==='high'?'rgba(255,149,0,0.10)':'rgba(255,255,255,.04)',border:`1.5px solid ${adaptiveSession.spacingAlert.severity==='high'?'#FF9500':'rgba(255,255,255,.15)'}`,borderRadius:10,padding:'10px 14px',marginTop:8,display:'flex',gap:8,alignItems:'flex-start'}}>
-                  <span style={{fontSize:15,flexShrink:0}}>{adaptiveSession.spacingAlert.type==='conflict'?'⚠️':'💤'}</span>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,.75)',lineHeight:1.55}}>{adaptiveSession.spacingAlert.message}</div>
-                </div>
-              )}
-              {/* Pregnancy permanent safety banner */}
-              {profile?.lifeStage==="pregnant"&&(
-                <>
-                  <div style={{background:"rgba(245,158,11,.08)",border:"1.5px solid rgba(245,158,11,.3)",borderRadius:12,padding:"12px 16px",marginBottom:8,display:"flex",gap:12,alignItems:"flex-start"}}>
-                    <div style={{flexShrink:0,width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",marginTop:1}}>
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--amber)" strokeWidth="1.5"/><path d="M8 5v4M8 11v.5" stroke="var(--amber)" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                    </div>
+                {/* RED-S / Overreaching */}
+                <RedsOverreachWarning reds={profile?.adaptive_profile?.redsDetected} over={profile?.adaptive_profile?.overreachDetected}/>
+                {adaptiveSession?.injuryRisk==="high"&&adaptiveSession?.injuryNote&&(
+                  <div style={{background:"rgba(255,59,48,0.07)",border:"1.5px solid rgba(255,59,48,0.18)",borderRadius:10,padding:"10px 14px",marginBottom:10,display:"flex",gap:10,alignItems:"flex-start"}}>
+                    <span style={{fontSize:16,flexShrink:0}}>⚠️</span>
                     <div>
-                      <div style={{fontSize:11,fontWeight:700,color:"var(--amber)",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>Pregnancy — Always consult your OB or midwife</div>
-                      <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>Before continuing or modifying exercise during pregnancy. Stop immediately if you experience pain, dizziness, or shortness of breath.</div>
+                      <div style={{fontFamily:_MO,fontSize:10,color:"#FF3B30",letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:700,marginBottom:3}}>Injury Risk</div>
+                      <div style={{fontSize:12,color:"var(--cm-ink)",lineHeight:1.55}}>{adaptiveSession.injuryNote}</div>
+                      <div style={{fontSize:11,color:"rgba(var(--cm-ink-rgb),0.75)",marginTop:3}}>Consider seeing a physio before continuing.</div>
                     </div>
                   </div>
-                  <div style={{background:"rgba(245,158,11,.05)",border:"1px solid rgba(245,158,11,.15)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
-                    <div style={{fontSize:11,color:"rgba(245,245,240,.65)",lineHeight:1.6}}>Exercise during pregnancy should be supervised by your OB-GYN or midwife. Coach Macro provides general guidance only.<br/><a href="https://coach-macro.com/support" style={{fontSize:10,color:T.prot,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
+                )}
+                {adaptiveSession?.modifier?.label&&adaptiveSession.modifier.label!=="full"&&(
+                  <AdaptiveBanner modifier={adaptiveSession.modifier} analysis={adaptiveSession?.analysisInsight}/>
+                )}
+                {adaptiveSession?.spacingAlert&&(
+                  <div style={{background:adaptiveSession.spacingAlert.severity==='high'?'rgba(255,149,0,0.10)':'rgba(10,10,10,0.04)',border:`1.5px solid ${adaptiveSession.spacingAlert.severity==='high'?'#FF9500':'rgba(10,10,10,0.10)'}`,borderRadius:10,padding:'10px 14px',marginBottom:8,display:'flex',gap:8,alignItems:'flex-start'}}>
+                    <span style={{fontSize:15,flexShrink:0}}>{adaptiveSession.spacingAlert.type==='conflict'?'⚠️':'💤'}</span>
+                    <div style={{fontFamily:_MO,fontSize:11,color:'var(--cm-ink)',lineHeight:1.55}}>{adaptiveSession.spacingAlert.message}</div>
                   </div>
-                </>
-              )}
-              {/* Postpartum phase banner */}
-              {profile?.lifeStage==="postpartum"&&(()=>{const pp=getPostpartumPhase(profile.postpartumWeeks,profile.csection);return(
-                <>
-                  <div style={{background:"rgba(245,158,11,.08)",border:"1.5px solid rgba(245,158,11,.3)",borderRadius:12,padding:"12px 16px",marginBottom:8,display:"flex",gap:12,alignItems:"flex-start"}}>
-                    <div style={{flexShrink:0,width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",marginTop:1}}>
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="2.5" stroke="var(--amber)" strokeWidth="1.5"/><path d="M3 14c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="var(--amber)" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                    </div>
-                    <div>
-                      <div style={{fontSize:11,fontWeight:700,color:"var(--amber)",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>{pp.label}</div>
-                      <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{pp.desc}</div>
-                    </div>
-                  </div>
-                  <div style={{background:"rgba(245,158,11,.05)",border:"1px solid rgba(245,158,11,.15)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
-                    <div style={{fontSize:11,color:"rgba(245,245,240,.65)",lineHeight:1.6}}>Return to exercise postpartum should be guided by your healthcare provider — especially with C-section recovery.<br/><a href="https://coach-macro.com/support" style={{fontSize:10,color:T.prot,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
-                  </div>
-                </>
-              );})()}
-              {/* ACL Prevention prehab for female users on leg days */}
-              {profile?.sex==="female"&&isLegDay(todayFocus)&&(()=>{
-                const cp=getCyclePhase(wPrefs?.lastPeriodDate||profile?.lastPeriodDate);
-                const highLaxity=cp&&(cp.phase==="follicular"||cp.phase==="ovulation");
-                return(
-                  <div style={{background:"rgba(var(--accent-rgb),.06)",border:"1px solid rgba(var(--accent-rgb),.2)",borderRadius:12,padding:"12px 16px",marginBottom:14}}>
-                    <div style={{fontSize:10,color:"var(--red)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:8}}>ACL PREHAB · 5 MIN</div>
-                    {highLaxity&&<div style={{background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",borderRadius:8,padding:"8px 12px",marginBottom:10,fontSize:11,color:T.fat}}>Higher ligament laxity during {cp.label} — warm up thoroughly, land softly, bend knees on impact.</div>}
-                    <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                      {ACL_PREHAB.map((ex,i)=>(
-                        <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 10px",background:T.s2,borderRadius:7}}>
-                          <span style={{fontWeight:600}}>{ex.name}</span>
-                          <span style={{color:T.mu}}>{ex.reps}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
-              {(()=>{
-                const hc=(profile?.healthConditions||[]).filter(c=>c!=="none");
-                if(hc.length===0)return null;
-                return(
-                  <div style={{background:"rgba(251,191,36,.06)",border:"1px solid rgba(251,191,36,.25)",borderRadius:10,padding:"10px 14px",marginBottom:12}}>
-                    <div style={{fontSize:9,color:"var(--amber)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>SAFETY NOTES FOR YOUR SESSION</div>
-                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                      {hc.map(c=>{const info=HEALTH_CONDITIONS_SAFETY[c];return info?(<div key={c} style={{fontSize:11,color:T.mu,lineHeight:1.55}}><span style={{color:"var(--amber)",fontWeight:600}}>{info.label}:</span> {info.note}</div>):null;})}
-                    </div>
-                    <a href="https://coach-macro.com/support" style={{fontSize:10,color:T.prot,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:6}}>Talk to a professional →</a>
-                  </div>
-                );
-              })()}
-              {todayType==="training"&&todayPrescription&&!Array.isArray(todayPrescription)&&(()=>{
-                const runPaces=getPacesFromTime(wPrefs.current5KTime||profile?.current5KTime);
-                const preFuel=todayPrescription.preFuel;
-                const postFuel=todayPrescription.postFuel;
-                const macroAdj=todayPrescription.macroAdjustment;
-                return(
-                <div style={{background:T.s2,borderRadius:12,padding:"14px 16px",border:`1px solid ${T.bd}`,marginBottom:14}}>
-                  <div style={{fontWeight:700,fontSize:14,marginBottom:8}}>{todayPrescription.label||todayPrescription.type||"Today's Run"}</div>
-                  <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
-                    {todayPrescription.type&&<span style={{fontSize:10,fontWeight:700,textTransform:"uppercase",background:`rgba(var(--accent-rgb),0.09)`,color:T.prot,padding:"3px 8px",borderRadius:6}}>{todayPrescription.type}</span>}
-                    {todayPrescription.duration&&<span style={{fontSize:10,fontWeight:700,background:`${T.carb}18`,color:T.carb,padding:"3px 8px",borderRadius:6}}>{todayPrescription.duration} min</span>}
-                    {todayPrescription.distance&&<span style={{fontSize:10,fontWeight:700,background:`${T.fat}18`,color:T.fat,padding:"3px 8px",borderRadius:6}}>{todayPrescription.distance} km</span>}
-                    {todayPrescription.zone&&<span style={{fontSize:10,fontWeight:700,background:`${ZONE_COLOR[todayPrescription.zone]}25`,color:ZONE_COLOR[todayPrescription.zone],padding:"3px 8px",borderRadius:6}}>{ZONE_LABEL[todayPrescription.zone]||`Zone ${todayPrescription.zone}`}</span>}
-                    {macroAdj&&<span style={{fontSize:10,fontWeight:700,background:`${T.carb}15`,color:T.carb,padding:"3px 8px",borderRadius:6}}>+{macroAdj} carbs</span>}
-                  </div>
-                  {todayPrescription.description&&<div style={{fontSize:12,color:T.mu,lineHeight:1.7,marginBottom:8}}>{todayPrescription.description}</div>}
-                  {runPaces&&(wPrefs.current5KTime||profile?.current5KTime)&&<div style={{background:"rgba(var(--accent-rgb),.05)",border:"1px solid rgba(var(--accent-rgb),.15)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
-                    <div style={{fontSize:9,color:T.prot,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>YOUR PACES TODAY</div>
-                    <div style={{display:"flex",flexWrap:"wrap",gap:"6px 14px"}}>
-                      {[["Easy",runPaces.easy.display],["Tempo",runPaces.tempo.display],["Long Run",runPaces.longRun.display],["Intervals",runPaces.interval5K.display]].map(([l,v])=>(
-                        <div key={l} style={{fontSize:11}}><span style={{color:T.mu}}>{l}: </span><span style={{color:"#fff",fontWeight:700,fontFamily:"monospace"}}>{v}</span></div>
-                      ))}
-                    </div>
-                  </div>}
-                  {preFuel&&<div style={{background:"rgba(245,158,11,.06)",border:"1px solid rgba(245,158,11,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
-                    <div style={{fontSize:9,color:"var(--amber)",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>PRE-RUN FUEL</div>
-                    <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{preFuel}</div>
-                  </div>}
-                  {postFuel&&<div style={{background:"rgba(52,211,153,.06)",border:"1px solid rgba(52,211,153,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
-                    <div style={{fontSize:9,color:T.green,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>RECOVERY FUEL</div>
-                    <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{postFuel}</div>
-                  </div>}
-                  {!preFuel&&!postFuel&&todayProgObj?.nutritionNote&&(
-                    <div style={{background:"rgba(var(--accent-rgb),.05)",borderRadius:9,padding:"10px 12px",border:"1px solid rgba(var(--accent-rgb),.15)"}}>
-                      <div style={{fontSize:9,color:T.prot,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>NUTRITION BRIDGE</div>
-                      <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{todayProgObj.nutritionNote}</div>
-                    </div>
-                  )}
-                </div>
-                );
-              })()}
-              {(()=>{
-                const cp=getCyclePhase(wPrefs?.lastPeriodDate||profile?.lastPeriodDate);
-                if(!cp)return null;
-                return <div style={{background:`${cp.color}12`,border:`1px solid ${cp.color}30`,borderRadius:10,padding:"8px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:10}}>
-                  <span style={{fontSize:13}}>{cp.label.split(" ")[0]}</span>
-                  <div>
-                    <span style={{fontSize:11,fontWeight:700,color:cp.color}}>{cp.label}</span>
-                    <span style={{fontSize:10,color:T.mu,marginLeft:8}}>Cycle day ~{Math.floor((Date.now()-new Date(wPrefs?.lastPeriodDate||profile?.lastPeriodDate))/86400000)%28+1}</span>
-                  </div>
-                </div>;
-              })()}
-              {todayType==="training"&&!todayPrescription&&(
-                <div style={{background:"rgba(var(--accent-rgb),0.06)",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:14,padding:"18px 16px",marginBottom:8,textAlign:"center"}}>
-                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--white)",marginBottom:6}}>No Program Selected</div>
-                  <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",marginBottom:14,lineHeight:1.5}}>Pick a structured program to see your session here every day.</div>
-                  <button onClick={()=>setTrainScreen("plan")} style={{padding:"12px 24px",background:"var(--red)",color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>Pick a Program →</button>
-                </div>
-              )}
-              {todayType==="training"&&(
-                <div style={{marginTop:14}}>
-                  {Array.isArray(todayPrescription)&&todayPrescription.length>0?(
-                    <>
-                      {/* See more / Hide toggle */}
-                      <div onClick={()=>setSessionDetailExpanded(s=>!s)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 14px",background:"rgba(var(--accent-rgb),0.04)",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:10,cursor:"pointer",marginBottom:sessionDetailExpanded?10:0,transition:"margin 0.2s"}}>
-                        <span style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase"}}>{sessionDetailExpanded?"Hide ↑":"See more ↓"}</span>
-                        <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.08em"}}>{exCount} exercises · {totalSets} sets</span>
+                )}
+                {profile?.lifeStage==="pregnant"&&(
+                  <>
+                    <div style={{background:"rgba(245,158,11,.08)",border:"1.5px solid rgba(245,158,11,.3)",borderRadius:12,padding:"12px 16px",marginBottom:8,display:"flex",gap:12,alignItems:"flex-start"}}>
+                      <div style={{flexShrink:0,width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",marginTop:1}}>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--amber)" strokeWidth="1.5"/><path d="M8 5v4M8 11v.5" stroke="var(--amber)" strokeWidth="1.5" strokeLinecap="round"/></svg>
                       </div>
-                      {/* Expanded: numbered exercise list + Start Session */}
-                      {sessionDetailExpanded&&(
-                        <div>
-                          <div style={{display:"flex",flexDirection:"column",marginBottom:12}}>
-                            {todayPrescription.map((ex,i)=>(
-                              <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 0",borderBottom:"1px solid rgba(var(--accent-rgb),0.06)"}}>
-                                <div style={{width:26,height:26,borderRadius:"50%",background:"rgba(var(--accent-rgb),0.12)",border:"1px solid rgba(var(--accent-rgb),0.25)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--mono)",fontSize:10,color:"var(--accent)",fontWeight:700,flexShrink:0}}>{i+1}</div>
-                                <div style={{flex:1}}>
-                                  <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:GOCLUB_REDESIGN?700:900,fontSize:GOCLUB_REDESIGN?15:17,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{ex.name}</div>
-                                  {(()=>{
-                                    const prog=adaptiveSession?.progressions?.[ex.name];
-                                    const conflict=adaptiveSession?.soreConflicts?.find(c=>c.exercise===ex.name);
-                                    const domsConflict=adaptiveSession?.domsConflicts?.find(c=>c.exercise===ex.name);
-                                    return(<>
-                                      {conflict&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FF9500",letterSpacing:"0.08em",marginTop:3}}>⚠️ {conflict.zone.replace(/_/g,' ')} still recovering</div>}
-                                      {!conflict&&domsConflict&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FF9500",letterSpacing:"0.08em",marginTop:3}}>⚠️ {domsConflict.zone} predicted soreness peak in {Math.abs(domsConflict.prediction.hoursToPeak)}h — consider reducing range of motion</div>}
-                                      {prog&&prog.action!=='new'&&<WeightSuggestion prog={prog}/>}
-                                    </>);
-                                  })()}
-                                </div>
-                                <div style={{fontFamily:"var(--mono)",fontSize:12,color:"rgba(245,245,240,0.7)",letterSpacing:"0.06em",flexShrink:0}}>{Array.isArray(ex.sets)?ex.sets.length:ex.sets}×{ex.reps}</div>
-                              </div>
-                            ))}
+                      <div>
+                        <div style={{fontSize:11,fontWeight:700,color:"var(--amber)",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>Pregnancy — Always consult your OB or midwife</div>
+                        <div style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.6}}>Before continuing or modifying exercise during pregnancy. Stop immediately if you experience pain, dizziness, or shortness of breath.</div>
+                      </div>
+                    </div>
+                    <div style={{background:"rgba(245,158,11,.05)",border:"1px solid rgba(245,158,11,.15)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
+                      <div style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.6}}>Exercise during pregnancy should be supervised by your OB-GYN or midwife. Coach Macro provides general guidance only.<br/><button onClick={()=>setSupportPageOpen(true)} style={{fontSize:10,color:"#FF3B30",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3,background:"none",border:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>Talk to a professional →</button></div>
+                    </div>
+                  </>
+                )}
+                {profile?.lifeStage==="postpartum"&&(()=>{const pp=getPostpartumPhase(profile.postpartumWeeks,profile.csection);return(
+                  <>
+                    <div style={{background:"rgba(245,158,11,.08)",border:"1.5px solid rgba(245,158,11,.3)",borderRadius:12,padding:"12px 16px",marginBottom:8,display:"flex",gap:12,alignItems:"flex-start"}}>
+                      <div style={{flexShrink:0,width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",marginTop:1}}>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="2.5" stroke="var(--amber)" strokeWidth="1.5"/><path d="M3 14c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="var(--amber)" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                      </div>
+                      <div>
+                        <div style={{fontSize:11,fontWeight:700,color:"var(--amber)",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>{pp.label}</div>
+                        <div style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.6}}>{pp.desc}</div>
+                      </div>
+                    </div>
+                    <div style={{background:"rgba(245,158,11,.05)",border:"1px solid rgba(245,158,11,.15)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
+                      <div style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.6}}>Return to exercise postpartum should be guided by your healthcare provider.<br/><button onClick={()=>setSupportPageOpen(true)} style={{fontSize:10,color:"#FF3B30",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3,background:"none",border:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>Talk to a professional →</button></div>
+                    </div>
+                  </>
+                );})()}
+                {profile?.sex==="female"&&isLegDay(todayFocus)&&(()=>{
+                  const cp=getCyclePhase(wPrefs?.lastPeriodDate||profile?.lastPeriodDate);
+                  const highLaxity=cp&&(cp.phase==="follicular"||cp.phase==="ovulation");
+                  return(
+                    <div style={{background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.15)",borderRadius:12,padding:"12px 16px",marginBottom:14}}>
+                      <div style={{fontSize:10,color:"#FF3B30",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:8}}>ACL PREHAB · 5 MIN</div>
+                      {highLaxity&&<div style={{background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",borderRadius:8,padding:"8px 12px",marginBottom:10,fontSize:11,color:"var(--amber)"}}>Higher ligament laxity during {cp.label} — warm up thoroughly, land softly, bend knees on impact.</div>}
+                      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                        {ACL_PREHAB.map((ex,i)=>(
+                          <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 10px",background:"rgba(10,10,10,0.04)",borderRadius:7}}>
+                            <span style={{fontWeight:600,color:"var(--cm-ink)"}}>{ex.name}</span>
+                            <span style={{color:"rgba(var(--cm-ink-rgb),0.75)"}}>{ex.reps}</span>
                           </div>
-                          {adaptiveSession?.hasPlateau&&(
-                            <div style={{background:"#1a1a1a",border:"1px solid rgba(255,59,48,0.3)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-                              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",marginBottom:4}}>You've pushed this program to its limit.</div>
-                              <div style={{fontFamily:"var(--mono)",fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.55,marginBottom:10}}>Your coach has noticed {adaptiveSession.plateaus.join(', ')} have stalled. You're ready for the next level.</div>
-                              <button onClick={()=>setTrainScreen("library")} style={{padding:"8px 16px",background:"rgba(255,59,48,0.12)",border:"1.5px solid rgba(255,59,48,0.35)",borderRadius:9,color:"#FF3B30",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>See next programs →</button>
-                            </div>
-                          )}
-                          <button onClick={()=>startFromProgram()} style={{width:"100%",background:"var(--accent)",border:"none",borderRadius:12,padding:15,fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>START SESSION →</button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+                {(()=>{
+                  const hc=(profile?.healthConditions||[]).filter(c=>c!=="none");
+                  if(hc.length===0)return null;
+                  return(
+                    <div style={{background:"rgba(251,191,36,.06)",border:"1px solid rgba(251,191,36,.25)",borderRadius:10,padding:"10px 14px",marginBottom:12}}>
+                      <div style={{fontSize:9,color:"var(--amber)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>SAFETY NOTES FOR YOUR SESSION</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                        {hc.map(c=>{const info=HEALTH_CONDITIONS_SAFETY[c];return info?(<div key={c} style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.55}}><span style={{color:"var(--amber)",fontWeight:600}}>{info.label}:</span> {info.note}</div>):null;})}
+                      </div>
+                      <button onClick={()=>setSupportPageOpen(true)} style={{fontSize:10,color:"#FF3B30",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:6,background:"none",border:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>Talk to a professional →</button>
+                    </div>
+                  );
+                })()}
+                {(todayType==="training"||todayType==="run"||todayType==="cardio"||hybridRunDay)&&todayPrescription&&!Array.isArray(todayPrescription)&&(()=>{
+                  const runPaces=getPacesFromTime(wPrefs.current5KTime||profile?.current5KTime);
+                  const preFuel=todayPrescription.preFuel;
+                  const postFuel=todayPrescription.postFuel;
+                  const macroAdj=todayPrescription.macroAdjustment;
+                  return(
+                    <div style={{background:"rgba(10,10,10,0.04)",borderRadius:12,padding:"14px 16px",border:"1px solid rgba(10,10,10,0.08)",marginBottom:14}}>
+                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:18,letterSpacing:"-0.01em",textTransform:"capitalize",marginBottom:8,color:"var(--cm-ink)"}}>{todayPrescription.label||todayPrescription.type||"Today's Run"}</div>
+                      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+                        {todayPrescription.type&&<span style={{fontSize:11,fontWeight:600,letterSpacing:"0.04em",textTransform:"uppercase",background:"rgba(255,59,48,0.10)",color:"#FF3B30",padding:"3px 8px",borderRadius:6}}>{todayPrescription.type}</span>}
+                        {todayPrescription.duration&&<span style={{fontSize:11,fontWeight:600,letterSpacing:"0.04em",background:`${T.carb}18`,color:T.carb,padding:"3px 8px",borderRadius:6}}>{todayPrescription.duration} min</span>}
+                        {todayPrescription.distance&&<span style={{fontSize:11,fontWeight:600,letterSpacing:"0.04em",background:`${T.fat}18`,color:T.fat,padding:"3px 8px",borderRadius:6}}>{todayPrescription.distance} km</span>}
+                        {todayPrescription.zone&&<span style={{fontSize:11,fontWeight:600,letterSpacing:"0.04em",background:`${ZONE_COLOR[todayPrescription.zone]}25`,color:ZONE_COLOR[todayPrescription.zone],padding:"3px 8px",borderRadius:6}}>{ZONE_LABEL[todayPrescription.zone]||`Zone ${todayPrescription.zone}`}</span>}
+                        {macroAdj&&<span style={{fontSize:11,fontWeight:600,letterSpacing:"0.04em",background:`${T.carb}15`,color:T.carb,padding:"3px 8px",borderRadius:6}}>+{macroAdj} carbs</span>}
+                      </div>
+                      {todayPrescription.description&&<div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb),0.8)",lineHeight:1.6,marginBottom:8}}>{todayPrescription.description}</div>}
+                      {runPaces&&<div style={{background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.12)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
+                        <div style={{fontFamily:_AF,fontSize:10,color:"rgba(var(--cm-ink-rgb),0.55)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:6}}>YOUR PACES TODAY</div>
+                        <div style={{display:"flex",flexWrap:"wrap",gap:"6px 14px"}}>
+                          {[["Easy",runPaces.easy.display],["Tempo",runPaces.tempo.display],["Long Run",runPaces.longRun.display],["Intervals",runPaces.interval5K.display]].map(([l,v])=>(
+                            <div key={l} style={{fontSize:13,lineHeight:1.6}}><span style={{color:"rgba(var(--cm-ink-rgb),0.8)"}}>{l}: </span><span style={{color:"var(--cm-ink)",fontWeight:700,fontFamily:"monospace"}}>{v}</span></div>
+                          ))}
+                        </div>
+                      </div>}
+                      {preFuel&&<div style={{background:"rgba(245,158,11,.06)",border:"1px solid rgba(245,158,11,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
+                        <div style={{fontFamily:_AF,fontSize:10,color:"rgba(var(--cm-ink-rgb),0.55)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:3}}>PRE-RUN FUEL</div>
+                        <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb),0.8)",lineHeight:1.6}}>{preFuel}</div>
+                      </div>}
+                      {postFuel&&<div style={{background:"rgba(52,211,153,.06)",border:"1px solid rgba(52,211,153,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
+                        <div style={{fontFamily:_AF,fontSize:10,color:"rgba(var(--cm-ink-rgb),0.55)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:3}}>RECOVERY FUEL</div>
+                        <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb),0.8)",lineHeight:1.6}}>{postFuel}</div>
+                      </div>}
+                      {!preFuel&&!postFuel&&todayProgObj?.nutritionNote&&(
+                        <div style={{background:"rgba(255,59,48,0.05)",borderRadius:9,padding:"10px 12px",border:"1px solid rgba(255,59,48,0.12)"}}>
+                          <div style={{fontFamily:_AF,fontSize:10,color:"rgba(var(--cm-ink-rgb),0.55)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>NUTRITION BRIDGE</div>
+                          <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb),0.8)",lineHeight:1.6}}>{todayProgObj.nutritionNote}</div>
                         </div>
                       )}
-                    </>
-                  ):(
-                    /* No exercise list (non-lifting or no program) — Start Session always visible */
-                    <motion.button
-                      onClick={()=>todayPrescription?startFromProgram():startStructured(todayFocus)}
-                      onPointerDown={GOCLUB_REDESIGN?()=>_hL():undefined}
-                      whileTap={GOCLUB_REDESIGN?{scale:0.91}:undefined}
-                      transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
-                      style={{width:"100%",background:"var(--accent)",border:"none",borderRadius:12,padding:15,fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:GOCLUB_REDESIGN?"manipulation":undefined}}>START SESSION →</motion.button>
-                  )}
-                </div>
-              )}
-            </div>
-            </StaggerItem>
-            );})()}
-
-            {/* ── QUICK ACCESS CAROUSEL ── */}
-            {(()=>{
-              const progInfo=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
-              const totalWeeks=progInfo?.weeks||12;
-              const _raceTypeLabels2={half_marathon:'Half Marathon',half:'Half Marathon','5k':'5K','10k':'10K',marathon:'Marathon',general:'General Fitness'};
-              const _raceLabel2=_raceTypeLabels2[(profile?.run_race_type||'').toLowerCase()]||profile?.run_race_type||'';
-              const progName=
-                wPrefs.isHyrox&&wPrefs.isHybrid ? (wPrefs.hybridTemplate||"Hyrox Hybrid") :
-                wPrefs.isHyrox   ? (wPrefs.hyroxProgram||"Hyrox") :
-                wPrefs.isHybrid  ? (_raceLabel2?`${wPrefs.hybridTemplate||"Hybrid"} · ${_raceLabel2}`:(wPrefs.hybridTemplate||"Hybrid")) :
-                prescType==="running" ? (_raceLabel2||wPrefs.runPlan||"Running") :
-                progInfo?.name||(wPrefs.splitType||"Custom Plan");
-              const displayWeek=programCurrentWeek||weekNum;
-              const liftExp=(wPrefs?.liftExp||profile?.liftExp||"intermediate");
-              const expLabel=liftExp.charAt(0).toUpperCase()+liftExp.slice(1);
-              const cardStyle={minWidth:"100%",maxWidth:"100%",width:"100%",flexShrink:0,scrollSnapAlign:"start",background:"#0d0d0d",borderRadius:14,padding:"18px 16px",display:"flex",flexDirection:"column",justifyContent:"space-between",height:110,cursor:"pointer",position:"relative",boxSizing:"border-box"};
-              return(
-                <>
-                  <div
-                    ref={carouselRef}
-                    onScroll={e=>{const el=e.currentTarget;const w=el.offsetWidth||el.clientWidth||320;const idx=Math.min(2,Math.max(0,Math.round(el.scrollLeft/w)));setActiveCard(idx);}}
-                    style={{overflowX:"auto",display:"flex",flexDirection:"row",gap:0,paddingBottom:4,marginBottom:8,scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",scrollbarWidth:"none",msOverflowStyle:"none"}}
-                  >
-                    {/* Card 1 — YOUR PROGRAM */}
-                    <div onClick={()=>setTrainScreen("plan")} style={{...cardStyle,border:"1px solid rgba(var(--accent-rgb),0.2)"}}>
-                      <div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// YOUR PROGRAM</div>
-                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{progName}<span style={{color:"var(--accent)"}}>.</span></div>
-                      </div>
-                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)"}}>Week {displayWeek} · {expLabel}</div>
-                      <div style={{position:"absolute",bottom:16,right:16,color:"var(--accent)",fontSize:18,lineHeight:1}}>→</div>
                     </div>
-                    {/* Card 2 — EXERCISE LIBRARY */}
-                    <div onClick={()=>setTrainScreen("library")} style={{...cardStyle,border:"1px solid rgba(var(--accent-rgb),0.1)"}}>
-                      <div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// FULL DATABASE</div>
-                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>EXERCISE LIBRARY<span style={{color:"var(--accent)"}}>.</span></div>
-                      </div>
-                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)"}}>800+ exercises</div>
-                      <div style={{position:"absolute",bottom:16,right:16,color:"var(--accent)",fontSize:18,lineHeight:1}}>→</div>
+                  );
+                })()}
+                {(()=>{
+                  const cp=getCyclePhase(wPrefs?.lastPeriodDate||profile?.lastPeriodDate);
+                  if(!cp)return null;
+                  return <div style={{background:`${cp.color}12`,border:`1px solid ${cp.color}30`,borderRadius:10,padding:"8px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontSize:13}}>{cp.label.split(" ")[0]}</span>
+                    <div>
+                      <span style={{fontSize:11,fontWeight:700,color:cp.color}}>{cp.label}</span>
+                      <span style={{fontSize:10,color:"var(--cm-ink)",marginLeft:8}}>Cycle day ~{Math.floor((Date.now()-new Date(wPrefs?.lastPeriodDate||profile?.lastPeriodDate))/86400000)%28+1}</span>
                     </div>
-                    {/* Card 3 — EXPLORE */}
-                    <div onClick={()=>setShowExploreSheet(true)} style={{...cardStyle,border:"1px solid rgba(var(--accent-rgb),0.1)"}}>
-                      <div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// TOOLS & MORE</div>
-                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>EXPLORE<span style={{color:"var(--accent)"}}>.</span></div>
-                      </div>
-                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)"}}>Programs · Routines · Warm-up · Favorites</div>
-                      <div style={{position:"absolute",bottom:16,right:16,color:"var(--accent)",fontSize:18,lineHeight:1}}>→</div>
-                    </div>
+                  </div>;
+                })()}
+                {todayType==="training"&&!todayPrescription&&(
+                  <div style={{background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.15)",borderRadius:14,padding:"18px 16px",marginBottom:8,textAlign:"center"}}>
+                    <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"var(--cm-ink)",marginBottom:6}}>No Program Selected</div>
+                    <div style={{fontSize:13,color:"var(--cm-ink)",marginBottom:14,lineHeight:1.5}}>Pick a structured program to see your session here every day.</div>
+                    <button onClick={()=>setTrainScreen("plan")} style={{padding:"12px 24px",background:"#FF3B30",color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:_AF,textTransform:"uppercase",letterSpacing:1}}>Pick a Program →</button>
                   </div>
-                  {/* Scroll indicator dots */}
-                  <div style={{display:"flex",gap:5,justifyContent:"center",marginBottom:16}}>
-                    {[0,1,2].map(i=>(
-                      <div key={i} style={{width:5,height:5,borderRadius:"50%",background:activeCard===i?"var(--accent)":"rgba(245,245,240,0.15)",transition:"background 0.2s"}}/>
-                    ))}
-                  </div>
-                </>
-              );
-            })()}
-
-            {/* ── TODAY'S NUTRITION CONTEXT ── */}
-            {(()=>{
-              const displayPrefs=wPrefs?.displayPrefs||{};
-              const currentSkill=(wPrefs?.liftExp||profile?.liftExp||"intermediate").toLowerCase();
-              const showMacroCard=displayPrefs.full_macro_breakdown!=null?displayPrefs.full_macro_breakdown:currentSkill!=="beginner";
-              if(!showMacroCard||!todayProtocol||!macros)return null;
-              const p=todayProtocol;
-              const base={cal:p.base_calories||macros.calories,prot:p.base_protein_g||macros.protein,carbs:p.base_carbs_g||macros.carbs};
-              const adj={cal:p.adjusted_calories||macros.calories,prot:p.adjusted_protein_g||macros.protein,carbs:p.adjusted_carbs_g||macros.carbs};
-              function arrow(adj,base){
-                if(adj>base+5)return{sym:"↑",color:T.green};
-                if(adj<base-5)return{sym:"↓",color:"#ef4444"};
-                return{sym:"→",color:"rgba(245,245,240,0.4)"};
-              }
-              const chips=[
-                {label:"PROTEIN",val:`${adj.prot}g`,...arrow(adj.prot,base.prot)},
-                {label:"CARBS",val:`${adj.carbs}g`,...arrow(adj.carbs,base.carbs)},
-                {label:"CALORIES",val:String(adj.cal),...arrow(adj.cal,base.cal)},
-              ];
-              return(
-                <div style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12,padding:"12px 14px",marginBottom:10,display:"flex",gap:0,position:"relative",overflow:"hidden"}}>
-                  <div style={{width:3,background:"var(--accent)",borderRadius:2,marginRight:12,flexShrink:0}}/>
-                  <div style={{flex:1}}>
-                    <div style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// TODAY'S NUTRITION</div>
-                    <div style={{display:"flex",gap:6,marginBottom:8}}>
-                      {chips.map(c=>(
-                        <div key={c.label} style={{flex:1,background:"rgba(245,245,240,0.03)",borderRadius:8,padding:"7px 6px",textAlign:"center"}}>
-                          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:15,color:c.color,lineHeight:1}}>{c.sym} {c.val}</div>
-                          <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.1em",textTransform:"uppercase",marginTop:3}}>{c.label}</div>
+                )}
+                {/* ── LIFTING action region (unchanged) ── */}
+                {todayType==="training"&&(
+                  <div style={{marginTop:8}}>
+                    {Array.isArray(todayPrescription)&&todayPrescription.length>0?(
+                      <>
+                        <div onClick={()=>{_hL();setSessionDetailExpanded(s=>!s);}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 14px",background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.12)",borderRadius:10,cursor:"pointer",marginBottom:sessionDetailExpanded?10:0,transition:"margin 0.2s"}}>
+                          <span style={{fontFamily:_AF,fontSize:11,fontWeight:800,color:"#FF3B30",letterSpacing:0,textTransform:"uppercase"}}>{sessionDetailExpanded?"Hide ↑":"See exercises ↓"}</span>
+                          <span style={{fontFamily:_AF,fontWeight:600,fontSize:11,color:"var(--cm-ink)",letterSpacing:0}}>{exCount} exercises · {totalSets} sets</span>
                         </div>
-                      ))}
-                    </div>
-                    {p.reason&&<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",lineHeight:1.5}}>{p.reason}</div>}
+                        {sessionDetailExpanded&&(
+                          <div>
+                            <div style={{display:"flex",flexDirection:"column",marginBottom:12}}>
+                              {todayPrescription.map((ex,i)=>(
+                                <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 0",borderBottom:"1px solid rgba(10,10,10,0.06)"}}>
+                                  <div style={{width:26,height:26,borderRadius:"50%",background:"rgba(255,59,48,0.10)",border:"1px solid rgba(255,59,48,0.20)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:_MO,fontSize:10,color:"#FF3B30",fontWeight:700,flexShrink:0}}>{i+1}</div>
+                                  <div style={{flex:1}}>
+                                    <div style={{fontFamily:_AF,fontWeight:700,fontSize:15,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:1}}>{ex.name}</div>
+                                    {(()=>{
+                                      const prog=adaptiveSession?.progressions?.[ex.name];
+                                      const conflict=adaptiveSession?.soreConflicts?.find(c=>c.exercise===ex.name);
+                                      const domsConflict=adaptiveSession?.domsConflicts?.find(c=>c.exercise===ex.name);
+                                      return(<>
+                                        {conflict&&<div style={{fontFamily:_MO,fontSize:9,color:"#FF9500",letterSpacing:"0.08em",marginTop:3}}>⚠️ {conflict.zone.replace(/_/g,' ')} still recovering</div>}
+                                        {!conflict&&domsConflict&&<div style={{fontFamily:_MO,fontSize:9,color:"#FF9500",letterSpacing:"0.08em",marginTop:3}}>⚠️ {domsConflict.zone} predicted soreness peak in {Math.abs(domsConflict.prediction.hoursToPeak)}h — consider reducing range of motion</div>}
+                                        {prog&&prog.action!=='new'&&<WeightSuggestion prog={prog}/>}
+                                      </>);
+                                    })()}
+                                  </div>
+                                  <div style={{fontFamily:_MO,fontSize:12,color:"var(--cm-ink)",letterSpacing:"0.06em",flexShrink:0}}>{Array.isArray(ex.sets)?ex.sets.length:ex.sets}×{ex.reps}</div>
+                                </div>
+                              ))}
+                            </div>
+                            {adaptiveSession?.hasPlateau&&(
+                              <div style={{background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.18)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+                                <div style={{fontFamily:_AF,fontWeight:800,fontSize:17,color:"var(--cm-ink)",marginBottom:4}}>You've pushed this program to its limit.</div>
+                                <div style={{fontFamily:_MO,fontSize:11,color:"var(--cm-ink)",lineHeight:1.55,marginBottom:10}}>Your coach has noticed {adaptiveSession.plateaus.join(', ')} have stalled. You're ready for the next level.</div>
+                                <button onClick={()=>setTrainScreen("library")} style={{padding:"8px 16px",background:"rgba(255,59,48,0.10)",border:"1.5px solid rgba(255,59,48,0.22)",borderRadius:9,color:"#FF3B30",fontFamily:_MO,fontSize:10,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>See next programs →</button>
+                              </div>
+                            )}
+                            <motion.button onClick={()=>{_hM();startFromProgram();}} onPointerDown={()=>_hL()} whileTap={{scale:0.94}} transition={{type:'spring',stiffness:600,damping:20}} style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START SESSION →</motion.button>
+                          </div>
+                        )}
+                      </>
+                    ):(
+                      <motion.button
+                        onClick={()=>{_hM();todayPrescription?startFromProgram():startStructured(todayFocus);}}
+                        onPointerDown={()=>_hL()}
+                        whileTap={{scale:0.94}}
+                        transition={{type:'spring',stiffness:600,damping:20}}
+                        style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START SESSION →</motion.button>
+                    )}
+                    {/* Adapt today — secondary quiet pill, only when a session exists + quota remains */}
+                    {Array.isArray(todayPrescription)&&todayPrescription.length>0&&adaptLeft>0&&(
+                      <button onClick={()=>{_hL();setShowAdapt(true);}}
+                        style={{width:"100%",marginTop:8,padding:"11px 0",background:"transparent",
+                                border:"1px solid rgba(var(--cm-ink-rgb),.15)",borderRadius:12,
+                                color:"rgba(var(--cm-ink-rgb),.60)",fontFamily:_MO,fontSize:10,
+                                fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",
+                                cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
+                                gap:6,minHeight:"auto",minWidth:"auto"}}>
+                        <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>
+                        ADAPT TODAY
+                      </button>
+                    )}
                   </div>
-                </div>
-              );
-            })()}
-
-            {/* ── THIS WEEK ── */}
-            <WeekStrip todayKey={todayKey} schedule={schedule} dayFocus={resolvedDayFocus} sessionCount={sessionCount} todayType={todayType}/>
-
-            {/* ── MUSCLE RECOVERY ── */}
-            <MuscleRecovery userId={user?.id}/>
-
-            {/* ── GOCLUB: Balance correction insight ── */}
-            {GOCLUB_REDESIGN&&balanceCorrections?.length>0&&(()=>{
-              const top=balanceCorrections[0];
-              if(!top?.recommendation)return null;
-              return(
-                <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,padding:"12px 14px",display:"flex",gap:12,alignItems:"flex-start"}}>
-                  <div style={{fontSize:16,flexShrink:0,lineHeight:1,paddingTop:1}}>⚖️</div>
-                  <div>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.4)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>Balance insight</div>
-                    <div style={{fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:500,color:"rgba(255,255,255,0.75)",lineHeight:1.55}}>{top.recommendation}</div>
+                )}
+                {/* ── RUN action region: run/cardio day or hybrid-run day ── */}
+                {(todayType==="run"||todayType==="cardio"||hybridRunDay)&&(
+                  <div style={{marginTop:8}}>
+                    <motion.button
+                      onClick={()=>{_hM();startFromProgram();}}
+                      onPointerDown={()=>_hL()}
+                      whileTap={{scale:0.94}}
+                      transition={{type:'spring',stiffness:600,damping:20}}
+                      style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START RUN →</motion.button>
                   </div>
-                </div>
-              );
-            })()}
+                )}
+                {/* ── HYROX action region: hyrox or hybrid-hyrox day ── */}
+                {todayType==="hyrox"&&(
+                  <div style={{marginTop:8}}>
+                    <motion.button
+                      onClick={()=>{_hM();startFromProgram();}}
+                      onPointerDown={()=>_hL()}
+                      whileTap={{scale:0.94}}
+                      transition={{type:'spring',stiffness:600,damping:20}}
+                      style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START HYROX →</motion.button>
+                  </div>
+                )}
+              </PaperCard>
 
-            {/* ── EXPLORE BOTTOM SHEET — portalled so position:fixed works on iOS ── */}
-            {showExploreSheet&&ReactDOM.createPortal(
-              <div onClick={()=>setShowExploreSheet(false)} style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-end"}}>
-                <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"20px 20px 0 0",padding:"24px 20px",paddingBottom:"calc(24px + env(safe-area-inset-bottom))"}}>
-                  <div style={{width:36,height:4,background:"rgba(245,245,240,0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
-                  <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--accent)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:16}}>// EXPLORE</div>
-                  {[
-                    {title:"PROGRAM LIBRARY",sub:"Browse all training programs",screen:"plan"},
-                    {title:"MY ROUTINES",sub:"Your custom workouts",screen:"routine-builder"},
-                    {title:"WARM-UP",sub:"Movement prep by muscle group",screen:"warmup-protocols"},
-                    {title:"FAVORITES",sub:"Saved exercises and workouts",screen:"library"},
-                    {title:"CUSTOM ROUTINE",sub:"Build your own workout",screen:"routine-builder"},
-                    {title:"BROWSE EXERCISES",sub:"Search 800+ exercises",screen:"library"},
-                  ].map(({title,sub,screen})=>(
-                    <div key={title} onClick={()=>{setShowExploreSheet(false);setTrainScreen(screen);}} style={{padding:"14px 0",borderBottom:"1px solid rgba(var(--accent-rgb),0.06)",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
-                      <div>
-                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{title}</div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginTop:2}}>{sub}</div>
+              {/* ══ PAPER CARD 2 — EXPLORE + NUTRITION ════════════════════════ */}
+              <PaperCard reveal revealDelay={0} style={{margin:"12px 12px 0",padding:"22px 18px"}}>
+                {/* Nutrition context */}
+                {(()=>{
+                  const displayPrefs=wPrefs?.displayPrefs||{};
+                  const currentSkill=(wPrefs?.liftExp||profile?.liftExp||"intermediate").toLowerCase();
+                  const showMacroCard=displayPrefs.full_macro_breakdown!=null?displayPrefs.full_macro_breakdown:currentSkill!=="beginner";
+                  if(!showMacroCard||!todayProtocol||!macros)return null;
+                  const p=todayProtocol;
+                  const base={cal:p.base_calories||macros.calories,prot:p.base_protein_g||macros.protein,carbs:p.base_carbs_g||macros.carbs};
+                  const adj={cal:p.adjusted_calories||macros.calories,prot:p.adjusted_protein_g||macros.protein,carbs:p.adjusted_carbs_g||macros.carbs};
+                  function arrow(a,b){if(a>b+5)return{sym:"↑",color:T.green};if(a<b-5)return{sym:"↓",color:"#ef4444"};return{sym:"→",color:"rgba(var(--cm-ink-rgb),0.65)"};}
+                  const chips=[
+                    {label:"PROTEIN",val:`${adj.prot}g`,...arrow(adj.prot,base.prot)},
+                    {label:"CARBS",val:`${adj.carbs}g`,...arrow(adj.carbs,base.carbs)},
+                    {label:"CALORIES",val:String(adj.cal),...arrow(adj.cal,base.cal)},
+                  ];
+                  return(
+                    <div style={{background:"rgba(255,59,48,0.05)",border:"1px solid rgba(255,59,48,0.12)",borderRadius:12,padding:"12px 14px",marginBottom:16,display:"flex",gap:0,position:"relative",overflow:"hidden"}}>
+                      <div style={{width:3,background:"#FF3B30",borderRadius:2,marginRight:12,flexShrink:0}}/>
+                      <div style={{flex:1}}>
+                        <div style={{fontFamily:_MO,fontSize:8,color:"#FF3B30",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>TODAY'S NUTRITION</div>
+                        <div style={{display:"flex",gap:6,marginBottom:6}}>
+                          {chips.map(c=>(
+                            <div key={c.label} style={{flex:1,background:"rgba(10,10,10,0.04)",borderRadius:8,padding:"7px 6px",textAlign:"center"}}>
+                              <div style={{fontFamily:_AF,fontWeight:800,fontSize:15,color:c.color,lineHeight:1}}>{c.sym} {c.val}</div>
+                              <div style={{fontFamily:_MO,fontSize:7,color:"rgba(var(--cm-ink-rgb),0.75)",letterSpacing:"0.1em",textTransform:"uppercase",marginTop:3}}>{c.label}</div>
+                            </div>
+                          ))}
+                        </div>
+                        {p.reason&&<div style={{fontFamily:_MO,fontSize:8,color:"rgba(var(--cm-ink-rgb),0.75)",lineHeight:1.5}}>{p.reason}</div>}
                       </div>
-                      <div style={{color:"var(--accent)",fontSize:16,flexShrink:0}}>→</div>
                     </div>
-                  ))}
+                  );
+                })()}
+                {/* Quick access eyebrow */}
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"var(--cm-ink)",marginBottom:14}}>QUICK ACCESS</div>
+                {/* Carousel */}
+                {(()=>{
+                  const progInfo=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
+                  const _raceTypeLabels2={half_marathon:'Half Marathon',half:'Half Marathon','5k':'5K','10k':'10K',marathon:'Marathon',general:'General Fitness'};
+                  const _raceLabel2=_raceTypeLabels2[(profile?.run_race_type||'').toLowerCase()]||profile?.run_race_type||'';
+                  const progName=
+                    wPrefs.isHyrox&&wPrefs.isHybrid?(wPrefs.hybridTemplate||"Hyrox Hybrid"):
+                    wPrefs.isHyrox?(wPrefs.hyroxProgram||"Hyrox"):
+                    wPrefs.isHybrid?(_raceLabel2?`${wPrefs.hybridTemplate||"Hybrid"} · ${_raceLabel2}`:(wPrefs.hybridTemplate||"Hybrid")):
+                    prescType==="running"?(_raceLabel2||wPrefs.runPlan||"Running"):
+                    progInfo?.name||(wPrefs.splitType||"Custom Plan");
+                  const displayWeek=resolveDisplayWeek(programCurrentWeek,weekNum,wPrefs,profile);
+                  const liftExp=(wPrefs?.liftExp||profile?.liftExp||"intermediate");
+                  const expLabel=liftExp.charAt(0).toUpperCase()+liftExp.slice(1);
+                  const cStyle={minWidth:"100%",maxWidth:"100%",width:"100%",flexShrink:0,scrollSnapAlign:"start",background:"rgba(10,10,10,0.04)",border:"1px solid rgba(10,10,10,0.08)",borderRadius:14,padding:"18px 16px",display:"flex",flexDirection:"column",justifyContent:"space-between",height:110,cursor:"pointer",position:"relative",boxSizing:"border-box"};
+                  return(
+                    <>
+                      <div
+                        ref={carouselRef}
+                        onScroll={e=>{const el=e.currentTarget;const w=el.offsetWidth||el.clientWidth||320;const idx=Math.min(1,Math.max(0,Math.round(el.scrollLeft/w)));setActiveCard(idx);}}
+                        style={{overflowX:"auto",display:"flex",flexDirection:"row",gap:0,paddingBottom:4,marginBottom:8,scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",scrollbarWidth:"none",msOverflowStyle:"none"}}
+                      >
+                        <div onClick={()=>{_hL();setTrainScreen("plan");}} style={cStyle}>
+                          <div>
+                            <div style={{fontFamily:_MO,fontSize:9,color:"#FF3B30",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>YOUR PROGRAM</div>
+                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:1}}>{progName}</div>
+                          </div>
+                          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb),0.75)"}}>Week {displayWeek} · {expLabel}</div>
+                          <div style={{position:"absolute",bottom:16,right:16,color:"#FF3B30",fontSize:18,lineHeight:1}}>→</div>
+                        </div>
+                        {/* TRAINING PLANS — Switch-Program-button treatment (both route to the library):
+                             carousel-slide-sized (keeps minWidth/snap/height) but paper card + icon chip + row layout. */}
+                        <div onClick={()=>{_hL();setTrainScreen("library");}} style={{minWidth:"100%",maxWidth:"100%",width:"100%",flexShrink:0,scrollSnapAlign:"start",boxSizing:"border-box",height:110,cursor:"pointer",display:"flex",alignItems:"center",gap:12,background:"var(--cm-paper,#fff)",border:"none",borderRadius:18,boxShadow:"0 4px 18px rgba(0,0,0,.12)",padding:"18px 16px"}}>
+                          <div style={{width:32,height:32,borderRadius:9,background:"var(--cm-red,#FF3B30)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+                          </div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",marginBottom:2}}>PROGRAMS</div>
+                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:1,marginBottom:3}}>TRAINING PLANS</div>
+                            <div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb),0.75)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>PPL, Arnold, Hyrox…</div>
+                          </div>
+                          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="rgba(var(--cm-ink-rgb,10,10,10),.35)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M9 18l6-6-6-6"/></svg>
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:5,justifyContent:"center"}}>
+                        {[0,1].map(i=>(
+                          <div key={i} style={{width:5,height:5,borderRadius:"50%",background:activeCard===i?"#FF3B30":"rgba(10,10,10,0.12)",transition:"background 0.2s"}}/>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
+              </PaperCard>
+
+              {/* ══ PAPER CARD 3 — WEEK & RECOVERY ════════════════════════════ */}
+              <PaperCard reveal revealDelay={60} style={{margin:"12px 12px 80px",padding:"22px 18px"}}>
+                <WeekStrip todayKey={todayKey} schedule={schedule} dayFocus={resolvedDayFocus} sessionCount={sessionCount} todayType={todayType} lightSurface weeklyMi={(runWeek||hybridRunWeek)?.weeklyVolumeMi ?? null}/>
+                <div style={{marginTop:16}}>
+                  <MuscleRecovery userId={user?.id}/>
                 </div>
-              </div>,
-              document.body
-            )}
-          </div>
-        )}
+                {balanceCorrections?.length>0&&(()=>{
+                  const top=balanceCorrections[0];
+                  if(!top?.recommendation)return null;
+                  return(
+                    <div style={{background:"rgba(10,10,10,0.04)",border:"1px solid rgba(10,10,10,0.08)",borderRadius:12,padding:"12px 14px",display:"flex",gap:12,alignItems:"flex-start",marginTop:12}}>
+                      <div style={{fontSize:16,flexShrink:0,lineHeight:1,paddingTop:1}}>⚖️</div>
+                      <div>
+                        <div style={{fontFamily:_MO,fontSize:9,color:"var(--cm-ink)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>Balance insight</div>
+                        <div style={{fontFamily:_AF,fontSize:13,fontWeight:500,color:"var(--cm-ink)",lineHeight:1.55}}>{top.recommendation}</div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </PaperCard>
+
+            </div>
+          );
+        })()}
 
         {/* ── LIFT SMARTER BUILDER ── */}
         {trainScreen==="builder"&&<WorkoutBuilder profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} generateWorkout={generateWorkout} startStructured={startStructured} workout={workout} workoutLoading={workoutLoading} isMobile={isMobile} todayFocus={todayFocus} schedule={schedule} setActiveWorkout={setActiveWorkout} setTrainScreen={setTrainScreen}/>}
 
-        {/* ── WARM-UP SCREEN ── */}
+        {/* ── WARM-UP SCREEN — paper/ink redesign ── */}
         {trainScreen==="warmup"&&ReactDOM.createPortal(
           <div style={{
             position:'fixed',
             top:0,left:0,right:0,bottom:0,
-            background:'#000000',
+            background:'var(--cm-red,#FF3B30)',
             overflowY:'auto',
             zIndex:9000,
             display:'flex',
             flexDirection:'column',
-            fontFamily:"'Barlow Condensed',sans-serif",
             animation:'wuFadeIn 0.22s ease',
           }}>
           <style>{`@keyframes wuFadeIn{from{opacity:0}to{opacity:1}}`}</style>
-            {/* Header */}
-            <div style={{padding:'max(env(safe-area-inset-top),48px) 24px 0'}}>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,letterSpacing:'0.2em',color:'var(--accent)',marginBottom:8}}>
-                {'// WARM-UP'}
-              </div>
-              <div style={{fontSize:36,fontWeight:900,fontStyle:'italic',color:'#f5f5f0',lineHeight:1,textTransform:'uppercase',marginBottom:14}}>
-                BEFORE {({'push':'PUSH SESSION','pull':'PULL SESSION','legs':'LEG SESSION','upper':'UPPER BODY SESSION','lower':'LOWER BODY SESSION','run':'RUN SESSION','hyrox':'HYROX SESSION'}[warmupSessionType||'push'])||'PUSH SESSION'}<span style={{color:'var(--accent)'}}>.</span>
-              </div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,0.4)',marginBottom:24,letterSpacing:'0.08em'}}>
-                COMPLETE BEFORE LOADING THE BAR
-              </div>
-            </div>
+            {/* RED HERO */}
+            {(()=>{
+              const _wuTitleMap={
+                push:'Prime for push',pull:'Prime for pull',legs:'Prime for legs',
+                upper:'Prime for upper body',lower:'Prime for lower body',
+                run:'Warm up to run',hyrox:'Prime for Hyrox',
+              };
+              const _wuSubMap={
+                push:'Open your chest and shoulders before loading.',
+                pull:'Decompress your spine and fire the lats.',
+                legs:'Open the hips and prep the posterior chain.',
+                upper:'Activate the shoulder girdle top to bottom.',
+                lower:'Loosen the hips, hamstrings, and ankles.',
+                run:'Ease into pace — cold muscles invite injury.',
+                hyrox:'Prime every system for the demands ahead.',
+              };
+              const _wt=warmupSessionType||'push';
+              const _title=_wuTitleMap[_wt]||'Get warm';
+              const _sub=_wuSubMap[_wt]||'Complete before your first working set.';
+              return(
+                <div style={{padding:'max(env(safe-area-inset-top),48px) 24px 24px'}}>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,fontWeight:700,
+                                letterSpacing:'0.20em',textTransform:'uppercase',
+                                color:'rgba(255,255,255,0.82)',marginBottom:10}}>
+                    WARM-UP · ~5 MIN
+                  </div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',
+                                fontWeight:900,fontSize:38,lineHeight:0.95,textTransform:'uppercase',
+                                color:'#fff',marginBottom:10,letterSpacing:'-0.01em'}}>
+                    {_title}
+                  </div>
+                  <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,
+                                color:'rgba(255,255,255,0.90)',lineHeight:1.5}}>
+                    {_sub}
+                  </div>
+                </div>
+              );
+            })()}
 
-            {/* Self-contained hardcoded exercises — no external data */}
+            {/* WHITE PAPER CARD — movement checklist */}
             {(()=>{
               try {
                 const wuExercises={
@@ -3856,247 +4878,122 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 };
                 const list=wuExercises[warmupSessionType||'push']||wuExercises.push;
                 return(
-                  <div style={{padding:'0 24px',paddingBottom:200}}>
+                  <PaperCard style={{margin:'0 18px',marginBottom:160,padding:0,overflow:'hidden'}}>
                     {list.map((ex,i)=>(
                       <div key={i} style={{
-                        background:'#0d0d0d',
-                        border:'1px solid rgba(var(--accent-rgb),0.08)',
-                        borderRadius:12,
-                        padding:'14px 16px',
-                        marginBottom:8,
-                        display:'flex',
-                        justifyContent:'space-between',
-                        alignItems:'center',
+                        display:'flex',alignItems:'center',gap:14,
+                        padding:'14px 18px',
+                        borderBottom:i<list.length-1?'1px solid rgba(var(--cm-ink-rgb),.07)':'none',
                       }}>
+                        {/* Number circle */}
+                        <div style={{width:28,height:28,borderRadius:'50%',
+                                     background:'rgba(var(--cm-ink-rgb),.06)',
+                                     border:'1px solid rgba(var(--cm-ink-rgb),.10)',
+                                     display:'flex',alignItems:'center',justifyContent:'center',
+                                     fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:700,
+                                     color:'var(--cm-ink)',flexShrink:0}}>
+                          {i+1}
+                        </div>
+                        {/* Name + note */}
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:18,color:'#f5f5f0',textTransform:'uppercase',lineHeight:1.1}}>
+                          <div style={{fontFamily:"'Barlow',sans-serif",fontWeight:700,fontSize:15,
+                                       color:'var(--cm-ink)',lineHeight:1.2}}>
                             {ex.name}
                           </div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.4)',marginTop:3,letterSpacing:'0.1em'}}>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,
+                                       color:'rgba(var(--cm-ink-rgb),.50)',marginTop:2,
+                                       letterSpacing:'0.08em'}}>
                             {ex.note}
                           </div>
                         </div>
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'var(--accent)',letterSpacing:'0.1em',flexShrink:0,marginLeft:12,textAlign:'right'}}>
+                        {/* Sets */}
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,
+                                     color:'rgba(var(--cm-ink-rgb),.60)',letterSpacing:'0.08em',
+                                     flexShrink:0,textAlign:'right'}}>
                           {ex.sets}
                         </div>
                       </div>
                     ))}
-                  </div>
+                  </PaperCard>
                 );
               } catch(err) {
                 return(
-                  <div style={{padding:24,fontFamily:"'DM Mono',monospace",fontSize:12,color:'var(--accent)'}}>
+                  <div style={{padding:24,fontFamily:"'DM Mono',monospace",fontSize:12,
+                               color:'rgba(255,255,255,0.7)'}}>
                     {'Error: '+err.message}
                   </div>
                 );
               }
             })()}
 
-            {/* BEGIN SESSION + SKIP buttons */}
+            {/* BEGIN SESSION + SKIP — white button on red footer */}
             <div style={{
               position:'fixed',
               bottom:0,left:0,right:0,
               padding:'16px 24px',
               paddingBottom:'max(env(safe-area-inset-bottom),24px)',
-              background:'#000000',
-              borderTop:'1px solid rgba(245,245,240,0.06)',
+              background:'var(--cm-red,#FF3B30)',
+              borderTop:'1px solid rgba(255,255,255,0.12)',
               display:'flex',
               flexDirection:'column',
               gap:10,
             }}>
               <button
                 onClick={()=>{setSessionMode(prescType==='hyrox'||prescType==='hybrid-hyrox'?'hyrox-picker':(prescType==='running'||hybridRunDay)?'run-picker':null);setTrainScreen("active");}}
-                style={{width:'100%',padding:'16px 0',background:'var(--accent)',border:'none',borderRadius:12,color:'#fff',fontSize:13,fontWeight:700,fontFamily:"'DM Mono',monospace",letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}
+                style={{width:'100%',padding:'16px 0',background:'var(--cm-paper)',border:'none',
+                        borderRadius:14,color:'var(--cm-red)',fontFamily:"'Barlow Condensed',sans-serif",
+                        fontStyle:'italic',fontWeight:900,fontSize:17,letterSpacing:'0.04em',
+                        textTransform:'uppercase',cursor:'pointer',
+                        boxShadow:'0 4px 20px rgba(0,0,0,.18)',minHeight:'auto'}}
               >
-                BEGIN SESSION →
+                Begin Session →
               </button>
               <button
                 onClick={()=>{setSessionMode(prescType==='hyrox'||prescType==='hybrid-hyrox'?'hyrox-picker':(prescType==='running'||hybridRunDay)?'run-picker':null);setTrainScreen("active");}}
-                style={{width:'100%',padding:'13px 0',background:'transparent',border:'1px solid rgba(245,245,240,0.15)',borderRadius:12,color:'rgba(245,245,240,0.4)',fontSize:11,fontWeight:700,fontFamily:"'DM Mono',monospace",letterSpacing:'0.16em',textTransform:'uppercase',cursor:'pointer'}}
+                style={{width:'100%',padding:'12px 0',background:'transparent',border:'none',
+                        borderRadius:12,color:'rgba(255,255,255,0.85)',fontFamily:"'DM Mono',monospace",
+                        fontSize:11,fontWeight:700,letterSpacing:'0.16em',textTransform:'uppercase',
+                        cursor:'pointer',minHeight:'auto'}}
               >
                 SKIP WARM-UP →
               </button>
             </div>
           </div>,
-          document.body
+          themeRoot()
         )}
 
         {/* ── POST-WORKOUT SUMMARY ── */}
         {trainScreen==="summary"&&(completedWorkout||workoutSummary)&&ReactDOM.createPortal(
-          (()=>{
-            const MUSCLE_TO_BODYMAP={
-              'Sternal Pec':'chest','Clavicular Pec':'chest','Serratus':'chest',
-              'Anterior Delt':'shoulders-f','Medial Delt':'shoulders-f','Supraspinatus':'shoulders-f',
-              'Rear Delt':'rear-delts',
-              'Long Head Tricep':'triceps','Lateral Head Tricep':'triceps','Medial Head Tricep':'triceps','Anconeus':'triceps',
-              'Long Head Bicep':'biceps','Short Head Bicep':'biceps','Brachialis':'biceps',
-              'Forearms':'forearms-f',
-              'Abs':'abs','Core':'abs','Obliques':'abs',
-              'Hip Flexors':'hip-flexors',
-              'Rectus Femoris':'quads','Vastus Lateralis':'quads','Vastus Medialis':'quads','Vastus Intermedius':'quads','Adductors':'quads',
-              'Biceps Femoris':'hamstrings','Semitendinosus':'hamstrings','Semimembranosus':'hamstrings',
-              'Gluteus Maximus':'glutes','Gluteus Medius':'glutes','Gluteus Minimus':'glutes',
-              'Calves':'calves-f',
-              'Lats':'lats','Teres Major':'lats','Rhomboids':'lats',
-              'Upper Traps':'traps','Mid Traps':'traps','Lower Traps':'traps',
-              'Lower Back':'lower-back',
-            };
-            const BODYMAP_COLOR={chest:'var(--accent)','shoulders-f':'#FEA020','rear-delts':'#FEA020',biceps:'#9C6FFF',triceps:'#9C6FFF','forearms-f':'#9C6FFF','forearms-b':'#9C6FFF',abs:'#14C4B3','hip-flexors':'#14C4B3',quads:'#22c55e',hamstrings:'#22c55e',glutes:'#22c55e','calves-f':'#22c55e','calves-b':'#22c55e',lats:'#60a5fa',traps:'#60a5fa','lower-back':'#60a5fa'};
-            const REGION_LABELS={chest:'Chest','shoulders-f':'Shoulders','rear-delts':'Rear Delts',biceps:'Biceps',triceps:'Triceps','forearms-f':'Forearms',abs:'Core','hip-flexors':'Hip Flexors',quads:'Quads',hamstrings:'Hamstrings',glutes:'Glutes','calves-f':'Calves',lats:'Back',traps:'Traps','lower-back':'Lower Back'};
-            const ALL_REGIONS=['chest','shoulders-f','biceps','forearms-f','abs','hip-flexors','quads','calves-f','traps','lats','rear-delts','triceps','forearms-b','lower-back','glutes','hamstrings','calves-b'];
-            // Use completedWorkout for real done-set data; fallback to workoutSummary
-            const parseReps=(r)=>{if(typeof r==='number')return r;if(typeof r==='string'){const p=r.split('-');return parseInt(p[0])||0;}return 0;};
-            const srcExercises=completedWorkout?(completedWorkout.exercises||[]):(workoutSummary?.exercises||[]);
-            const exercisesWorked=completedWorkout?srcExercises.filter(ex=>ex.sets?.some(s=>s.done)):srcExercises;
-            const totalSetsLogged=completedWorkout?exercisesWorked.reduce((acc,ex)=>acc+(ex.sets?.filter(s=>s.done)?.length||0),0):(workoutSummary?.completedSets||0);
-            const totalVolumeLogged=completedWorkout?exercisesWorked.reduce((acc,ex)=>acc+(ex.sets?.filter(s=>s.done)?.reduce((sum,s)=>sum+((parseFloat(s.weight)||0)*parseReps(s.reps)),0)||0),0):(workoutSummary?.totalVolume||0);
-            const workedRegions=new Set();
-            const primaryMuscleNames=new Set();
-            exercisesWorked.forEach(ex=>{
-              const md=getExerciseData(ex.name);
-              if(md)md.primary.forEach(m=>{primaryMuscleNames.add(m);const r=MUSCLE_TO_BODYMAP[m];if(r)workedRegions.add(r);});
-            });
-            const bodyColors={};
-            ALL_REGIONS.forEach(r=>{bodyColors[r]=workedRegions.has(r)?BODYMAP_COLOR[r]:'rgba(245,245,240,0.08)';});
-            const workedChips=[...workedRegions].map(r=>({label:REGION_LABELS[r]||r,color:BODYMAP_COLOR[r]||'var(--accent)'}));
-            const tomorrowIdx=(WDAYS.indexOf(todayKey)+1)%7;
-            const tomorrowKey=WDAYS[tomorrowIdx];
-            const tomorrowType=schedule?.[tomorrowKey]||'rest';
-            const tomorrowFocus=tomorrowType==='rest'?'REST DAY':(dayFocus?.[tomorrowKey]||tomorrowType.toUpperCase())+' DAY';
-            const tomorrowFullDay=['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'][(new Date().getDay()+1)%7];
-            const dateStr=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}).toUpperCase();
-            const dur=workoutSummary?.duration||0;
-            const durStr=dur>=60?`${Math.floor(dur/60)}H ${dur%60}M`:`${dur||'—'} MINUTES`;
-            const mno={fontFamily:"'DM Mono',monospace"};
-            const cnd={fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900};
-            const isFirstSession=sessionCount<=1;
-            return(
-              <div style={{position:'fixed',inset:0,background:'#000000',zIndex:9001,overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
-                <style>{`@keyframes sumIn{from{opacity:0}to{opacity:1}}`}</style>
-                {isFirstSession&&(
-                  <div style={{background:'linear-gradient(180deg,rgba(var(--accent-rgb),0.15) 0%,transparent 100%)',padding:'40px 24px 24px',textAlign:'center',maxWidth:480,margin:'0 auto',boxSizing:'border-box'}}>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'var(--accent)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:12}}>{'// FIRST SESSION COMPLETE'}</div>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:64,color:'#f5f5f0',lineHeight:0.88,marginBottom:16,textTransform:'uppercase'}}>YOU<br/>SHOWED<br/>UP.</div>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,color:'rgba(245,245,240,0.6)',lineHeight:1.4,marginBottom:24}}>That's the hardest part. Most people never start. You did.</div>
-                    <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap'}}>
-                      {['FIRST SESSION','STREAK STARTED','COACH ACTIVE'].map(chip=>(
-                        <span key={chip} style={{background:'rgba(var(--accent-rgb),0.1)',border:'1px solid rgba(var(--accent-rgb),0.2)',borderRadius:20,padding:'6px 14px',fontFamily:"'DM Mono',monospace",fontSize:9,color:'var(--accent)',letterSpacing:'0.1em'}}>{chip} ✓</span>
-                      ))}
-                    </div>
-                    <div style={{height:1,background:'rgba(var(--accent-rgb),0.08)',marginTop:24}}/>
-                  </div>
-                )}
-                <div style={{animation:'sumIn 0.22s ease',maxWidth:480,margin:'0 auto',padding:isFirstSession?'24px 24px 0':'max(env(safe-area-inset-top),48px) 24px 0',paddingBottom:'max(env(safe-area-inset-bottom),48px)'}}>
-
-                  {/* Close */}
-                  <div onClick={clearWorkoutSummary} style={{width:36,height:36,borderRadius:10,background:'rgba(245,245,240,0.06)',border:'1px solid rgba(245,245,240,0.1)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',marginBottom:24}}>
-                    <span style={{color:'rgba(245,245,240,0.5)',fontSize:16,lineHeight:1,fontFamily:'sans-serif',userSelect:'none'}}>&#x2715;</span>
-                  </div>
-
-                  {/* Headline */}
-                  <div style={{...mno,fontSize:9,color:'var(--accent)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:12}}>{'// SESSION COMPLETE'}</div>
-                  <div style={{...cnd,fontSize:72,color:'#f5f5f0',lineHeight:0.9,textTransform:'uppercase',marginBottom:12,letterSpacing:'-0.01em'}}>
-                    SESSION<br/>COMPLETE<span style={{color:'var(--accent)'}}>.</span>
-                  </div>
-                  <div style={{...mno,fontSize:10,color:'rgba(245,245,240,0.35)',marginBottom:36,letterSpacing:'0.08em'}}>
-                    {dateStr} · {durStr}
-                  </div>
-
-                  {/* Stats row */}
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:32}}>
-                    {[
-                      {val:totalSetsLogged,label:'SETS'},
-                      {val:totalVolumeLogged>0?(totalVolumeLogged>=1000?(totalVolumeLogged/1000).toFixed(1)+'K lbs':Math.round(totalVolumeLogged)+' lbs'):'—',label:'VOLUME'},
-                      {val:exercisesWorked.length||0,label:'EXERCISES'},
-                    ].map(({val,label})=>(
-                      <div key={label} style={{background:'#0d0d0d',border:'1px solid rgba(var(--accent-rgb),0.1)',borderRadius:12,padding:'14px 12px',textAlign:'center'}}>
-                        <div style={{...cnd,fontSize:32,color:'#f5f5f0',lineHeight:1}}>{val}</div>
-                        <div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.4)',letterSpacing:'0.14em',marginTop:4}}>{label}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Muscles worked */}
-                  {workedRegions.size>0&&(
-                    <div style={{marginBottom:32}}>
-                      <div style={{...mno,fontSize:9,color:'var(--accent)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:16}}>{'// MUSCLES WORKED'}</div>
-                      <BodyMap colors={bodyColors}/>
-                      {workedChips.length>0&&(
-                        <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:16}}>
-                          {workedChips.map(({label,color})=>(
-                            <span key={label} style={{background:`${color}15`,border:`1px solid ${color}30`,borderRadius:20,padding:'4px 12px',...mno,fontSize:9,color,letterSpacing:'0.1em',textTransform:'uppercase'}}>{label}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* PRs */}
-                  {workoutSummary?.prs?.length>0&&(
-                    <div style={{marginBottom:32}}>
-                      <div style={{...mno,fontSize:9,color:'var(--accent)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// NEW RECORDS'}</div>
-                      {workoutSummary.prs.map((pr,i)=>(
-                        <div key={i} style={{background:'rgba(34,197,94,0.05)',border:'1px solid rgba(34,197,94,0.15)',borderRadius:12,padding:'14px 16px',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                          <div>
-                            <div style={{...cnd,fontSize:18,color:'#f5f5f0',textTransform:'uppercase'}}>{pr.name}</div>
-                            {pr.reps&&<div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.4)',marginTop:2}}>{pr.reps} REPS</div>}
-                          </div>
-                          <div style={{...cnd,fontSize:28,color:'#22c55e',textAlign:'right'}}>
-                            {pr.weight}<span style={{...mno,fontSize:10,fontStyle:'normal',fontWeight:400}}> lbs</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Fuel up */}
-                  <div style={{marginBottom:32}}>
-                    <div style={{...mno,fontSize:9,color:'var(--accent)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// FUEL UP'}</div>
-                    <div style={{background:'#0d0d0d',border:'1px solid rgba(var(--accent-rgb),0.1)',borderRadius:12,padding:16}}>
-                      <div style={{...cnd,fontSize:20,color:'#f5f5f0',textTransform:'uppercase',marginBottom:6}}>
-                        {macros?`${Math.round((macros.protein||150)*0.35)}G PROTEIN · ${Math.round((macros.carbs||200)*0.3)}G CARBS`:'40–50G PROTEIN · MODERATE CARBS'}
-                      </div>
-                      <div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.4)',lineHeight:1.6}}>
-                        Post-workout window is open. Hit protein within the next 45 minutes.
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Next session */}
-                  <div style={{marginBottom:48}}>
-                    <div style={{...mno,fontSize:9,color:'var(--accent)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// NEXT UP'}</div>
-                    <div style={{...cnd,fontSize:28,color:'#f5f5f0',textTransform:'uppercase',lineHeight:1,marginBottom:8}}>
-                      {tomorrowFullDay} · {tomorrowFocus}
-                    </div>
-                    <div style={{...mno,fontSize:10,color:'rgba(245,245,240,0.4)',lineHeight:1.6}}>
-                      {tomorrowType==='rest'?'Rest day tomorrow. Focus on sleep and nutrition for full recovery.':'Rest well tonight. Your next session is in 24 hours.'}
-                    </div>
-                  </div>
-
-                  {/* Back to home */}
-                  <button onClick={clearWorkoutSummary} style={{width:'100%',padding:'18px 0',background:'var(--accent)',border:'none',borderRadius:12,color:'#fff',...mno,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',marginBottom:16}}>
-                    BACK TO HOME →
-                  </button>
-
-                </div>
-              </div>
-            );
-          })(),
-          document.body
+          <SummaryPortal
+            completedWorkout={completedWorkout}
+            workoutSummary={workoutSummary}
+            onClose={clearWorkoutSummary}
+            todayKey={todayKey}
+            schedule={schedule}
+            dayFocus={dayFocus}
+            sessionCount={sessionCount}
+            macros={macros}
+            isRun={runDistancePrompt}
+            imperial={(profile?.wUnit||wPrefs?.wUnit)==='lbs'}
+            onRunDistanceChange={onRunDistanceChange}
+          />,
+          themeRoot()
         )}
 
         {/* ── ACTIVE WORKOUT ── */}
         {trainScreen==="active"&&activeSessionOpen&&ReactDOM.createPortal(
-          <div style={{background:'#000000',position:'fixed',inset:0,zIndex:9999,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
+          <div style={{background:'var(--cm-red,#FF3B30)',position:'fixed',inset:0,zIndex:9999,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
             {/* End Session confirmation overlay */}
             {endConfirm&&(
-              <div style={{position:"fixed",inset:0,zIndex:10001,background:"rgba(5,8,16,0.92)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-                <div style={{background:"#0a0e1a",border:"1px solid rgba(245,245,240,0.12)",borderRadius:20,padding:"28px 24px",maxWidth:340,width:"100%",textAlign:"center"}}>
-                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,textTransform:"uppercase",marginBottom:10}}>End Session?</div>
-                  <div style={{fontSize:14,color:"rgba(245,245,240,0.6)",lineHeight:1.6,marginBottom:24}}>Your progress will be saved before closing.</div>
+              <div style={{position:"fixed",inset:0,zIndex:10001,background:"rgba(0,0,0,.45)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+                <div style={{background:"var(--cm-paper,#fff)",border:"none",borderRadius:20,padding:"28px 24px",maxWidth:340,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.30)"}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,textTransform:"uppercase",color:"var(--cm-ink,#0A0A0A)",marginBottom:6}}>Take a break?</div>
+                  <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),.50)",lineHeight:1.55,marginBottom:8}}>Your completed sets are already saved.</div>
+                  <div style={{fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),.40)",fontFamily:"'DM Mono',monospace",lineHeight:1.5,marginBottom:22,letterSpacing:"0.02em"}}>Pause saves your session — pick up where you left off from the home screen.</div>
                   <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                    <button onClick={()=>{setEndConfirm(false);finishWorkout();}} style={{padding:"14px",background:"var(--red)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--condensed)",fontWeight:800,fontSize:14,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>End Session</button>
-                    <button onClick={()=>setEndConfirm(false)} style={{padding:"13px",background:"none",border:"1px solid rgba(245,245,240,0.12)",borderRadius:12,color:"rgba(245,245,240,0.65)",fontFamily:"var(--condensed)",fontWeight:700,fontSize:14,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>Keep Going</button>
+                    <button onClick={()=>setEndConfirm(false)} style={{padding:"15px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,letterSpacing:"0.04em",textTransform:"uppercase",cursor:"pointer"}}>Keep Going →</button>
+                    <button onClick={()=>{setEndConfirm(false);_handlePause();}} style={{padding:"14px",background:"none",border:"1.5px solid rgba(var(--cm-ink-rgb,10,10,10),.18)",borderRadius:14,color:"var(--cm-ink,#0A0A0A)",fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>Pause — resume later</button>
+                    <button onClick={()=>{setEndConfirm(false);finishWorkout();}} style={{padding:"11px",background:"none",border:"none",borderRadius:12,color:"rgba(var(--cm-ink-rgb,10,10,10),.40)",fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>End &amp; save session</button>
                   </div>
                 </div>
               </div>
@@ -4142,77 +5039,22 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     </div>
                   :<div>
                 {/* Header */}
-                <div style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.1)",borderRadius:14,padding:"12px 16px",marginBottom:12,display:"flex",alignItems:"center",gap:12}}>
-                  <button onClick={()=>setEndConfirm(true)} style={{background:"none",border:"none",cursor:"pointer",padding:"4px 8px",color:"#f5f5f0",fontSize:22,lineHeight:1,flexShrink:0}}>←</button>
+                <div style={{background:'var(--cm-paper,#fff)',border:'none',borderRadius:14,padding:"12px 16px",marginBottom:12,display:"flex",alignItems:"center",gap:12,boxShadow:'0 2px 12px rgba(0,0,0,.16)'}}>
+                  <button onClick={()=>setEndConfirm(true)} style={{background:"none",border:"none",cursor:"pointer",padding:"4px 8px",color:'var(--cm-ink,#0A0A0A)',fontSize:22,lineHeight:1,flexShrink:0}}>←</button>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{todayFocus}</div>
-                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginTop:2}}>{activeWorkout.exercises?.length||0} EXERCISES · {activeWorkout.exercises?.reduce((a,e)=>a+(e.sets?.length||0),0)||0} TOTAL SETS</div>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:'var(--cm-ink,#0A0A0A)',textTransform:"uppercase",lineHeight:1}}>{todayFocus}</div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:'rgba(var(--cm-ink-rgb,10,10,10),.55)',marginTop:2}}>{activeWorkout.exercises?.length||0} EXERCISES · {activeWorkout.exercises?.reduce((a,e)=>a+(e.sets?.length||0),0)||0} TOTAL SETS</div>
                     {deloadActive&&<div style={{display:"inline-block",marginTop:4,background:"rgba(254,160,32,0.1)",border:"1px solid rgba(254,160,32,0.2)",borderRadius:6,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"#FEA020",letterSpacing:"0.1em",textTransform:"uppercase"}}>DELOAD — 50% VOL</div>}
                   </div>
                   <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
                     {adaptLeft>0&&(
-                      <button onClick={()=>setShowAdapt(true)} title="Adapt session" style={{width:36,height:36,borderRadius:10,background:"rgba(var(--accent-rgb),0.1)",border:"1px solid rgba(var(--accent-rgb),0.25)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--red)",cursor:"pointer",flexShrink:0}}>
+                      <button onClick={()=>setShowAdapt(true)} title="Adapt session" style={{width:36,height:36,borderRadius:10,background:'rgba(255,59,48,.08)',border:'1px solid rgba(255,59,48,.25)',display:"flex",alignItems:"center",justifyContent:"center",color:'var(--cm-red,#FF3B30)',cursor:"pointer",flexShrink:0}}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>
                       </button>
                     )}
-                    <button onClick={finishWorkout} style={{padding:"10px 16px",background:"var(--accent)",color:"#fff",fontWeight:700,fontSize:11,border:"none",borderRadius:10,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.12em"}}>FINISH</button>
+                    <button onClick={finishWorkout} style={{padding:"10px 16px",background:'var(--cm-red,#FF3B30)',color:"#fff",fontWeight:700,fontSize:11,border:"none",borderRadius:10,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.12em"}}>FINISH</button>
                   </div>
                 </div>
-
-                {/* Readiness banner */}
-                {activeWorkout.readinessTier&&(()=>{const cfg=READINESS_CONFIG[activeWorkout.readinessTier];const isOptimal=activeWorkout.readinessTier==="optimal";const badgeColor=isOptimal?"#22c55e":cfg.color;return(
-                  <div style={{background:`${badgeColor}10`,border:`1.5px solid ${badgeColor}30`,borderRadius:14,padding:"12px 16px",marginBottom:12,display:"flex",alignItems:"center",gap:12}}>
-                    <div style={{flex:1}}>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"var(--accent)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:3}}>{cfg.badge}</div>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",lineHeight:1.1}}>{cfg.label}</div>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:3}}>{cfg.sub}</div>
-                    </div>
-                  </div>
-                );})()}
-
-                {/* Pre-session prediction card */}
-                {sessionPrediction!=null&&(()=>{
-                  const p=sessionPrediction;
-                  const isStrong=p.probability>=75;
-                  const isSolid=p.probability>=50&&p.probability<75;
-                  const color=isStrong?T.green:isSolid?T.prot:T.fat;
-                  const badge=isStrong?"STRONG DAY":isSolid?"SOLID SESSION":"RECOVERY SESSION";
-                  const sub=isStrong?"Conditions aligned — PR opportunity today":isSolid?"Good session likely — execute your plan":"Suboptimal conditions — focus on technique";
-                  const factors=p.factors||[];
-                  return(
-                    <div style={{background:`${color}0d`,border:`1.5px solid ${color}30`,borderRadius:14,padding:"12px 16px",marginBottom:12}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                        <div>
-                          <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:15,color,letterSpacing:".06em",textTransform:"uppercase"}}>{badge} — {p.probability}% PR PROBABILITY</div>
-                          <div style={{fontSize:11,color:"rgba(245,245,240,.55)",marginTop:2}}>{sub}</div>
-                        </div>
-                      </div>
-                      {factors.length>0&&(
-                        <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                          {factors.map((f,fi)=>(
-                            <span key={fi} style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:20,
-                              background:f.ok?"rgba(34,197,94,.12)":f.ok===false?"rgba(239,68,68,.12)":"rgba(var(--accent-rgb),0.06)",
-                              color:f.ok?T.green:f.ok===false?T.prot:"rgba(245,245,240,.4)",
-                              border:`1px solid ${f.ok?"rgba(34,197,94,.2)":f.ok===false?"rgba(239,68,68,.2)":"rgba(var(--accent-rgb),0.1)"}`}}>
-                              {f.ok?"✓":f.ok===false?"✗":"—"} {f.label}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {/* Active workout ACWR risk banner */}
-                {acwrHighRisks?.length>0&&(
-                  <div style={{background:"rgba(var(--accent-rgb),0.08)",border:"1.5px solid rgba(var(--accent-rgb),0.25)",borderRadius:14,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-                    <div>
-                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:13,color:"var(--red)",letterSpacing:".06em",textTransform:"uppercase"}}>{acwrHighRisks[0].region.replace("_"," ").toUpperCase()} RISK ELEVATED</div>
-                      <div style={{fontSize:11,color:"rgba(245,245,240,.5)",marginTop:2}}>Consider reducing sets by 1 for safety</div>
-                    </div>
-                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:18,color:"var(--red)"}}>{acwrHighRisks[0].score}%</div>
-                  </div>
-                )}
 
                 {/* Momentum bar */}
                 <MomentumBar activeWorkout={activeWorkout} history={history}/>
@@ -4234,50 +5076,32 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   const nextLabel=nextEx?(nextEx.name.length>16?nextEx.name.slice(0,14)+'…':nextEx.name).toUpperCase():null;
                   return(
                     <>
-                    <div style={{background:"#0d0d0d",border:`1px solid ${allDone?"rgba(34,197,94,0.3)":"rgba(var(--accent-rgb),0.08)"}`,borderRadius:18,padding:"18px 20px",marginBottom:12,position:"relative",overflow:"hidden",transition:"border-color .3s"}}>
-                      {allDone&&<div style={{position:"absolute",top:0,left:0,right:0,height:3,background:"#22c55e",borderRadius:"18px 18px 0 0"}}/>}
+                    <div style={{background:'var(--cm-paper,#fff)',border:`1px solid ${allDone?"rgba(34,197,94,0.3)":"rgba(var(--cm-ink-rgb,10,10,10),.08)"}`,borderRadius:24,padding:"18px 20px",marginBottom:12,position:"relative",overflow:"hidden",transition:"border-color .3s",boxShadow:'0 4px 24px rgba(0,0,0,.13)'}}>
+                      {allDone&&<div style={{position:"absolute",top:0,left:0,right:0,height:3,background:"#22c55e",borderRadius:"24px 24px 0 0"}}/>}
                       {/* Exercise header */}
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
-                        <div style={{flex:1}}>
+                        <div style={{flex:1,minWidth:0}}>
                           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                            <div style={{width:24,height:24,borderRadius:"50%",background:allDone?"#22c55e":T.s3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:allDone?"#000":T.mu,flexShrink:0}}>
+                            <div style={{width:24,height:24,borderRadius:"50%",background:allDone?"#22c55e":'rgba(var(--cm-ink-rgb,10,10,10),.08)',display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:allDone?"#000":'rgba(var(--cm-ink-rgb,10,10,10),.55)',flexShrink:0}}>
                               {allDone
                                 ? <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#000" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></svg>
                                 : ei+1}
                             </div>
-                            {(()=>{
-                              const exMuscleData=getExerciseData(ex.name);
-                              const rawMuscle=(exMuscleData?.primary?.[0]||ex.primaryMuscles?.[0]||ex.muscleGroup||ex.muscles?.primary?.[0]||ex.bodyPart||ex.category||'chest').toLowerCase();
-                              const MUSCLE_MAP={chest:{color:'var(--accent)',letter:'C'},pec:{color:'var(--accent)',letter:'C'},lat:{color:'#60a5fa',letter:'B'},back:{color:'#60a5fa',letter:'B'},rhomboid:{color:'#60a5fa',letter:'B'},trap:{color:'#60a5fa',letter:'B'},teres:{color:'#60a5fa',letter:'B'},serratus:{color:'#60a5fa',letter:'B'},delt:{color:'#FEA020',letter:'S'},shoulder:{color:'#FEA020',letter:'S'},femoris:{color:'#22c55e',letter:'L'},vastus:{color:'#22c55e',letter:'L'},rectus:{color:'#22c55e',letter:'L'},gluteus:{color:'#22c55e',letter:'L'},glute:{color:'#22c55e',letter:'L'},adductor:{color:'#22c55e',letter:'L'},leg:{color:'#22c55e',letter:'L'},calf:{color:'#22c55e',letter:'L'},calves:{color:'#22c55e',letter:'L'},bicep:{color:'#9C6FFF',letter:'A'},tricep:{color:'#9C6FFF',letter:'A'},arm:{color:'#9C6FFF',letter:'A'},forearm:{color:'#9C6FFF',letter:'A'},brachialis:{color:'#9C6FFF',letter:'A'},abs:{color:'#14C4B3',letter:'CO'},oblique:{color:'#14C4B3',letter:'CO'},core:{color:'#14C4B3',letter:'CO'},default:{color:'var(--accent)',letter:'?'}};
-                              const muscleKey=Object.keys(MUSCLE_MAP).find(k=>k!=='default'&&rawMuscle.includes(k))||'default';
-                              const {color:fallbackBg,letter:mLetter}=MUSCLE_MAP[muscleKey];
-                              // Image source — check all possible field names
-                              const imgSrc=ex.gif||ex.gifUrl||ex.image||ex.imageUrl||ex.thumbnail||getThumbnailUrl(ex.name)||null;
-                              return(
-                                <div onClick={()=>openDetail(ex.name,ei)} style={{position:"relative",width:64,height:64,borderRadius:10,background:T.s3,border:`1px solid ${T.bd}`,flexShrink:0,cursor:"pointer",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                                  {imgSrc?(<img src={imgSrc} alt={ex.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}/>):null}
-                                  <div style={{position:"absolute",inset:0,display:imgSrc?"none":"flex",background:fallbackBg,borderRadius:10,alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:26,color:"#fff",lineHeight:1,textTransform:"uppercase"}}>{mLetter}</span>
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                            <div style={{fontSize:16,fontWeight:700,flex:1,cursor:"pointer",userSelect:"none",minWidth:0}} onPointerDown={()=>startLongPress(ex.name,ei)} onPointerUp={cancelLongPress} onPointerLeave={cancelLongPress} onPointerCancel={cancelLongPress}>
-                              <div style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ex.name}</div>
+                            {/* Exercise thumbnail/gif intentionally omitted here — the visual lives ONLY
+                                inside View Coaching (ExerciseDetailModal). Main screen stays clean: name + tags. */}
+                            <div style={{flex:1,cursor:"pointer",userSelect:"none",minWidth:0}} onPointerDown={()=>startLongPress(ex.name,ei)} onPointerUp={cancelLongPress} onPointerLeave={cancelLongPress} onPointerCancel={cancelLongPress}>
+                              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:'var(--cm-ink,#0A0A0A)',textTransform:"uppercase",lineHeight:1.05,wordBreak:"break-word"}}>{ex.name}</div>
                               <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:2}}>
                                 {ex.tier&&<span style={{fontSize:9,fontWeight:700,background:ex.tier==="A"?`rgba(var(--accent-rgb),0.12)`:ex.tier==="B"?`${T.carb}20`:"rgba(var(--accent-rgb),0.08)",color:ex.tier==="A"?T.prot:ex.tier==="B"?T.carb:T.mu,borderRadius:4,padding:"1px 5px",letterSpacing:".06em"}}>{ex.tier}</span>}
                                 {ex.priority&&<span style={{fontSize:9,fontWeight:700,background:"rgba(249,115,22,.15)",color:"#F97316",borderRadius:4,padding:"1px 5px",letterSpacing:".06em",display:"inline-flex",alignItems:"center",gap:2}}><svg width={7} height={7} viewBox="0 0 24 24" fill="#F97316"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>PRIORITY</span>}
                                 {ex.mobilitySubstituted&&<span style={{fontSize:9,fontWeight:700,background:"rgba(139,92,246,.15)",color:"#8B5CF6",borderRadius:4,padding:"1px 5px",letterSpacing:".06em"}}>MODIFIED</span>}
                               </div>
                             </div>
-                            <button onClick={()=>toggleFavorite(ex.originalName||ex.name)} style={{background:"none",border:"none",cursor:"pointer",padding:"4px",lineHeight:1,flexShrink:0,display:"flex",alignItems:"center",color:favorites.includes(ex.originalName||ex.name)?T.prot:"rgba(245,245,240,.3)"}}>
-                              <svg width={15} height={15} viewBox="0 0 24 24" fill={favorites.includes(ex.originalName||ex.name)?"currentColor":"none"} style={{stroke:"currentColor",strokeWidth:1.7}}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                            </button>
-                            <button onClick={()=>setSwapModal({exerciseIdx:ei,exerciseName:ex.name,originalName:ex.originalName||ex.name})} style={{background:"none",border:"none",cursor:"pointer",padding:"4px",lineHeight:1,flexShrink:0,display:"flex",alignItems:"center",color:"rgba(245,245,240,.3)"}}>
-                              <svg width={15} height={15} viewBox="0 0 24 24" fill="none"><path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            <button onClick={()=>{_hL();setSwapModal({exerciseIdx:ei,exerciseName:ex.name,originalName:ex.originalName||ex.name});}} style={{background:"none",border:"none",cursor:"pointer",padding:"4px",lineHeight:1,flexShrink:0,display:"flex",alignItems:"center",color:"rgba(var(--cm-ink-rgb,10,10,10),.30)"}}>
+                              <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M16 3l4 4-4 4M20 17H4M8 21l-4-4 4-4"/></svg>
                             </button>
                           </div>
-                          {ex.notes&&<div style={{fontSize:11,color:T.mu,marginLeft:32}}>{ex.notes}</div>}
+                          {ex.notes&&<div style={{fontSize:11,color:'rgba(var(--cm-ink-rgb,10,10,10),.55)',marginLeft:32}}>{ex.notes}</div>}
                           {(()=>{
                             const exPlateau=(activePlateaus||[]).find(p=>p.exercise_name===ex.name&&p.status==="active");
                             if(!exPlateau)return null;
@@ -4291,61 +5115,158 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                           {(()=>{
                             const exFatigue=(fatigueAlert?.fatigueSignals||[]).find(s=>(s.type==="exercise_rpe_drift"||s.type==="rpe_performance_divergence")&&s.exercise===ex.name);
                             if(!exFatigue)return null;
-                            return(<div style={{marginLeft:32,marginTop:6,display:"flex",alignItems:"center",gap:8,background:"rgba(254,160,32,0.06)",borderRadius:6,padding:"5px 10px"}}><span style={{color:"#FEA020",fontFamily:"var(--mono)",fontSize:10,flexShrink:0}}>⚠</span><span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)",lineHeight:1.4}}>RPE trending up — same weight, more effort. Watch for fatigue.</span></div>);
+                            return(<div style={{marginLeft:32,marginTop:6,display:"flex",alignItems:"center",gap:8,background:"rgba(254,160,32,0.08)",borderRadius:6,padding:"5px 10px"}}><span style={{color:"#FEA020",fontFamily:"var(--mono)",fontSize:10,flexShrink:0}}>⚠</span><span style={{fontFamily:"var(--mono)",fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),.60)',lineHeight:1.4}}>RPE trending up — same weight, more effort. Watch for fatigue.</span></div>);
                           })()}
                         </div>
-                        {(()=>{
-                          const exPlateau=(activePlateaus||[]).find(p=>p.exercise_name===ex.name&&p.status==="active");
-                          const dropPct=0.70;
-                          const dropWeight=sugg?.weight?Math.round(parseFloat(sugg.weight)*dropPct/2.5)*2.5:null;
-                          return(
-                            <div style={{background:`rgba(var(--accent-rgb),0.06)`,border:`1px solid rgba(var(--accent-rgb),0.15)`,borderRadius:10,padding:"8px 12px",textAlign:"right",flexShrink:0,marginLeft:12}}>
-                              {sugg&&<><div style={{fontSize:8,color:T.prot,fontWeight:700,letterSpacing:1,marginBottom:2}}>SUGGESTED</div><div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,color:T.prot}}>{sugg.weight}{profile?.wUnit||'lbs'} × {sugg.reps}</div><div style={{fontSize:9,color:T.mu}}>{sugg.note}</div></>}
-                              {exPlateau&&dropWeight&&exPlateau.strategy_prescribed==="DROP SET TECHNIQUE"&&<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(96,165,250,0.7)",marginTop:4,lineHeight:1.4}}>Drop set: {dropWeight}{profile?.wUnit||'lbs'} after final set</div>}
-                              {exPlateau&&exPlateau.strategy_prescribed==="WAVE LOADING"&&sugg?.weight&&(()=>{const w=parseFloat(sugg.weight)||0;return(<div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(96,165,250,0.7)",marginTop:4,lineHeight:1.5}}>W1: {Math.round(w*0.85/2.5)*2.5}×3 · {Math.round(w*0.90/2.5)*2.5}×2<br/>W2: {Math.round(w*0.87/2.5)*2.5}×3 · {Math.round(w*0.92/2.5)*2.5}×2</div>);})()}
-                            </div>
-                          );
-                        })()}
                       </div>
 
                       {/* Progress bar */}
-                      <div style={{height:3,background:T.s3,borderRadius:2,marginBottom:12,overflow:"hidden"}}>
-                        <div style={{height:"100%",width:`${totalSets>0?doneSets/totalSets*100:0}%`,background:allDone?"#22c55e":"var(--accent)",borderRadius:2,transition:"background 0.4s, width .4s"}}/>
+                      <div style={{height:3,background:'rgba(var(--cm-ink-rgb,10,10,10),.10)',borderRadius:2,marginBottom:12,overflow:"hidden"}}>
+                        <div style={{height:"100%",width:`${totalSets>0?doneSets/totalSets*100:0}%`,background:allDone?"#22c55e":'var(--cm-red,#FF3B30)',borderRadius:2,transition:"background 0.4s, width .4s"}}/>
                       </div>
+
+                      {/* Coaching — data-driven (exercise_coaching, at the user's skill level). "View Coaching"
+                          opens the sheet; shown ONLY when a row exists (no row → no button, no error). */}
+                      {coachingMap[_coachKey(ex.name)]&&(()=>{
+                        const _coach=coachingMap[_coachKey(ex.name)];
+                        // Rich coaching entry pill: white whistle in an accent chip, bold label, a key_cue
+                        // PREVIEW so the user knows real content sits behind it, and a chevron affordance.
+                        // The preview is hidden for beginners (they already get the full key_cue inline below).
+                        const _showPreview=_skillLevel!=='beginner'&&!!_coach.key_cue;
+                        return(
+                          <button onClick={()=>{_hL&&_hL();openDetail(ex.name,ei,sugg?{...sugg,unit:profile?.wUnit||'lbs'}:null);}} style={{display:"flex",alignItems:"center",gap:12,width:"100%",textAlign:"left",background:"linear-gradient(100deg, rgba(var(--cm-accent-rgb,255,59,48),.13), rgba(var(--cm-accent-rgb,255,59,48),.045))",border:"1px solid rgba(var(--cm-accent-rgb,255,59,48),.24)",borderRadius:14,padding:"11px 13px",margin:"2px 0 10px",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                            <div style={{width:34,height:34,borderRadius:10,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:"var(--cm-accent,#FF3B30)",boxShadow:"0 2px 8px rgba(var(--cm-accent-rgb,255,59,48),.35)"}}>
+                              <WhistleMark size={18} variant="glyph" style={{color:"#fff"}}/>
+                            </div>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:12,letterSpacing:"0.05em",textTransform:"uppercase",color:"var(--cm-accent,#FF3B30)",lineHeight:1.1}}>View Coaching</div>
+                              {_showPreview&&<div style={{fontFamily:"'Archivo',sans-serif",fontWeight:500,fontSize:11.5,color:"rgba(var(--cm-ink-rgb,10,10,10),.5)",lineHeight:1.35,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{_coach.key_cue}</div>}
+                            </div>
+                            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--cm-accent,#FF3B30)" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,opacity:.6}}><path d="M9 6l6 6-6 6"/></svg>
+                          </button>
+                        );
+                      })()}
+                      {/* Beginner depth-adapt: key_cue shown INLINE by default (guidance without a tap). */}
+                      {_skillLevel==='beginner'&&coachingMap[_coachKey(ex.name)]?.key_cue&&(
+                        <div style={{display:"flex",alignItems:"flex-start",gap:8,padding:"10px 12px",marginBottom:10,borderRadius:10,background:"rgba(var(--cm-accent-rgb,255,59,48),.06)",borderLeft:"3px solid var(--cm-accent,#FF3B30)"}}>
+                          <span style={{fontSize:12,flexShrink:0,lineHeight:1.4}}>🔑</span>
+                          <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:13,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.45}}>{coachingMap[_coachKey(ex.name)].key_cue}</span>
+                        </div>
+                      )}
 
                       <PrevSessionRow exerciseName={ex.name} history={history} wUnit={profile?.wUnit||'lbs'}/>
 
-                      {/* Set headers — SET / WEIGHT / REPS / DONE */}
-                      <div style={{display:"grid",gridTemplateColumns:"44px 1fr 1fr 72px",gap:6,marginBottom:8}}>
-                        {["SET","WEIGHT","REPS","DONE"].map(h=>(<div key={h} style={{fontSize:8,color:T.mu,fontWeight:700,letterSpacing:1.5,textAlign:"center"}}>{h}</div>))}
-                      </div>
-
-                      {/* Sets */}
+                      {/* ───────── SET-VIEW: the "compressing stack" (Direction B) ─────────
+                          Three states per set, presentation-only over the UNCHANGED write path:
+                          • completed → thin grey done-line (tap to edit)  • active/editing → solid-accent HERO
+                          • upcoming → ghosted dashed row.  Weight is the hero input (faint suggestion → solid
+                          on engage); reps stay fully editable, just de-emphasized. All handlers below are
+                          byte-identical to the prior grid: weight/reps onChange mutate activeWorkout, LOG →
+                          logSet, UPDATE → editSet, RPE → sets[si].rpe. finishWorkout reads activeWorkout. */}
                       {(()=>{
                         let _firstDoneMarked=false;
+                        const _wu=profile?.wUnit||'lbs';
                         return(ex.sets||[]).map((s,si)=>{
-                          const isActiveSt=!s.done&&si===nextSetIdx;
-                          const isEditing=editingSet?.ei===ei&&editingSet?.si===si;
+                          // One hero at a time: while editing a completed set, that set is the SOLE
+                          // hero — the active/next set collapses back to a quiet upcoming row.
+                          const _editActive=editingSet?.ei===ei;
+                          const isEditing=_editActive&&editingSet?.si===si;
+                          // Option B: on Log the logged set collapses to its done-line (spring) and the NEXT set
+                          // expands to the hero (spring). That next hero shows the calm rest countdown while a rest
+                          // runs in this exercise, then springs to the weight input. So the "resting hero" is the
+                          // active/next set during rest — NOT the just-logged set (which becomes a done-line at once).
+                          const _restPending=!!restingSet&&showLocalRest&&restingSet.ei===ei;
+                          const isActiveSt=!s.done&&si===nextSetIdx&&!_editActive;
+                          const _restingHero=isActiveSt&&_restPending;
+                          const isHero=isActiveSt||isEditing;
+                          const isDoneLine=s.done&&!isEditing;
                           const showHint=s.done&&!_firstDoneMarked&&!editHintDismissed;
                           if(s.done)_firstDoneMarked=true;
+                          // carry the nearest earlier logged weight forward as this set's default suggestion
+                          let _carry="";for(let k=si-1;k>=0;k--){if(ex.sets[k]?.done&&ex.sets[k]?.weight){_carry=ex.sets[k].weight;break;}}
+                          const _sugW=s.weight||_carry||sugg?.weight||"";
+                          const _faint=isActiveSt&&!heroTouched&&!s.weight&&!!(_carry||sugg?.weight);
+                          const _tgt=String(s.reps||sugg?.reps||ex.reps||10).replace('-','–'); // prescribed target (range or single)
                           return(
-                            <div key={si}>
-                              {showHint&&<div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4,marginLeft:44}}><svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.3)" strokeWidth={2} strokeLinecap="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.06em"}}>tap to edit</span></div>}
-                              <div style={{display:"grid",gridTemplateColumns:"44px 1fr 1fr 72px",gap:6,marginBottom:8,alignItems:"center"}}>
-                                <div style={{fontSize:13,color:s.done?"#22c55e":isActiveSt?"#f5f5f0":T.mu,fontWeight:700,textAlign:"center"}}>#{si+1}</div>
-                                <input defaultValue={s.weight||sugg?.weight||""} placeholder={profile?.wUnit||'lbs'} style={{background:s.done&&!isEditing?"rgba(34,197,94,0.08)":isActiveSt||isEditing?"rgba(var(--accent-rgb),0.06)":"#0d0d0d",border:`1.5px solid ${s.done&&!isEditing?"rgba(34,197,94,0.25)":isActiveSt||isEditing?"rgba(var(--accent-rgb),0.3)":"rgba(245,245,240,0.08)"}`,borderRadius:9,padding:"10px",color:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#f5f5f0":"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,outline:"none",fontFamily:"inherit",textAlign:"center",width:"100%",boxSizing:"border-box"}} onChange={e=>{const u={...activeWorkout};u.exercises[ei].sets[si].weight=e.target.value;setActiveWorkout(u);}} onFocus={s.done?()=>{setEditingSet({ei,si});setEditHintDismissed(true);}:undefined}/>
-                                <input defaultValue={s.reps||sugg?.reps||10} style={{background:s.done&&!isEditing?"rgba(34,197,94,0.08)":isActiveSt||isEditing?"rgba(var(--accent-rgb),0.06)":"#0d0d0d",border:`1.5px solid ${s.done&&!isEditing?"rgba(34,197,94,0.25)":isActiveSt||isEditing?"rgba(var(--accent-rgb),0.3)":"rgba(245,245,240,0.08)"}`,borderRadius:9,padding:"10px",color:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#f5f5f0":"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,outline:"none",fontFamily:"inherit",textAlign:"center",width:"100%",boxSizing:"border-box"}} onChange={e=>{const u={...activeWorkout};u.exercises[ei].sets[si].reps=e.target.value;setActiveWorkout(u);}} onFocus={s.done?()=>{setEditingSet({ei,si});setEditHintDismissed(true);}:undefined}/>
-                                <button onClick={()=>{if(isEditing){editSet(ei,si,activeWorkout.exercises[ei].sets[si].reps,activeWorkout.exercises[ei].sets[si].weight);setEditingSet(null);}else{const u={...activeWorkout};logSet(ei,si,u.exercises[ei].sets[si].reps,u.exercises[ei].sets[si].weight);onStartLocalRest&&onStartLocalRest(90);}}} style={{padding:"10px 0",background:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"var(--accent)":"#0d0d0d",color:s.done&&!isEditing?"#000":isActiveSt||isEditing?"#fff":"rgba(245,245,240,0.5)",border:`1.5px solid ${s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"var(--accent)":"rgba(245,245,240,0.08)"}`,borderRadius:9,cursor:"pointer",fontSize:13,fontWeight:800,fontFamily:"inherit",width:"100%",transition:"all .2s"}}>{isEditing?"UPDATE":s.done?"✓":"LOG"}</button>
-                              </div>
-                              {s.done&&(
-                                <div style={{display:"flex",alignItems:"center",gap:4,marginLeft:44,marginBottom:6,marginTop:-2}}>
-                                  <span style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.25)",marginRight:2,letterSpacing:"0.08em"}}>RPE</span>
-                                  {[6,7,8,9,10].map(r=>(
-                                    <button key={r} onClick={()=>{const u={...activeWorkout};u.exercises[ei].sets[si].rpe=r;setActiveWorkout(u);}} style={{width:26,height:20,borderRadius:4,border:`1px solid ${s.rpe===r?"#FEA020":"rgba(245,245,240,0.08)"}`,background:s.rpe===r?"rgba(254,160,32,0.15)":"transparent",color:s.rpe===r?"#FEA020":"rgba(245,245,240,0.3)",fontFamily:"var(--mono)",fontSize:8,cursor:"pointer",padding:0,fontWeight:s.rpe===r?700:400,lineHeight:1}}>{r}</button>
-                                  ))}
+                            <motion.div key={si} layout={!_trainEyeRedMo} transition={cmSpring} style={{position:"relative"}}>
+                              {/* ── ACTIVE / EDITING / RESTING hero — one accent card. The row's `layout` spring does the
+                                  compression: on Log the logged set becomes a done-line (below) and THIS next set springs
+                                  up here. During rest it shows the calm countdown, then springs to the weight input. ── */}
+                              {isHero&&(
+                                <div style={{background:"linear-gradient(160deg, color-mix(in srgb, var(--cm-accent,#FF3B30) 82%, #fff), var(--cm-accent,#FF3B30) 46%, color-mix(in srgb, var(--cm-accent,#FF3B30) 70%, #000))",borderRadius:24,padding:"26px 24px 24px",marginBottom:10,boxShadow:"0 18px 40px rgba(var(--cm-accent-rgb,255,59,48),.42), inset 0 1px 0 rgba(255,255,255,.22)"}}>
+                                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
+                                    <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,letterSpacing:"0.04em",color:"#fff",opacity:.9}}>Set {si+1} of {totalSets}</span>
+                                    {_restingHero
+                                      ? <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,letterSpacing:"0.04em",color:"#fff",opacity:.9}}>Logged ✓</span>
+                                      : isEditing
+                                        ? <button onClick={()=>setEditingSet(null)} style={{background:"none",border:"none",color:"#fff",opacity:.9,fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,letterSpacing:"0.04em",cursor:"pointer",padding:0,WebkitTapHighlightColor:"transparent"}}>Cancel</button>
+                                        : <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,letterSpacing:"0.04em",color:"#fff",opacity:.9}}>{_tgt} reps</span>}
+                                  </div>
+                                  {_restingHero ? (
+                                    /* ── CALM REST STATE — quiet DM-Mono countdown + a clean 2px draining line + pill buttons. ── */
+                                    <div style={{marginTop:16}}>
+                                      <motion.div initial={_trainEyeRedMo?false:{scale:0.96,opacity:0}} animate={{scale:1,opacity:1}} transition={cmSpring} style={{fontFamily:"var(--mono)",fontSize:64,fontWeight:900,color:"#fff",textAlign:"center",lineHeight:0.9,letterSpacing:"-0.03em"}}>{Math.floor(Math.max(0,localRestSecs)/60)}:{(Math.max(0,localRestSecs)%60).toString().padStart(2,'0')}</motion.div>
+                                      <div style={{height:2,borderRadius:2,background:"rgba(255,255,255,.2)",overflow:"hidden",marginTop:18}}>
+                                        <div style={{height:"100%",background:"#fff",borderRadius:2,width:`${Math.max(0,Math.min(100,(localRestSecs/(restTotal||1))*100))}%`,transition:_trainEyeRedMo?"none":"width 1s linear"}}/>
+                                      </div>
+                                      <div style={{display:"flex",justifyContent:"center",alignItems:"center",gap:12,marginTop:18}}>
+                                        <button onClick={()=>{onSkipLocalRest&&onSkipLocalRest();}} style={{background:"rgba(255,255,255,.14)",border:"none",borderRadius:10,padding:"8px 18px",color:"#fff",fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,letterSpacing:"0.02em",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>Skip rest →</button>
+                                        <button onClick={()=>{_hL();setWhyRest({secs:ex.restSecs||restTotal||90, reason:ex.restReason||`${Math.round(((ex.restSecs||restTotal||90)/60)*10)/10} min rest`});}} style={{background:"rgba(255,255,255,.14)",border:"none",borderRadius:10,padding:"8px 18px",color:"#fff",fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,letterSpacing:"0.02em",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>Why {Math.floor((ex.restSecs||restTotal||90)/60)}:{((ex.restSecs||restTotal||90)%60).toString().padStart(2,'0')}?</button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    /* ── ACTIVE — weight-input hero + reps + Log (write path unchanged) ── */
+                                    <div>
+                                      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:8,marginTop:14}}>
+                                        <input inputMode="decimal" defaultValue={_sugW} placeholder="0" onFocus={()=>setHeroTouched(true)} style={{width:(Math.max(1,String(s.weight||_sugW||'').length)+0.4)+'ch',minWidth:'1ch',background:"transparent",border:"none",padding:0,margin:0,color:"#fff",opacity:_faint?0.5:1,caretColor:"#fff",fontFamily:"var(--mono)",fontSize:82,fontWeight:900,lineHeight:0.78,letterSpacing:"-0.045em",outline:"none",textAlign:"center",boxSizing:"border-box",WebkitAppearance:"none"}} onChange={e=>{setHeroTouched(true);const u={...activeWorkout};u.exercises[ei].sets[si].weight=e.target.value;setActiveWorkout(u);}}/>
+                                        <span style={{fontFamily:"'Archivo',sans-serif",fontSize:18,fontWeight:800,color:"#fff",opacity:.72,marginTop:6,flexShrink:0}}>{_wu.toUpperCase()}</span>
+                                      </div>
+                                      {_faint&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10.5,fontWeight:700,letterSpacing:"0.05em",textTransform:"uppercase",color:"#fff",opacity:.62,textAlign:"center",marginTop:12}}>tap to enter · {_carry||sugg?.weight} last time</div>}
+                                      <div style={{textAlign:"center",marginTop:14}}>
+                                        <div style={{display:"inline-flex",alignItems:"center",justifyContent:"center",background:"rgba(255,255,255,.14)",borderRadius:12,padding:"8px 18px"}}>
+                                          <input inputMode="numeric" defaultValue={s.reps||sugg?.reps||10} style={{width:(Math.max(2,String(s.reps||sugg?.reps||10).length)+0.6)+'ch',minWidth:'2ch',background:"transparent",border:"none",padding:0,margin:0,color:"#fff",fontFamily:"var(--mono)",fontSize:15,fontWeight:800,outline:"none",textAlign:"center",WebkitAppearance:"none"}} onChange={e=>{const u={...activeWorkout};u.exercises[ei].sets[si].reps=e.target.value;setActiveWorkout(u);}}/>
+                                        </div>
+                                      </div>
+                                      <button onClick={()=>{
+                                        // Honest fallback: an untouched field means the user accepted the SHOWN value
+                                        // (the big suggestion) — log that, not empty. A typed "0" stays 0 ("0" truthy).
+                                        const _rf=s.reps||sugg?.reps||10;
+                                        if(isEditing){const st=activeWorkout.exercises[ei].sets[si];editSet(ei,si,(st.reps||_rf),(st.weight||_sugW));setEditingSet(null);}
+                                        // Log: write is byte-identical; start rest with the PRESCRIBED value; medium haptic on
+                                        // the SETTLE (~120ms, when the spring lands), not tap-down — the reward coincides with the landing.
+                                        else{const u={...activeWorkout};const st=u.exercises[ei].sets[si];logSet(ei,si,(st.reps||_rf),(st.weight||_sugW));setHeroTouched(false);const _rest=ex.restSecs||90;setRestTotal(_rest);setRestingSet({ei,si});onStartLocalRest&&onStartLocalRest(_rest);_trainEyeRedMo?_hM():setTimeout(_hM,120);}
+                                      }} style={{width:"100%",padding:16,background:"#fff",border:"none",borderRadius:15,color:"var(--cm-accent,#FF3B30)",fontFamily:"'Archivo',sans-serif",fontWeight:900,fontSize:15,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",marginTop:18,WebkitTapHighlightColor:"transparent"}}>{isEditing?"Update set":"Log set"}</button>
+                                    </div>
+                                  )}
                                 </div>
                               )}
-                            </div>
+
+                              {/* ── COMPLETED — receded done-line; the weight number scale-settles as it lands (plate on the rack) ── */}
+                              {isDoneLine&&(<>
+                                {showHint&&<div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4,marginLeft:16}}><svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="rgba(10,10,10,0.30)" strokeWidth={2} strokeLinecap="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span style={{fontFamily:"var(--mono)",fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),.30)',letterSpacing:"0.06em"}}>tap to edit</span></div>}
+                                <div onClick={()=>{setEditingSet({ei,si});setEditHintDismissed(true);}} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 16px",marginBottom:6,borderRadius:13,background:"var(--cm-surface,#f7f8fa)",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                                  <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,letterSpacing:"0.04em",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",flexShrink:0}}>Set {si+1}</span>
+                                  <motion.span initial={_trainEyeRedMo?false:{scale:0.9}} animate={{scale:1}} transition={cmSpring} style={{display:"inline-block",transformOrigin:"left center",fontFamily:"var(--mono)",fontSize:13,fontWeight:700,color:"rgba(var(--cm-ink-rgb,10,10,10),.72)",letterSpacing:"-0.01em"}}>{s.weight||"—"} <span style={{fontWeight:500,opacity:.6}}>{_wu}</span> <span style={{opacity:.4}}>×</span> {s.reps}</motion.span>
+                                  <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
+                                    {s.rpe&&<span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:"#FEA020"}}>RPE {s.rpe}</span>}
+                                    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}><path d="M5 13l4 4L19 7" stroke="var(--cm-good,#22c55e)" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                  </div>
+                                </div>
+                                <div style={{display:"flex",alignItems:"center",gap:4,marginLeft:16,marginBottom:8,marginTop:-1}}>
+                                  <span style={{fontFamily:"var(--mono)",fontSize:7,color:'rgba(var(--cm-ink-rgb,10,10,10),.35)',marginRight:2,letterSpacing:"0.08em"}}>RPE</span>
+                                  {[6,7,8,9,10].map(r=>(
+                                    <button key={r} onClick={()=>{const u={...activeWorkout};u.exercises[ei].sets[si].rpe=r;setActiveWorkout(u);}} style={{width:26,height:20,borderRadius:4,border:`1px solid ${s.rpe===r?"#FEA020":"rgba(var(--cm-ink-rgb,10,10,10),.10)"}`,background:s.rpe===r?"rgba(254,160,32,0.15)":"transparent",color:s.rpe===r?"#FEA020":"rgba(var(--cm-ink-rgb,10,10,10),.35)",fontFamily:"var(--mono)",fontSize:8,cursor:"pointer",padding:0,fontWeight:s.rpe===r?700:400,lineHeight:1}}>{r}</button>
+                                  ))}
+                                </div>
+                              </>)}
+
+                              {/* ── UPCOMING — ghosted dashed row (exact spec) ── */}
+                              {!isHero&&!isDoneLine&&(
+                                <div style={{display:"flex",alignItems:"center",padding:"11px 16px",marginBottom:6,borderRadius:13,border:"1.5px dashed var(--cm-border,rgba(17,17,17,.12))",background:"transparent"}}>
+                                  <span style={{fontFamily:"var(--mono)",fontSize:13,fontWeight:600,color:"rgba(var(--cm-ink-rgb,10,10,10),.4)",letterSpacing:"-0.01em"}}>— · {_tgt}</span>
+                                </div>
+                              )}
+                            </motion.div>
                           );
                         });
                       })()}
@@ -4353,25 +5274,43 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       {sessionPRs[ex.name]&&(
                         <div style={{background:"rgba(var(--accent-rgb),0.08)",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:8,padding:"8px 12px",display:"flex",gap:8,alignItems:"center",marginTop:6,marginBottom:4}}>
                           <span style={{fontSize:14,flexShrink:0}}>🔥</span>
-                          <div><div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:14,color:"var(--accent)"}}>NEW PR.</div><div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)"}}>{sessionPRs[ex.name].weight} {profile?.wUnit||"lbs"} × {sessionPRs[ex.name].reps} reps</div></div>
+                          <div><div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:14,color:"var(--accent)"}}>NEW PR.</div><div style={{fontFamily:"var(--mono)",fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)'}}>{sessionPRs[ex.name].weight} {profile?.wUnit||"lbs"} × {sessionPRs[ex.name].reps} reps</div></div>
                         </div>
                       )}
 
-                      <button onClick={()=>{const u={...activeWorkout};u.exercises[ei].sets=[...u.exercises[ei].sets,{reps:u.exercises[ei].sets[0]?.reps||10,weight:u.exercises[ei].sets[0]?.weight||"",done:false}];setActiveWorkout(u);}} style={{width:"100%",fontSize:11,color:T.mu,background:"none",border:`1px dashed ${T.bd}`,borderRadius:8,padding:"8px",cursor:"pointer",fontFamily:"inherit",marginTop:4}}>+ Add Set</button>
+                      <button onClick={()=>{const u={...activeWorkout};u.exercises[ei].sets=[...u.exercises[ei].sets,{reps:u.exercises[ei].sets[0]?.reps||10,weight:u.exercises[ei].sets[0]?.weight||"",done:false}];setActiveWorkout(u);}} style={{width:"100%",fontSize:11,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',background:"none",border:'1px dashed rgba(var(--cm-ink-rgb,10,10,10),.15)',borderRadius:8,padding:"8px",cursor:"pointer",fontFamily:"inherit",marginTop:4}}>+ Add Set</button>
+
+                      {/* Legacy rest card — now only a FALLBACK: the U-timer skins rest in-place (restingSet).
+                          Shown only if rest is running without our morph (e.g. resting set is in another exercise). */}
+                      {showLocalRest&&(!restingSet||restingSet.ei!==ei)&&(
+                        <div style={{background:"var(--cm-paper,#fff)",border:"2px solid var(--cm-red,#FF3B30)",borderRadius:14,padding:"14px 16px",marginTop:12,marginBottom:4}}>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:6,textAlign:"center"}}>// REST</div>
+                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:56,color:"var(--cm-ink,#0A0A0A)",textAlign:"center",lineHeight:1,marginBottom:10}}>
+                            {Math.floor(localRestSecs/60)}:{(localRestSecs%60).toString().padStart(2,'0')}
+                          </div>
+                          <div style={{height:3,background:"rgba(var(--cm-ink-rgb,10,10,10),.10)",borderRadius:2,marginBottom:12,overflow:"hidden"}}>
+                            <div style={{height:"100%",background:"var(--cm-red,#FF3B30)",borderRadius:2,width:Math.max(0,Math.min(100,(localRestSecs/90)*100))+'%',transition:"width 1s linear"}}/>
+                          </div>
+                          <div style={{display:"flex",gap:8}}>
+                            <button onClick={onReduceLocalRest} style={{flex:1,background:"rgba(var(--cm-ink-rgb,10,10,10),.06)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.12)",borderRadius:10,padding:11,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"0.14em",cursor:"pointer"}}>−30s</button>
+                            <button onClick={onSkipLocalRest} style={{flex:2,background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:10,padding:11,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,color:"#fff",letterSpacing:"0.16em",textTransform:"uppercase",cursor:"pointer"}}>SKIP REST →</button>
+                          </div>
+                        </div>
+                      )}
 
                       {allDone&&(
-                        <div style={{marginTop:14,padding:"12px 14px",background:T.s2,borderRadius:12,border:`1px solid ${T.bd}`}}>
-                          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:10}}>Quick Feedback</div>
+                        <div style={{marginTop:14,padding:"12px 14px",background:'rgba(var(--cm-ink-rgb,10,10,10),.04)',borderRadius:12,border:'1px solid rgba(var(--cm-ink-rgb,10,10,10),.08)'}}>
+                          <div style={{fontSize:10,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:10}}>Quick Feedback</div>
                           <div style={{marginBottom:8}}>
-                            <div style={{fontSize:11,color:"rgba(245,245,240,.55)",marginBottom:6}}>Feel the right muscle?</div>
+                            <div style={{fontSize:11,color:'rgba(var(--cm-ink-rgb,10,10,10),.60)',marginBottom:6}}>Feel the right muscle?</div>
                             <div style={{display:"flex",gap:6}}>
-                              {[["yes","💯 Yes"],["somewhat","🤷 Somewhat"],["no","❌ No"]].map(([v,l])=>(<button key={v} onClick={()=>{const u={...activeWorkout};if(!u.exercises[ei].feedback)u.exercises[ei].feedback={};u.exercises[ei].feedback.feel=v;setActiveWorkout({...u});}} style={{flex:1,padding:"7px 4px",fontSize:11,fontWeight:700,borderRadius:8,border:`1.5px solid ${ex.feedback?.feel===v?T.carb:T.bd}`,background:ex.feedback?.feel===v?`${T.carb}18`:T.s1,color:ex.feedback?.feel===v?T.carb:"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>))}
+                              {[["yes","💯 Yes"],["somewhat","🤷 Somewhat"],["no","❌ No"]].map(([v,l])=>(<button key={v} onClick={()=>{const u={...activeWorkout};if(!u.exercises[ei].feedback)u.exercises[ei].feedback={};u.exercises[ei].feedback.feel=v;setActiveWorkout({...u});}} style={{flex:1,padding:"7px 4px",fontSize:11,fontWeight:700,borderRadius:8,border:`1.5px solid ${ex.feedback?.feel===v?T.carb:"rgba(var(--cm-ink-rgb,10,10,10),.12)"}`,background:ex.feedback?.feel===v?`${T.carb}18`:'rgba(var(--cm-ink-rgb,10,10,10),.04)',color:ex.feedback?.feel===v?T.carb:'var(--cm-ink,#0A0A0A)',cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>))}
                             </div>
                           </div>
                           <div>
-                            <div style={{fontSize:11,color:"rgba(245,245,240,.55)",marginBottom:6}}>Challenge level?</div>
+                            <div style={{fontSize:11,color:'rgba(var(--cm-ink-rgb,10,10,10),.60)',marginBottom:6}}>Challenge level?</div>
                             <div style={{display:"flex",gap:6}}>
-                              {[["easy","Easy"],["perfect","Perfect"],["hard","Hard"]].map(([v,l])=>(<button key={v} onClick={()=>{const u={...activeWorkout};if(!u.exercises[ei].feedback)u.exercises[ei].feedback={};u.exercises[ei].feedback.challenge=v;setActiveWorkout({...u});}} style={{flex:1,padding:"7px 4px",fontSize:11,fontWeight:700,borderRadius:8,border:`1.5px solid ${ex.feedback?.challenge===v?T.prot:T.bd}`,background:ex.feedback?.challenge===v?`rgba(var(--accent-rgb),0.09)`:T.s1,color:ex.feedback?.challenge===v?T.prot:"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>))}
+                              {[["easy","Easy"],["perfect","Perfect"],["hard","Hard"]].map(([v,l])=>(<button key={v} onClick={()=>{const u={...activeWorkout};if(!u.exercises[ei].feedback)u.exercises[ei].feedback={};u.exercises[ei].feedback.challenge=v;setActiveWorkout({...u});}} style={{flex:1,padding:"7px 4px",fontSize:11,fontWeight:700,borderRadius:8,border:`1.5px solid ${ex.feedback?.challenge===v?T.prot:"rgba(var(--cm-ink-rgb,10,10,10),.12)"}`,background:ex.feedback?.challenge===v?`rgba(var(--accent-rgb),0.09)`:'rgba(var(--cm-ink-rgb,10,10,10),.04)',color:ex.feedback?.challenge===v?T.prot:'var(--cm-ink,#0A0A0A)',cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>))}
                             </div>
                           </div>
                           {ex.feedback?.feel==="no"&&<div style={{marginTop:10,padding:"8px 12px",background:"rgba(var(--accent-rgb),.06)",border:"1px solid rgba(var(--accent-rgb),.18)",borderRadius:8,fontSize:11,color:T.prot}}>Mind-muscle tip: slow the eccentric, reduce weight 10%, focus on the squeeze at peak contraction.</div>}
@@ -4382,15 +5321,15 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     </div>
 
                     {/* Prev / Counter / Next navigation bar */}
-                    <div style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.1)",borderRadius:14,padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                    <div style={{background:'var(--cm-paper,#fff)',border:'none',borderRadius:14,padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,boxShadow:'0 2px 12px rgba(0,0,0,.14)'}}>
                       {ei>0
-                        ?<button onClick={()=>setCurrentExerciseIdx(ei-1)} style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:10,padding:"10px 16px",fontFamily:"var(--mono)",fontSize:10,color:"#f5f5f0",cursor:"pointer",letterSpacing:"0.1em",minWidth:80}}>← PREV</button>
+                        ?<button onClick={()=>setCurrentExerciseIdx(ei-1)} style={{background:'rgba(var(--cm-ink-rgb,10,10,10),.06)',border:'1px solid rgba(var(--cm-ink-rgb,10,10,10),.12)',borderRadius:10,padding:"10px 16px",fontFamily:"var(--mono)",fontSize:10,color:'var(--cm-ink,#0A0A0A)',cursor:"pointer",letterSpacing:"0.1em",minWidth:80}}>← PREV</button>
                         :<div style={{minWidth:80}}/>
                       }
-                      <span style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",letterSpacing:"0.08em"}}>{ei+1} / {exList.length}</span>
+                      <span style={{fontFamily:"var(--mono)",fontSize:10,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',letterSpacing:"0.08em"}}>{ei+1} / {exList.length}</span>
                       {ei<exList.length-1
-                        ?<button onClick={()=>setCurrentExerciseIdx(ei+1)} style={{background:"var(--accent)",border:"none",borderRadius:10,padding:"10px 16px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#fff",cursor:"pointer",letterSpacing:"0.08em",maxWidth:170,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>NEXT: {nextLabel} →</button>
-                        :<button onClick={finishWorkout} style={{background:"var(--accent)",border:"none",borderRadius:10,padding:"10px 16px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#fff",cursor:"pointer",letterSpacing:"0.08em"}}>FINISH SESSION →</button>
+                        ?<button onClick={()=>setCurrentExerciseIdx(ei+1)} style={{background:'var(--cm-red,#FF3B30)',border:"none",borderRadius:10,padding:"10px 16px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#fff",cursor:"pointer",letterSpacing:"0.08em",maxWidth:170,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>NEXT: {nextLabel} →</button>
+                        :<button onClick={finishWorkout} style={{background:'var(--cm-red,#FF3B30)',border:"none",borderRadius:10,padding:"10px 16px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#fff",cursor:"pointer",letterSpacing:"0.08em"}}>FINISH SESSION →</button>
                       }
                     </div>
                     </>
@@ -4400,13 +5339,15 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             )}
           </div>
           </div>
-        , document.body)}
+        , themeRoot())}
 
         {/* ── Exercise detail modal ── */}
         {detailModal&&(
           <ExerciseDetailModal
             exerciseName={detailModal.exerciseName}
             user={user}
+            sugg={detailModal.sugg}
+            coaching={coachingMap[_coachKey(detailModal.exerciseName)]}
             onClose={()=>setDetailModal(null)}
             onSwap={()=>{
               setDetailModal(null);
@@ -4415,8 +5356,195 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           />
         )}
 
-        {/* ── PLAN ── */}
-        {trainScreen==="plan"&&(
+        {/* ── "Why this rest?" — honest coach note over the prescribed rest (ex.restReason + a
+             plain-spoken, goal-aware explanation). Portaled to .goclub so themes apply. ── */}
+        {whyRest&&ReactDOM.createPortal(
+          <div onClick={()=>setWhyRest(null)} style={{position:"fixed",inset:0,zIndex:10060,background:"rgba(0,0,0,.5)",backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)",display:"flex",alignItems:"flex-end"}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:"var(--cm-paper,#fff)",borderRadius:"24px 24px 0 0",padding:"22px 20px calc(env(safe-area-inset-bottom,0px) + 24px)",width:"100%",maxWidth:480,marginLeft:"auto",marginRight:"auto",boxShadow:"0 -10px 44px rgba(0,0,0,.34)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+                <div style={{width:32,height:32,borderRadius:9,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:"var(--cm-accent,#FF3B30)"}}><WhistleMark size={17} variant="glyph" style={{color:"#fff"}}/></div>
+                <div style={{flex:1,fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:17,color:"var(--cm-ink,#0A0A0A)"}}>Why this rest?</div>
+                <button onClick={()=>setWhyRest(null)} style={{background:"none",border:"none",cursor:"pointer",color:"rgba(var(--cm-ink-rgb,10,10,10),.4)",padding:4,fontSize:18,lineHeight:1,WebkitTapHighlightColor:"transparent"}}>✕</button>
+              </div>
+              {whyRest.reason&&<div style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"var(--cm-accent,#FF3B30)",marginBottom:11}}>{whyRest.reason}</div>}
+              <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:500,fontSize:15,lineHeight:1.55,color:"rgba(var(--cm-ink-rgb,10,10,10),.82)"}}>{_restCoachNote(whyRest.secs)}</div>
+            </div>
+          </div>,
+          themeRoot()
+        )}
+
+        {/* In-app Support viewer for the pregnancy/postpartum/health-condition CTAs (bundled SupportPage,
+            no external coach-macro.com). Mirrors the Settings legal viewer. */}
+        {supportPageOpen&&(
+          <div style={{position:"fixed",inset:0,zIndex:99999,background:"#000",overflowY:"auto"}}>
+            <button onClick={()=>setSupportPageOpen(false)} style={{position:"sticky",top:0,zIndex:1,display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.9)",border:"none",borderBottom:"1px solid rgba(245,245,240,0.1)",color:"var(--cm-red,#FF3B30)",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",padding:"calc(env(safe-area-inset-top,0px) + 14px) 20px 14px",width:"100%"}}>
+              <svg width={16} height={16} viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+              Back
+            </button>
+            <SupportPage/>
+          </div>
+        )}
+
+
+        {/* ── PLAN — redesigned paper view ── */}
+        {trainScreen==="plan"&&GOCLUB_REDESIGN&&(()=>{
+          // Recompute progName/displayWeek/expLabel exactly as Quick Access carousel does
+          const _progInfo=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
+          const _rtl={half_marathon:'Half Marathon',half:'Half Marathon','5k':'5K','10k':'10K',marathon:'Marathon',general:'General Fitness'};
+          const _rl=_rtl[(profile?.run_race_type||'').toLowerCase()]||profile?.run_race_type||'';
+          const progName=
+            wPrefs.isHyrox&&wPrefs.isHybrid?(wPrefs.hybridTemplate||"Hyrox Hybrid"):
+            wPrefs.isHyrox?(wPrefs.hyroxProgram||"Hyrox"):
+            wPrefs.isHybrid?(_rl?`${wPrefs.hybridTemplate||"Hybrid"} · ${_rl}`:(wPrefs.hybridTemplate||"Hybrid")):
+            prescType==="running"?(_rl||wPrefs.runPlan||"Running"):
+            _progInfo?.name||(wPrefs.splitType||"Custom Plan");
+          const displayWeek=resolveDisplayWeek(programCurrentWeek,weekNum,wPrefs,profile);
+          const _liftExp=wPrefs?.liftExp||profile?.liftExp||"intermediate";
+          const expLabel=_liftExp.charAt(0).toUpperCase()+_liftExp.slice(1);
+          const _modeDesc=
+            wPrefs.isHyrox&&wPrefs.isHybrid?"Strength + Hyrox hybrid":
+            wPrefs.isHyrox?"Hyrox race prep":
+            wPrefs.isHybrid?"Strength + endurance":
+            prescType==="running"?`Training for ${_rl||"your race"}`:
+            `${daysPerWeek} day${daysPerWeek!==1?"s":""} a week`;
+          // Per-day done signal: ISO dates that had any logged exercise this week
+          const _tIdx=WDAYS.indexOf(todayKey);
+          const _wkDates=WDAYS.map((_,i)=>{const d=new Date();d.setDate(d.getDate()-_tIdx+i);return d.toISOString().split('T')[0];});
+          const _doneDates=new Set(Object.values(history||{}).flatMap(s=>s.filter(x=>_wkDates.includes(x.date)).map(x=>x.date)));
+          const _MO="'DM Mono',monospace";
+          const _AF="'Barlow',sans-serif";
+          const _BC="'Barlow Condensed',sans-serif";
+          return(
+            <div>
+              {/* RED HERO BAND */}
+              <div style={{paddingLeft:20,paddingRight:20,paddingTop:14,paddingBottom:84}}>
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)",marginBottom:8,display:"flex",gap:8,alignItems:"center"}}>
+                  <span>YOUR PLAN</span>
+                  <span style={{color:"rgba(255,255,255,0.25)"}}>·</span>
+                  <span style={{color:"rgba(255,255,255,0.75)"}}>{expLabel}</span>
+                </div>
+                <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:40,lineHeight:0.92,textTransform:"uppercase",color:"#fff",letterSpacing:"-0.01em",marginBottom:8}}>
+                  {progName}
+                </div>
+                <div style={{fontFamily:_MO,fontSize:10,color:"rgba(255,255,255,0.50)",letterSpacing:"0.06em"}}>
+                  {_modeDesc} · Week {displayWeek}
+                </div>
+              </div>
+
+              {/* PAPER CARD — THIS WEEK */}
+              <PaperCard style={{margin:"-60px 12px 0",padding:"20px 0 4px"}}>
+                {/* Card header */}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",marginBottom:14}}>
+                  <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"var(--cm-ink)"}}>THIS WEEK</div>
+                  {(()=>{const _nm=_switchNames.length?_switchNames[_switchProgIdx%_switchNames.length]:"Browse programs";return(
+                    <div onClick={()=>{_hL();setTrainScreen("library");}} style={{display:"flex",alignItems:"center",gap:10,background:"var(--cm-paper,#fff)",borderRadius:18,boxShadow:"0 4px 18px rgba(0,0,0,.12)",padding:"10px 14px",cursor:"pointer",border:"none",marginTop:-4}}>
+                      <div style={{width:32,height:32,borderRadius:9,background:"var(--cm-red,#FF3B30)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.3} strokeLinecap="round" strokeLinejoin="round"><path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/></svg>
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",marginBottom:1}}>SWITCH PROGRAM</div>
+                        <div key={_switchProgIdx} className="prog-cycle-name" style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:14,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",lineHeight:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{_nm}</div>
+                      </div>
+                      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="rgba(var(--cm-ink-rgb,10,10,10),.35)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M9 18l6-6-6-6"/></svg>
+                    </div>
+                  );})()}
+                </div>
+
+                {/* 7-day rows */}
+                <div style={{display:"flex",flexDirection:"column"}}>
+                  {WDAYS.map((day,dayIdx)=>{
+                    const t=schedule[day];
+                    const isToday=day===todayKey;
+                    const isRest=!t||t==="rest";
+                    const isTraining=!isRest;
+                    const focus=resolvedDayFocus[day]||(isRest?"Rest":"Training");
+                    const isDone=!isToday&&_doneDates.has(_wkDates[dayIdx]);
+                    const isExpanded=isToday||(planExpandedDay===day);
+                    return(
+                      <div
+                        key={day}
+                        onClick={()=>{if(!isToday&&isTraining){_hL();setPlanExpandedDay(planExpandedDay===day?null:day);}}}
+                        style={{
+                          position:"relative",
+                          padding:isExpanded&&isTraining?"12px 16px 14px 14px":"10px 16px 10px 14px",
+                          borderLeft:isToday?"3px solid var(--cm-red)":"3px solid transparent",
+                          background:isToday?"rgba(var(--cm-red-rgb),.05)":"transparent",
+                          cursor:!isToday&&isTraining?"pointer":"default",
+                          transition:"background 0.15s",
+                        }}
+                      >
+                        <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
+                          {/* Day abbrev */}
+                          <div style={{fontFamily:_MO,fontSize:10,fontWeight:700,letterSpacing:"0.06em",color:isToday?"var(--cm-red)":isDone?"rgba(var(--cm-ink-rgb),.40)":"rgba(var(--cm-ink-rgb),.42)",width:28,flexShrink:0,textTransform:"uppercase",paddingTop:2}}>
+                            {day.slice(0,3)}
+                          </div>
+                          {/* Content */}
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:isTraining&&!isExpanded?4:0}}>
+                              <div style={{fontFamily:_AF,fontWeight:700,fontSize:13,color:isToday?"var(--cm-ink)":isDone?"rgba(var(--cm-ink-rgb),.40)":isRest?"rgba(var(--cm-ink-rgb),.38)":"var(--cm-ink)",textDecoration:isDone?"line-through":"none",lineHeight:1.2}}>
+                                {focus}
+                              </div>
+                              {isDone&&(
+                                <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="var(--cm-red)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><polyline points="20 6 9 17 4 12"/></svg>
+                              )}
+                            </div>
+                            {/* Collapsed training: group pills */}
+                            {isTraining&&!isExpanded&&(
+                              <MusclePills focus={focus} variant="groups" max={3}/>
+                            )}
+                            {/* Rest label */}
+                            {isRest&&(
+                              <div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb),.35)",letterSpacing:"0.05em",marginTop:2}}>
+                                Recover &amp; grow
+                              </div>
+                            )}
+                            {/* Expanded: exact sub-muscle pills */}
+                            {isExpanded&&isTraining&&(
+                              <div style={{marginTop:8}}>
+                                <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb),.38)",marginBottom:6}}>
+                                  MUSCLES WORKED
+                                </div>
+                                <MusclePills focus={focus} variant="exact"/>
+                              </div>
+                            )}
+                          </div>
+                          {/* Chevron for non-today training rows */}
+                          {!isToday&&isTraining&&(
+                            <div style={{color:"rgba(var(--cm-ink-rgb),.22)",fontSize:12,transform:isExpanded?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s",flexShrink:0,paddingTop:2}}>▾</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* WEEK EDITOR — drag-to-rearrange next-cycle template (Phase 1: drag mechanics + feel).
+                     INTERIM persistence: live-writes schedule + wprefs(dayFocus/dayPlan). Next-cycle
+                     deferral + completed-day lock land in the persistence phase. */}
+                <WeekEditor
+                  schedule={schedule}
+                  dayFocus={resolvedDayFocus}
+                  wPrefs={wPrefs}
+                  profile={profile}
+                  todayKey={todayKey}
+                  notify={(msg)=>showToast(msg,"info")}
+                  onSave={async ({schedule:ns,dayFocus:nf,dayPlan:np,balanced})=>{
+                    setSchedule(ns);
+                    const nw={...wPrefs,dayFocus:nf}; if(np!==undefined) nw.dayPlan=np; setWPrefs(nw);
+                    if(user){
+                      const {error}=await sb.from("profiles").upsert({id:user.id,schedule:ns,wprefs:nw},{onConflict:"id"});
+                      if(error){console.error('[weekEditor persist]',error);showToast("Couldn't save — check your connection","error");throw error;}
+                      showToast(balanced?"Nice — this week's well balanced":"Week saved","success");
+                    }
+                  }}
+                />
+              </PaperCard>
+            </div>
+          );
+        })()}
+
+        {/* ── PLAN — dark legacy fallback (non-redesign) ── */}
+        {trainScreen==="plan"&&!GOCLUB_REDESIGN&&(
           <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:16}}>
             <SectionCard title="Training Mode">
               <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
@@ -4437,28 +5565,15 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 </div>))}
               </div>}
             </SectionCard>
-
-            <SectionCard title="Weekly Schedule">
-              {WDAYS.map(day=>{const t=schedule[day];const c=DAY_CFG[t]||DAY_CFG.rest;const isT=day===todayKey;const f=resolvedDayFocus[day];return(
-                <div key={day} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid rgba(245,245,240,0.05)`}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10}}>
-                    <span style={{fontWeight:700,fontSize:13,color:isT?T.prot:"#fff",width:32}}>{day}</span>
-                    <span style={{background:c.bg,color:c.color,fontSize:9,fontWeight:700,letterSpacing:1,padding:"2px 8px",borderRadius:20,textTransform:"uppercase"}}>{f}</span>
-                  </div>
-                  <div style={{display:"flex",gap:4}}>
-                    {[["training","T"],["cardio","C"],["run","R"],["hyrox","H"],["rest","—"]].map(([tp,lbl])=>(<button key={tp} onClick={()=>setSchedule(s=>({...s,[day]:tp}))} style={{fontSize:10,fontWeight:700,fontFamily:"var(--mono)",padding:"4px 7px",borderRadius:6,border:`1px solid ${schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).color:T.bd}`,background:schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).bg:"none",color:schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).color:T.mu,cursor:"pointer"}}>{lbl}</button>))}
-                  </div>
-                </div>
-              );})}
-            </SectionCard>
+            {/* Legacy single-letter "Weekly Schedule" pill editor removed — superseded by the
+                 WeekEditor (redesigned path). This !GOCLUB_REDESIGN branch is dead code (flag is
+                 always true); left the Training Mode card only. */}
           </div>
         )}
 
         {/* ── LIBRARY ── */}
-        {trainScreen==="library"&&<ProgramLibraryScreen wPrefs={wPrefs} setWPrefs={setWPrefs} profile={profile} setTrainScreen={setTrainScreen} user={user}/>}
+        {trainScreen==="library"&&<ProgramLibraryScreen wPrefs={wPrefs} setWPrefs={setWPrefs} profile={profile} setTrainScreen={setTrainScreen} user={user} onProfileUpdate={onProfileUpdate} schedule={schedule} setSchedule={setSchedule}/>}
 
-        {/* ── CUSTOM ROUTINE BUILDER ── */}
-        {trainScreen==="routine-builder"&&<CustomRoutineBuilder user={user} setTrainScreen={setTrainScreen} onSaved={()=>{}} />}
 
         {/* ── WARM-UP PROTOCOLS VIEWER ── */}
         {trainScreen==="warmup-protocols"&&<WarmupProtocolsViewer isMobile={isMobile} setTrainScreen={setTrainScreen}/>}
@@ -4476,12 +5591,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
                 <div>
                   <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>Current Program</div>
-                  <div style={{fontFamily:"var(--condensed)",fontSize:28,fontWeight:900,lineHeight:1}}>{wPrefs.splitType||"No program set"}</div>
+                  <div style={{fontFamily:"var(--condensed)",fontSize:28,fontWeight:900,lineHeight:1}}>{resolveProgram(wPrefs, profile).displayName||"No program set"}</div>
                   <div style={{fontSize:12,color:T.mu,marginTop:4}}>{wPrefs.equipment} · {profile?.liftExp||"Intermediate"}</div>
                 </div>
                 <div style={{background:`${T.fat}15`,border:`1px solid ${T.fat}30`,borderRadius:14,padding:"12px 18px",textAlign:"center",flexShrink:0}}>
                   <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,color:T.fat,lineHeight:1}}>
-                    {Math.min(Math.floor((new Date()-new Date(profile?.startDate||Date.now()))/(7*24*60*60*1000))+1,12)}
+                    {Math.max(1,Math.min(Math.floor((new Date()-new Date(profile?.program_start_date||Date.now()))/(7*24*60*60*1000))+1,12))}
                   </div>
                   <div style={{fontSize:9,color:T.mu,marginTop:2}}>of 12 weeks</div>
                 </div>
@@ -4490,11 +5605,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
                   <div style={{fontSize:11,color:T.mu}}>Program progress</div>
                   <div style={{fontSize:11,color:T.fat,fontWeight:700}}>
-                    {Math.round(Math.min(Math.floor((new Date()-new Date(profile?.startDate||Date.now()))/(7*24*60*60*1000))+1,12)/12*100)}%
+                    {Math.round(Math.max(1,Math.min(Math.floor((new Date()-new Date(profile?.program_start_date||Date.now()))/(7*24*60*60*1000))+1,12))/12*100)}%
                   </div>
                 </div>
                 <div style={{height:8,background:T.s3,borderRadius:4,overflow:"hidden",marginBottom:6}}>
-                  <div style={{height:"100%",background:`linear-gradient(90deg,${T.prot},${T.fat})`,borderRadius:4,width:`${Math.round(Math.min(Math.floor((new Date()-new Date(profile?.startDate||Date.now()))/(7*24*60*60*1000))+1,12)/12*100)}%`,transition:"width 1s ease"}}/>
+                  <div style={{height:"100%",background:`linear-gradient(90deg,${T.prot},${T.fat})`,borderRadius:4,width:`${Math.round(Math.max(1,Math.min(Math.floor((new Date()-new Date(profile?.program_start_date||Date.now()))/(7*24*60*60*1000))+1,12))/12*100)}%`,transition:"width 1s ease"}}/>
                 </div>
                 <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:T.dim}}>
                   <span>Week 1</span><span>Week 6</span><span>Week 12</span>
@@ -4762,160 +5877,126 @@ export function PerformanceCalendar({profile,wPrefs,user,isMobile,schedule}){
 }
 
 // ─── DNA RADAR CANVAS ────────────────────────────────────────────────────────
-function drawDNARadar(canvas,scores){
-  if(!canvas)return;
-  const dpr=window.devicePixelRatio||1;
-  const W=canvas.offsetWidth||280;
-  const H=290;
-  canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
-  canvas.style.width=W+'px';canvas.style.height=H+'px';
-  const ctx=canvas.getContext('2d');
-  ctx.scale(dpr,dpr);
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle='#000000';ctx.fillRect(0,0,W,H);
-  const cx=W/2,cy=H/2;
-  const R=Math.min(W*0.30,H*0.30,100);
-  const AXES=['strength','endurance','power','consistency','nutrition','recovery'];
-  const LABELS=['STRENGTH','ENDURANCE','POWER','CONSISTENCY','NUTRITION','RECOVERY'];
-  const N=6;
-  const angle=i=>(i/N)*2*Math.PI-Math.PI/2;
-  const pt=(i,r)=>({x:cx+r*Math.cos(angle(i)),y:cy+r*Math.sin(angle(i))});
-  function hc(v){if(v>=80)return[232,52,28];if(v>=65)return[255,100,20];if(v>=50)return[254,160,32];if(v>=35)return[20,196,179];return[29,155,240];}
-  // Inner rings
-  [0.25,0.5,0.75].forEach(f=>{
-    ctx.beginPath();for(let i=0;i<N;i++){const p=pt(i,R*f);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);}
-    ctx.closePath();ctx.strokeStyle='rgba(var(--accent-rgb),0.09)';ctx.lineWidth=0.5;ctx.stroke();
-  });
-  // Outer boundary
-  ctx.beginPath();for(let i=0;i<N;i++){const p=pt(i,R);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);}
-  ctx.closePath();ctx.strokeStyle='rgba(245,245,240,0.55)';ctx.lineWidth=1.2;ctx.stroke();
-  // Axis spokes
-  for(let i=0;i<N;i++){const p=pt(i,R);ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(p.x,p.y);ctx.strokeStyle='rgba(245,245,240,0.07)';ctx.lineWidth=0.5;ctx.stroke();}
-  // Heatmap sectors
-  for(let i=0;i<N;i++){
-    const a0=angle(i),a1=angle((i+1)%N);
-    const[r,g,b]=hc(scores[AXES[i]]||0);
-    const grad=ctx.createRadialGradient(cx,cy,0,cx,cy,R);
-    grad.addColorStop(0,`rgba(${r},${g},${b},0)`);grad.addColorStop(0.45,`rgba(${r},${g},${b},0.07)`);grad.addColorStop(1,`rgba(${r},${g},${b},0.20)`);
-    ctx.beginPath();ctx.moveTo(cx,cy);
-    for(let s=0;s<=8;s++){const a=a0+(a1-a0)*s/8;ctx.lineTo(cx+R*Math.cos(a),cy+R*Math.sin(a));}
-    ctx.closePath();ctx.fillStyle=grad;ctx.fill();
-  }
-  // Data polygon
-  const vals=AXES.map(k=>scores[k]||0);
-  ctx.beginPath();vals.forEach((v,i)=>{const p=pt(i,R*v/100);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);});
-  ctx.closePath();ctx.strokeStyle='rgba(var(--accent-rgb),0.45)';ctx.lineWidth=1.5;ctx.stroke();ctx.fillStyle='rgba(var(--accent-rgb),0.06)';ctx.fill();
-  // Data points
-  const maxV=Math.max(...vals);
-  vals.forEach((v,i)=>{
-    const p=pt(i,R*v/100);const[r,g,b]=hc(v);const isDom=v===maxV;
-    if(isDom){ctx.beginPath();ctx.arc(p.x,p.y,13,0,Math.PI*2);ctx.fillStyle='rgba(254,160,32,0.22)';ctx.fill();}
-    ctx.beginPath();ctx.arc(p.x,p.y,isDom?6:4,0,Math.PI*2);ctx.fillStyle=isDom?'#FEA020':`rgb(${r},${g},${b})`;ctx.fill();
-  });
-  // Labels
-  ctx.textBaseline='middle';
-  vals.forEach((v,i)=>{
-    const a=angle(i);
-    const lx=cx+(R+26)*Math.cos(a);const ly=cy+(R+26)*Math.sin(a);
-    const dx=Math.cos(a);
-    ctx.textAlign=Math.abs(dx)<0.25?'center':dx>0?'left':'right';
-    const[r,g,b]=hc(v);
-    ctx.font=`500 9px 'DM Mono',monospace`;ctx.fillStyle='rgba(245,245,240,0.38)';ctx.fillText(LABELS[i],lx,ly);
-    ctx.font=`bold 11px 'DM Mono',monospace`;ctx.fillStyle=`rgb(${r},${g},${b})`;ctx.fillText(v,lx,ly+14);
-  });
-}
+// drawDNARadar removed — TrainingDNA now uses 4 honest horizontal bars
 
 // ─── TRAINING DNA ────────────────────────────────────────────────────────────
-export function TrainingDNA({profile,wPrefs,user,isMobile,schedule}){
-  const [dnaData,setDnaData]=useState(null);
-  const radarRef=useRef(null);
+export function TrainingDNA({profile,wPrefs,user,isMobile,schedule,prefetchedDnaData,dnaPromise}){
+  const [dnaData,setDnaData]=useState(prefetchedDnaData||null);
+  // Gate entrance animation to the initial mount only; re-renders must not restart bars
+  const hasAnimated=useRef(false);
+  useEffect(()=>{ hasAnimated.current=true; },[]);
 
   const startD=profile?.startDate?new Date(profile.startDate):new Date();
   const daysSince=Math.max(0,Math.floor((new Date()-startD)/86400000));
 
   useEffect(()=>{
+    if(prefetchedDnaData){ setDnaData(prefetchedDnaData); return; }
     if(!user)return;
-    calculateTrainingDNA(user.id).then(result=>{
-      const scores={
-        strength:result.strength,endurance:result.endurance,power:result.power,
-        consistency:result.consistency,nutrition:result.nutrition,recovery:result.recovery,
-      };
+    const p=dnaPromise||calculateTrainingDNA(user.id).then(result=>{
+      // Only 4 real dimensions — Endurance and Power have no source data
+      const scores={strength:result.strength,consistency:result.consistency,
+                    nutrition:result.nutrition,recovery:result.recovery};
       const metrics=[
-        {label:"Strength",score:result.strength},{label:"Endurance",score:result.endurance},
-        {label:"Power",score:result.power},{label:"Consistency",score:result.consistency},
-        {label:"Nutrition",score:result.nutrition},{label:"Recovery",score:result.recovery},
+        {label:"Strength",score:result.strength},
+        {label:"Consistency",score:result.consistency},
+        {label:"Nutrition",score:result.nutrition},
+        {label:"Recovery",score:result.recovery},
       ];
-      setDnaData({scores,metrics,total:result._meta?.sessions||0,highest:metrics.reduce((a,b)=>a.score>b.score?a:b),lowest:metrics.reduce((a,b)=>a.score<b.score?a:b)});
-    }).catch(()=>{});
-  },[user?.id]);
-
-  useEffect(()=>{
-    if(!radarRef.current)return;
-    drawDNARadar(radarRef.current,dnaData?.scores||{strength:0,endurance:0,power:0,consistency:0,nutrition:0,recovery:0});
-  },[dnaData]);
+      return{scores,metrics,total:result._meta?.sessions||0,
+             highest:metrics.reduce((a,b)=>a.score>b.score?a:b),
+             lowest:metrics.reduce((a,b)=>a.score<b.score?a:b)};
+    });
+    p.then(shaped=>{ if(shaped)setDnaData(shaped); }).catch(()=>{});
+  },[user?.id,prefetchedDnaData]);
 
   if(daysSince<30){
     return(
-      <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
-        <div style={{fontFamily:"var(--condensed)",fontSize:20,fontWeight:900,marginBottom:8}}>YOUR TRAINING DNA</div>
-        <div style={{textAlign:"center",padding:"24px",color:T.mu}}>
-          <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}>
-              <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.5)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/>
-                <path d="M8.5 2h7"/>
-                <path d="M7 16h10"/>
-              </svg>
-            </div>
-          <div style={{fontSize:14,fontWeight:600,marginBottom:6}}>Unlocks after 30 days</div>
-          <div style={{fontSize:12,color:T.dim}}>Keep training — {30-daysSince} days to go</div>
-        </div>
+      <div style={{background:"var(--bg)",padding:"18px 20px 20px"}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>TRAINING DNA</div>
+        <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:18,color:"var(--cm-ink)",marginBottom:8}}>Unlocks after 30 days.</div>
+        <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.5}}>Keep training — {30-daysSince} days to go.</div>
       </div>
     );
   }
 
-  function heatColor(v){return v>=80?"var(--accent)":v>=65?"#ff6414":v>=50?"#FEA020":v>=35?"#14c4b3":"#1D9BF0";}
+  // Style helpers — declared before use (TDZ-safe)
+  const _AF="'Archivo',sans-serif";
+  const _MO="var(--mono)";
+  const _isLight=(wPrefs?.theme?.bg||'black')==='white';
+
+  // 4 real dimensions in fixed semantic order
+  const DIMS=[
+    {key:'strength',label:'STRENGTH'},
+    {key:'consistency',label:'CONSISTENCY'},
+    {key:'nutrition',label:'NUTRITION'},
+    {key:'recovery',label:'RECOVERY'},
+  ];
+
   const RECS={
     "Strength":"Add one more strength day per week to compound your gains.",
-    "Endurance":"Schedule a weekly long run to build your aerobic engine.",
-    "Power":"Prioritize heavy compound lifts — squat, deadlift, press.",
     "Consistency":"Focus on showing up — frequency matters more than intensity.",
     "Nutrition":"Log food every day this week — even estimates count.",
     "Recovery":"Build a deload week every 4th week to reset adaptation.",
   };
 
   const DEFAULT_METRICS=[
-    {label:"Strength",score:0},{label:"Endurance",score:0},{label:"Power",score:0},
-    {label:"Consistency",score:0},{label:"Nutrition",score:0},{label:"Recovery",score:0},
+    {label:"Strength",score:0},{label:"Consistency",score:0},
+    {label:"Nutrition",score:0},{label:"Recovery",score:0},
   ];
-  const scores=dnaData?.scores||{strength:0,endurance:0,power:0,consistency:0,nutrition:0,recovery:0};
-  const metrics=dnaData?.metrics||DEFAULT_METRICS;
+
+  const scores=dnaData?.scores||{strength:0,consistency:0,nutrition:0,recovery:0};
   const highest=dnaData?.highest||DEFAULT_METRICS[0];
   const lowest=dnaData?.lowest||DEFAULT_METRICS[0];
 
+  // Bar entrance animation keyframes — one per dimension
+  const _kf=DIMS.map((_,i)=>`@keyframes dnaBar${i}{from{transform:scaleX(0)}to{transform:scaleX(1)}}`).join('');
+
   return(
-    <div style={{background:"#000",border:"1px solid rgba(245,245,240,0.08)",borderRadius:20,padding:isMobile?"18px 16px":"24px 24px"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+    <div style={{background:"var(--bg)",padding:isMobile?"18px 20px 20px":"18px 20px 20px"}}>
+      <style>{_kf}</style>
+
+      {/* Header */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
         <div>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6,fontWeight:500}}>// TRAINING DNA</div>
-          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,textTransform:"uppercase",color:"#f5f5f0",lineHeight:1}}>{dnaData?getAthleteTitle(scores):"CALCULATING..."}</div>
+          <div style={{fontFamily:_MO,fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:6}}>TRAINING DNA</div>
+          <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"var(--cm-ink)",lineHeight:1}}>{dnaData?getAthleteTitle(scores):"CALCULATING..."}</div>
         </div>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",textAlign:"right",letterSpacing:"0.08em"}}>LAST 90 DAYS<br/>{dnaData?`${dnaData.total} SESSIONS`:"—"}</div>
+        <div style={{fontFamily:_MO,fontSize:9,color:"var(--text-faint)",textAlign:"right",letterSpacing:"0.08em"}}>LAST 90 DAYS<br/>{dnaData?`${dnaData.total} SESSIONS`:"—"}</div>
       </div>
-      <canvas ref={radarRef} style={{width:"100%",display:"block",borderRadius:8}}/>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"8px 12px",marginTop:16}}>
-        {metrics.map(({label,score})=>(
-          <div key={label} style={{display:"flex",alignItems:"center",gap:5}}>
-            <div style={{width:7,height:7,borderRadius:2,background:heatColor(score),flexShrink:0}}/>
-            <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.45)",letterSpacing:"0.04em",textTransform:"uppercase"}}>{label}</span>
-            <span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:heatColor(score),marginLeft:"auto"}}>{dnaData?score:"—"}</span>
-          </div>
-        ))}
+
+      {/* 4 honest horizontal bars */}
+      <div style={{display:"flex",flexDirection:"column",gap:18}}>
+        {DIMS.map(({key,label},i)=>{
+          const v=dnaData?(scores[key]||0):null;
+          const pct=v??0;
+          return(
+            <div key={key}>
+              <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:8}}>
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)"}}>{label}</div>
+                <div style={{fontFamily:_AF,fontWeight:800,fontSize:30,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.02em"}}>
+                  {v!=null?v:'—'}<span style={{fontFamily:_MO,fontSize:11,fontWeight:700,color:"var(--text-faint)",marginLeft:2}}>/100</span>
+                </div>
+              </div>
+              <div style={{height:6,background:"var(--card-border)",borderRadius:3,overflow:"hidden"}}>
+                <div style={{
+                  height:"100%",width:`${pct}%`,
+                  background:"var(--accent)",borderRadius:3,
+                  transformOrigin:"left center",
+                  animation:hasAnimated.current?undefined:`dnaBar${i} 0.7s cubic-bezier(.2,.7,.3,1) ${i*90}ms both`,
+                  filter:!_isLight?"drop-shadow(0 0 4px rgba(var(--accent-rgb),0.5))":undefined,
+                }}/>
+              </div>
+            </div>
+          );
+        })}
       </div>
+
+      {/* Strongest + Focus callout — 4 real dimensions only */}
       {dnaData&&(
-        <div style={{marginTop:16,borderTop:"1px solid rgba(245,245,240,0.06)",paddingTop:12,display:"flex",flexDirection:"column",gap:5}}>
-          <div style={{fontSize:12,color:"rgba(245,245,240,0.6)"}}><span style={{color:"#22c55e",fontWeight:700}}>Strength:</span> {highest.label} ({highest.score})</div>
-          <div style={{fontSize:12,color:"rgba(245,245,240,0.6)"}}><span style={{color:"#FEA020",fontWeight:700}}>Gap:</span> {lowest.label} ({lowest.score})</div>
-          <div style={{fontSize:12,color:"rgba(245,245,240,0.6)"}}><span style={{color:"var(--accent)",fontWeight:700}}>Tip:</span> {RECS[lowest.label]}</div>
+        <div style={{marginTop:20,borderTop:"1px solid var(--card-border)",paddingTop:14,display:"flex",flexDirection:"column",gap:5}}>
+          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)"}}><span style={{color:"#22c55e",fontWeight:700}}>Strongest:</span> {highest.label} ({highest.score})</div>
+          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)"}}><span style={{color:"#FEA020",fontWeight:700}}>Focus:</span> {lowest.label} ({lowest.score})</div>
+          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)"}}><span style={{color:"var(--accent)",fontWeight:700}}>Tip:</span> {RECS[lowest.label]||''}</div>
         </div>
       )}
     </div>
@@ -5144,14 +6225,12 @@ function getRank(w){
 }
 
 function getAthleteTitle(dna){
-  const{strength=0,endurance=0,power=0,consistency=0,nutrition=0,recovery=0}=dna;
-  if(consistency>85)         return'IRON DISCIPLINE ATHLETE';
-  if(strength>70&&endurance>60) return'HYBRID ATHLETE';
-  if(strength>70)            return'STRENGTH ATHLETE';
-  if(endurance>70)           return'ENDURANCE ATHLETE';
-  if(power>70)               return'POWER ATHLETE';
-  if(nutrition>80)           return'MACRO MASTER';
-  if(recovery>80)            return'RECOVERY KING';
+  const{strength=0,consistency=0,nutrition=0,recovery=0}=dna;
+  if(consistency>85)  return'IRON DISCIPLINE ATHLETE';
+  if(strength>80)     return'STRENGTH ATHLETE';
+  if(nutrition>80)    return'MACRO MASTER';
+  if(recovery>80)     return'RECOVERY KING';
+  if(strength>60&&consistency>60) return'CONSISTENT ATHLETE';
   return'BALANCED ATHLETE';
 }
 
@@ -5201,263 +6280,17 @@ export function ConnectSection({stravaToken,setStravaToken,stravaStatus,stravaAt
   );
 }
 
-// ─── REFER A FRIEND CARD ─────────────────────────────────────────────────────
-function ReferAFriendCard({ user, eyebrowStyle }) {
-  const [refData, setRefData] = useState(null);
-  const [referrals, setReferrals] = useState([]);
-  const [codeCopied, setCodeCopied] = useState(false);
-  const [sharing, setSharing] = useState(false);
-  const [showNextUnlock, setShowNextUnlock] = useState(false);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    getReferralData(user.id).then(d => {
-      if (!d) return;
-      setRefData(d);
-      // Flush any pending notifications queued by server when a referral converted
-      const notifs = d.pending_referral_notifications || [];
-      if (notifs.length > 0) {
-        notifs.forEach(n =>
-          showToast(n.message, n.type === 'tier_unlocked' ? 'success' : 'info', { duration: 4500 })
-        );
-        sb.from('profiles').update({
-          profile_data: { ...(d.profile_data || {}), pending_referral_notifications: [] },
-        }).eq('id', user.id).then(() => {});
-      }
-    });
-    getReferrals(user.id).then(list => setReferrals(list));
-  }, [user?.id]);
-
-  const referralCode = refData?.referral_code || '';
-  const referralCount = refData?.referral_count || 0;
-  const tier = refData?.referral_tier || 0;
-  const tierDef = REFERRAL_TIERS[tier] || REFERRAL_TIERS[0];
-  const tierColor = tierDef.color;
-  const nextTierDef = tier < 4 ? REFERRAL_TIERS[tier + 1] : null;
-
-  const progressPct = nextTierDef
-    ? Math.min(1, (referralCount - tierDef.min) / (nextTierDef.min - tierDef.min)) * 100
-    : 100;
-
-  async function copyCode() {
-    if (!referralCode) return;
-    try {
-      await navigator.clipboard.writeText(referralCode);
-      setCodeCopied(true);
-      setTimeout(() => setCodeCopied(false), 2000);
-    } catch {}
-  }
-
-  async function shareCode() {
-    if (!referralCode || sharing) return;
-    setSharing(true);
-    const text = `Use my referral code ${referralCode} to get started on Coach Macro — the app that connects your training and nutrition. Download at coach-macro.com`;
-    const url = `https://coach-macro.com/join?ref=${referralCode}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: 'Join me on Coach Macro', text, url });
-      } else {
-        await navigator.clipboard.writeText(`${text}\n${url}`);
-        showToast('Link copied!', 'success', { duration: 2000 });
-      }
-    } catch {}
-    setSharing(false);
-  }
-
-  if (!referralCode) return null;
-
-  return (
-    <>
-      <div style={eyebrowStyle}>// Refer a Friend</div>
-      <div style={{
-        background: '#0d0d0d', borderRadius: 14, padding: 16,
-        border: '1px solid rgba(var(--accent-rgb),0.07)',
-        position: 'relative', overflow: 'hidden',
-      }}>
-        {/* Gradient */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, transparent 60%, rgba(var(--accent-rgb),0.04) 100%)', pointerEvents: 'none' }} />
-
-        {/* Code label */}
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
-          Your referral code
-        </div>
-
-        {/* Code row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(245,245,240,0.04)', border: '1px solid rgba(245,245,240,0.1)', borderRadius: 10, padding: '12px 16px', marginBottom: 14 }}>
-          <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 24, color: '#f5f5f0', flex: 1, letterSpacing: '0.08em' }}>
-            {referralCode}
-          </div>
-          <button onClick={copyCode} style={{ background: 'rgba(var(--accent-rgb),0.12)', border: '1px solid rgba(var(--accent-rgb),0.3)', borderRadius: 8, padding: '6px 12px', fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer' }}>
-            {codeCopied ? 'COPIED ✓' : 'COPY'}
-          </button>
-        </div>
-
-        {/* Share button */}
-        <button onClick={shareCode} disabled={sharing} style={{ width: '100%', background: 'var(--accent)', border: 'none', borderRadius: 10, padding: 13, color: '#fff', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', opacity: sharing ? 0.7 : 1 }}>
-          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx={18} cy={5} r={3}/><circle cx={6} cy={12} r={3}/><circle cx={18} cy={19} r={3}/><line x1={8.59} y1={13.51} x2={15.42} y2={17.49}/><line x1={15.41} y1={6.51} x2={8.59} y2={10.49}/></svg>
-          SHARE YOUR CODE
-        </button>
-
-        {/* Tier progress */}
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(245,245,240,0.06)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 3 }}>Current tier</div>
-              <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 18, color: tierColor }}>
-                {tier === 0 ? 'NO TIER YET.' : `${tierDef.name}.`}
-              </div>
-            </div>
-            <div style={{ background: 'rgba(var(--accent-rgb),0.1)', border: '1px solid rgba(var(--accent-rgb),0.25)', borderRadius: 20, padding: '3px 10px', fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)' }}>
-              {referralCount} referral{referralCount !== 1 ? 's' : ''}
-            </div>
-          </div>
-
-          {/* Progress — bar with next-unlock dropdown (tier < 4) or status count (tier 4) */}
-          {tier < 4 && nextTierDef ? (
-            <>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.35)', marginBottom: 5 }}>
-                {nextTierDef.min - referralCount} more referral{nextTierDef.min - referralCount !== 1 ? 's' : ''} to {nextTierDef.name}
-              </div>
-              <div style={{ background: 'rgba(245,245,240,0.06)', borderRadius: 4, height: 4, overflow: 'hidden', marginBottom: 12 }}>
-                <div style={{ height: '100%', width: `${progressPct}%`, background: tierColor, borderRadius: 4, transition: 'width 0.6s ease' }} />
-              </div>
-              {/* Next unlock row */}
-              <div
-                onClick={() => setShowNextUnlock(v => !v)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
-                  background: 'rgba(245,245,240,0.03)', border: '1px solid rgba(245,245,240,0.07)',
-                  borderRadius: 8, padding: '8px 12px', marginBottom: showNextUnlock ? 0 : 12 }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke={nextTierDef.color} strokeWidth={2} strokeLinecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Next unlock</span>
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 8, color: nextTierDef.color, letterSpacing: '0.06em' }}>
-                    {nextTierDef.newFeatures[0] || nextTierDef.newPerks[0] || nextTierDef.name}
-                  </span>
-                </div>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.3)' }}>{showNextUnlock ? '▲' : '▼'}</span>
-              </div>
-              {showNextUnlock && (
-                <div style={{ background: 'rgba(245,245,240,0.02)', border: '1px solid rgba(245,245,240,0.07)', borderTop: 'none',
-                  borderRadius: '0 0 8px 8px', padding: '10px 12px', marginBottom: 12 }}>
-                  {nextTierDef.newFeatures.map(f => (
-                    <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      <svg width={10} height={10} viewBox="0 0 24 24" fill={nextTierDef.color}><path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26C17.81 13.47 19 11.38 19 9c0-3.87-3.13-7-7-7z"/></svg>
-                      <span style={{ fontFamily: 'var(--barlow)', fontSize: 12, color: 'rgba(245,245,240,0.8)' }}>{f}</span>
-                      <span style={{ fontFamily: 'var(--mono)', fontSize: 7, color: 'rgba(245,245,240,0.3)', marginLeft: 'auto' }}>FEATURE</span>
-                    </div>
-                  ))}
-                  {nextTierDef.newPerks.map(p => (
-                    <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      <svg width={10} height={10} viewBox="0 0 24 24" fill={nextTierDef.color}><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 16L12 15.45 7.77 18l1.12-4.81-3.73-3.23 4.92-.42L12 5l1.92 4.53 4.92.42-3.73 3.23L16.23 18z"/></svg>
-                      <span style={{ fontFamily: 'var(--barlow)', fontSize: 12, color: 'rgba(245,245,240,0.8)' }}>{p}</span>
-                      <span style={{ fontFamily: 'var(--mono)', fontSize: 7, color: 'rgba(245,245,240,0.3)', marginLeft: 'auto' }}>PERK</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          ) : tier >= 4 ? (
-            <div style={{ textAlign: 'center', padding: '12px 0 16px' }}>
-              <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 56, color: '#FFD740', lineHeight: 1, letterSpacing: '-1px' }}>
-                {referralCount}
-              </div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.4)', letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 4 }}>
-                Referrals. Legend status.
-              </div>
-            </div>
-          ) : null}
-
-          {/* Feature unlocks */}
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'var(--accent)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>// Feature unlocks</div>
-          {[
-            { label: 'App icon customization',   unlockedAt: 1 },
-            { label: 'Workout history export',    unlockedAt: 2 },
-            { label: 'Color scheme customization', unlockedAt: 3 },
-            { label: 'Dashboard layout options',  unlockedAt: 4 },
-          ].map(({ label, unlockedAt }) => {
-            const unlocked = tier >= unlockedAt;
-            return (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                {unlocked
-                  ? <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#22c55e' }}>✓</span>
-                  : <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" stroke="rgba(245,245,240,0.2)" strokeWidth={1.7}/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="rgba(245,245,240,0.2)" strokeWidth={1.7} strokeLinecap="round"/></svg>
-                }
-                <span style={{ fontFamily: 'var(--barlow)', fontSize: 13, color: unlocked ? '#f5f5f0' : 'rgba(245,245,240,0.3)' }}>{label}</span>
-                {!unlocked && <span style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.2)', marginLeft: 'auto' }}>{REFERRAL_TIERS[unlockedAt].min} refs</span>}
-              </div>
-            );
-          })}
-
-          {/* Status perks */}
-          {tierDef.perks.length > 0 && (
-            <>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'var(--accent)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8, marginTop: 14 }}>// Status perks</div>
-              {tierDef.perks.map(p => (
-                <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#22c55e' }}>✓</span>
-                  <span style={{ fontFamily: 'var(--barlow)', fontSize: 13, color: '#f5f5f0' }}>{p}</span>
-                </div>
-              ))}
-            </>
-          )}
-          {tier === 0 && (
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.3)', marginTop: 6 }}>Refer 1 friend who subscribes to unlock your first feature</div>
-          )}
-        </div>
-
-        {/* Referral list */}
-        {referrals.length > 0 && (
-          <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(245,245,240,0.06)' }}>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>// Referred members</div>
-            {referrals.map((r, i) => (
-              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < referrals.length - 1 ? '1px solid rgba(245,245,240,0.05)' : 'none' }}>
-                <span style={{ fontFamily: 'var(--barlow)', fontSize: 13, color: '#f5f5f0' }}>
-                  Anonymous
-                </span>
-                {r.status === 'completed'
-                  ? <span style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 6, padding: '2px 8px', fontFamily: 'var(--mono)', fontSize: 8, color: '#22c55e' }}>PAID ✓</span>
-                  : <span style={{ background: 'rgba(254,160,32,0.1)', border: '1px solid rgba(254,160,32,0.2)', borderRadius: 6, padding: '2px 8px', fontFamily: 'var(--mono)', fontSize: 8, color: '#FEA020' }}>PENDING</span>
-                }
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
-
 // ─── APPEARANCE SECTION ──────────────────────────────────────────────────────
 function AppearanceSection({ user, wPrefs, setWPrefs }) {
-  const [tier, setTier] = useState(null);
   const saved = wPrefs?.theme || { accent: 'red', bg: 'black' };
   const [pendingAccent, setPendingAccent] = useState(saved.accent);
   const [pendingBg,     setPendingBg]     = useState(saved.bg);
   const [saving, setSaving] = useState(false);
   const isDirty = pendingAccent !== saved.accent || pendingBg !== saved.bg;
 
-  useEffect(() => {
-    if (!user?.id) return;
-    // Dev accounts always get max tier so the theme picker is visible for testing.
-    // MODE-gated (same pattern as the dev-skip flow) → terser-strips from prod builds.
-    if (import.meta.env.MODE !== "production" && user.email?.endsWith('@coachm.dev')) { setTier(4); return; }
-    sb.from('profiles').select('referral_tier').eq('id', user.id).maybeSingle()
-      .then(({ data }) => setTier(data?.referral_tier || 0));
-  }, [user?.id]);
-
   const accentHex = ACCENT_COLORS.find(c => c.id === pendingAccent)?.hex || '#FF3B30';
   const bgHex     = BG_COLORS.find(c => c.id === pendingBg)?.hex         || '#000000';
   const lightBg   = isLightBg(bgHex);
-  const previewText   = lightBg ? '#1a1a1a' : '#f5f5f0';
-  const previewTextDim = lightBg ? 'rgba(0,0,0,0.50)' : 'rgba(245,245,240,0.50)';
-  const previewBorder = lightBg ? 'rgba(0,0,0,0.12)' : 'rgba(245,245,240,0.10)';
-  const previewCard   = lightBg ? '#ececec' : (() => {
-    const bg = BG_COLORS.find(c => c.id === pendingBg);
-    if (!bg) return '#0d0d0d';
-    const [r, g, b_] = bg.rgb.split(',').map(Number);
-    return `#${[r, g, b_].map(c => Math.min(255, Math.round(c + (255 - c) * 0.07)).toString(16).padStart(2, '0')).join('')}`;
-  })();
 
   async function confirm() {
     if (!user?.id) return;
@@ -5477,13 +6310,6 @@ function AppearanceSection({ user, wPrefs, setWPrefs }) {
     setPendingBg(saved.bg);
   }
 
-  // Always use default colors for the locked preview
-  const lockedAccentHex = '#FF3B30';
-  const lockedBgHex     = '#000000';
-
-  const isUnlocked = tier !== null && tier >= 3;
-  const isLoading  = tier === null;
-
   function ColorSwatch({ colors, selected, onSelect, isAccentRow }) {
     return (
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
@@ -5502,7 +6328,7 @@ function AppearanceSection({ user, wPrefs, setWPrefs }) {
                 width: 36, height: 36, borderRadius: '50%', border: 'none',
                 background: c.hex, cursor: incompatible ? 'not-allowed' : 'pointer',
                 opacity: incompatible ? 0.25 : 1,
-                boxShadow: isSel ? `0 0 0 2px var(--card-bg), 0 0 0 4px ${c.hex}` : 'none',
+                boxShadow: isSel ? `0 0 0 2px var(--cm-paper,#FFFFFF), 0 0 0 4px ${c.hex}` : 'none',
                 transition: 'box-shadow 0.15s, opacity 0.15s',
                 flexShrink: 0,
                 outline: 'none',
@@ -5531,32 +6357,32 @@ function AppearanceSection({ user, wPrefs, setWPrefs }) {
       return [r,g,b2].map(c => Math.min(255,Math.round(c+(255-c)*0.07)).toString(16).padStart(2,'0')).join('');
     })();
     return (
-      <div style={{ background: bgH, borderRadius: 12, overflow: 'hidden', border: `1px solid ${pBord}` }}>
-        {/* Mock header */}
-        <div style={{ background: pCard, padding: '10px 14px', borderBottom: `1px solid ${pBord}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: accentH }} />
-          <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 14, color: ptxt }}>COACH MACRO</div>
+      <div style={{ background: bgH, borderRadius: 16, overflow: 'hidden', border: `1px solid ${pBord}` }}>
+        {/* Header */}
+        <div style={{ padding: '14px 16px 4px', display: 'flex', alignItems: 'center', gap: 9 }}>
+          <div style={{ width: 9, height: 9, borderRadius: '50%', background: accentH }} />
+          <div style={{ fontFamily: 'var(--condensed)', fontWeight: 900, letterSpacing: '0.16em', fontSize: 12, color: ptxt, textTransform: 'uppercase' }}>Coach Macro</div>
         </div>
-        <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {/* Mock stat card */}
-          <div style={{ background: pCard, borderRadius: 8, padding: '8px 10px', border: `1px solid ${pBord}` }}>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: accentH, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>// TODAY</div>
-            <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 18, color: ptxt, lineHeight: 1 }}>PUSH DAY.</div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: ptxtD, marginTop: 2 }}>Chest · Shoulders · Triceps</div>
+        <div style={{ padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Session card */}
+          <div style={{ background: pCard, borderRadius: 14, padding: '13px 15px', border: `1px solid ${pBord}` }}>
+            <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 8.5, color: accentH, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 7 }}>Today</div>
+            <div style={{ fontFamily: "'Archivo',sans-serif", fontStyle: 'italic', fontWeight: 900, fontSize: 21, color: ptxt, lineHeight: 0.95, textTransform: 'uppercase' }}>Push Day</div>
+            <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 10.5, color: ptxtD, marginTop: 5 }}>Chest · Shoulders · Triceps</div>
           </div>
-          {/* Mock progress bar */}
-          <div style={{ background: pCard, borderRadius: 8, padding: '8px 10px', border: `1px solid ${pBord}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 8, color: ptxtD }}>Protein</span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 8, color: accentH }}>142 / 180g</span>
+          {/* Protein card */}
+          <div style={{ background: pCard, borderRadius: 14, padding: '13px 15px', border: `1px solid ${pBord}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+              <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 10.5, color: ptxtD, letterSpacing: '0.02em' }}>Protein</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, color: accentH }}>142 / 180g</span>
             </div>
-            <div style={{ height: 4, background: `rgba(${lt ? '0,0,0' : '245,245,240'},0.12)`, borderRadius: 2, overflow: 'hidden' }}>
-              <div style={{ width: '79%', height: '100%', background: accentH, borderRadius: 2 }} />
+            <div style={{ height: 6, background: `rgba(${lt ? '0,0,0' : '245,245,240'},0.10)`, borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ width: '79%', height: '100%', background: accentH, borderRadius: 3 }} />
             </div>
           </div>
-          {/* Mock button */}
-          <button style={{ width: '100%', padding: '9px', background: accentH, border: 'none', borderRadius: 8, fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 13, color: lt && accentH === '#FFFFFF' ? '#1a1a1a' : '#fff', letterSpacing: '0.04em', textTransform: 'uppercase', cursor: 'default' }}>
-            START SESSION →
+          {/* CTA */}
+          <button style={{ width: '100%', padding: '12px', background: accentH, border: 'none', borderRadius: 12, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 12, color: lt && accentH === '#FFFFFF' ? '#1a1a1a' : '#fff', letterSpacing: '0.14em', textTransform: 'uppercase', cursor: 'default' }}>
+            Start Session →
           </button>
         </div>
       </div>
@@ -5564,61 +6390,40 @@ function AppearanceSection({ user, wPrefs, setWPrefs }) {
   }
 
   return (
-    <>
-      {isLoading ? null : (
-        <>
-          {!isUnlocked ? (
-            /* ── LOCKED STATE ── */
-            <div style={{ background: '#0d0d0d', borderRadius: 12, border: '1px solid rgba(245,245,240,0.07)', overflow: 'hidden', padding: '16px 16px 20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(245,245,240,0.25)"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(245,245,240,0.40)', letterSpacing: '0.10em' }}>Unlock at 5 referrals</span>
-              </div>
-              <MiniPreview accentH={lockedAccentHex} bgH={lockedBgHex} />
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.25)', textAlign: 'center', marginTop: 12, letterSpacing: '0.08em' }}>
-                Invite 5 friends to unlock color themes.
-              </div>
-            </div>
-          ) : (
-            /* ── UNLOCKED STATE ── */
-            <div style={{ background: 'var(--card-bg)', borderRadius: 12, border: '1px solid var(--card-border)', overflow: 'hidden', padding: '16px' }}>
-              {/* Live preview */}
-              <MiniPreview accentH={accentHex} bgH={bgHex} />
+    <div style={{ background: 'var(--cm-paper,#FFFFFF)', borderRadius: 12, border: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)', overflow: 'hidden', padding: '16px' }}>
+      {/* Live preview */}
+      <MiniPreview accentH={accentHex} bgH={bgHex} />
 
-              {/* Accent picker */}
-              <div style={{ marginTop: 16 }}>
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(var(--text-rgb),0.40)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 2 }}>Accent Color</div>
-                <ColorSwatch colors={ACCENT_COLORS} selected={pendingAccent} onSelect={setPendingAccent} isAccentRow />
-              </div>
+      {/* Accent picker */}
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.40)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 2 }}>Accent Color</div>
+        <ColorSwatch colors={ACCENT_COLORS} selected={pendingAccent} onSelect={setPendingAccent} isAccentRow />
+      </div>
 
-              {/* Background picker */}
-              <div style={{ marginTop: 16 }}>
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(var(--text-rgb),0.40)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 2 }}>Background</div>
-                <ColorSwatch colors={BG_COLORS} selected={pendingBg} onSelect={setPendingBg} isAccentRow={false} />
-              </div>
+      {/* Background picker */}
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.40)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 2 }}>Background</div>
+        <ColorSwatch colors={BG_COLORS} selected={pendingBg} onSelect={setPendingBg} isAccentRow={false} />
+      </div>
 
-              {/* Confirm / Cancel — only when there are unsaved changes */}
-              {isDirty && (
-                <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                  <button onClick={cancel} style={{ flex: 1, padding: '11px', background: 'rgba(var(--text-rgb),0.06)', border: '1px solid rgba(var(--text-rgb),0.12)', borderRadius: 10, color: 'rgba(var(--text-rgb),0.60)', fontFamily: 'var(--condensed)', fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
-                    Cancel
-                  </button>
-                  <button onClick={confirm} disabled={saving} style={{ flex: 2, padding: '11px', background: accentHex, border: 'none', borderRadius: 10, color: lightBg && accentHex === '#FFFFFF' ? '#1a1a1a' : '#fff', fontFamily: 'var(--condensed)', fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
-                    {saving ? 'Saving…' : 'Apply Theme'}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </>
+      {/* Confirm / Cancel — only when there are unsaved changes */}
+      {isDirty && (
+        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+          <button onClick={cancel} style={{ flex: 1, padding: '11px', background: 'rgba(var(--cm-ink-rgb,10,10,10),0.06)', border: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)', borderRadius: 10, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.60)', fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            Cancel
+          </button>
+          <button onClick={confirm} disabled={saving} style={{ flex: 2, padding: '11px', background: accentHex, border: 'none', borderRadius: 10, color: lightBg && accentHex === '#FFFFFF' ? '#1a1a1a' : '#fff', fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            {saving ? 'Saving…' : 'Apply Theme'}
+          </button>
+        </div>
       )}
-    </>
+    </div>
   );
 }
 
 // ─── PEER COMPARISON SECTION ─────────────────────────────────────────────────
 
-function PeerComparisonSection({ user, eyebrowStyle, cardStyle }) {
+function PeerComparisonSection({ user, eyebrowStyle, cardStyle, hideEyebrow }) {
   const [optIn, setOptIn] = useState(true);
   const [loading, setLoading] = useState(true);
 
@@ -5637,22 +6442,22 @@ function PeerComparisonSection({ user, eyebrowStyle, cardStyle }) {
 
   return (
     <>
-      <div style={eyebrowStyle}>// Peer Comparison</div>
+      {!hideEyebrow&&<div style={eyebrowStyle}>Peer comparison</div>}
       <div style={cardStyle}>
         <div style={{ padding: "14px 16px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
             <div style={{ flex: 1, paddingRight: 16 }}>
-              <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "#f5f5f0", marginBottom: 3 }}>Anonymous Benchmarking</div>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(245,245,240,0.4)", lineHeight: 1.5, letterSpacing: "0.06em" }}>
+              <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "var(--cm-ink,#0A0A0A)", marginBottom: 3 }}>Anonymous Benchmarking</div>
+              <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 9, color: "rgba(var(--cm-ink-rgb,10,10,10),0.45)", lineHeight: 1.5, letterSpacing: "0.02em" }}>
                 Compare your progress with similar users anonymously. Helps set realistic expectations and surface what's working for others like you.
               </div>
             </div>
-            <div onClick={() => toggle(!optIn)} style={{ width: 44, height: 24, borderRadius: 12, background: optIn ? "var(--accent)" : "rgba(245,245,240,0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+            <div onClick={() => toggle(!optIn)} style={{ width: 44, height: 24, borderRadius: 12, background: optIn ? "var(--cm-red,#FF3B30)" : "rgba(var(--cm-ink-rgb,10,10,10),0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
               <div style={{ position: "absolute", top: 3, left: optIn ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
             </div>
           </div>
-          <div style={{ background: "rgba(245,245,240,0.03)", border: "1px solid rgba(245,245,240,0.06)", borderRadius: 8, padding: "10px 12px" }}>
-            <div style={{ fontFamily: "var(--mono)", fontSize: 8, color: "rgba(245,245,240,0.35)", lineHeight: 1.6, letterSpacing: "0.05em" }}>
+          <div style={{ background: "rgba(var(--cm-ink-rgb,10,10,10),0.03)", border: "1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)", borderRadius: 8, padding: "10px 12px" }}>
+            <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 8, color: "rgba(var(--cm-ink-rgb,10,10,10),0.4)", lineHeight: 1.6, letterSpacing: "0.02em" }}>
               Your individual data is never shared with other users in any form. Only anonymized aggregate statistics are used. Groups require at least 10 users before any comparison is shown.
             </div>
           </div>
@@ -5693,12 +6498,12 @@ function CoachOutreachSection({ user, eyebrowStyle, cardStyle }) {
 
   function ToggleRow({ label, value, onChange, isLast, sub }) {
     return (
-      <div style={{ padding: "12px 16px", borderBottom: isLast ? "none" : "1px solid rgba(245,245,240,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ padding: "12px 16px", borderBottom: isLast ? "none" : "1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "#f5f5f0" }}>{label}</div>
-          {sub && <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(245,245,240,0.35)", marginTop: 2, letterSpacing: "0.06em" }}>{sub}</div>}
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "var(--cm-ink,#0A0A0A)" }}>{label}</div>
+          {sub && <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 9, color: "rgba(var(--cm-ink-rgb,10,10,10),0.45)", marginTop: 2, letterSpacing: "0.04em" }}>{sub}</div>}
         </div>
-        <div onClick={() => onChange(!value)} style={{ width: 44, height: 24, borderRadius: 12, background: value ? "var(--accent)" : "rgba(245,245,240,0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+        <div onClick={() => onChange(!value)} style={{ width: 44, height: 24, borderRadius: 12, background: value ? "var(--cm-red,#FF3B30)" : "rgba(var(--cm-ink-rgb,10,10,10),0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
           <div style={{ position: "absolute", top: 3, left: value ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
         </div>
       </div>
@@ -5710,7 +6515,7 @@ function CoachOutreachSection({ user, eyebrowStyle, cardStyle }) {
 
   return (
     <>
-      <div style={eyebrowStyle}>// Coach Outreach</div>
+      <div style={eyebrowStyle}>Coach Outreach</div>
       {/* Master toggle */}
       <div style={cardStyle}>
         <ToggleRow
@@ -5722,29 +6527,29 @@ function CoachOutreachSection({ user, eyebrowStyle, cardStyle }) {
         {prefs.enabled && (
           <>
             {/* Frequency */}
-            <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(245,245,240,0.06)" }}>
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "#f5f5f0" }}>Frequency</div>
-                <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "rgba(245,245,240,0.5)" }}>{FREQ_LABELS[prefs.max_per_day] || "Custom"}</span>
+                <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "var(--cm-ink,#0A0A0A)" }}>Frequency</div>
+                <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 11, color: "rgba(var(--cm-ink-rgb,10,10,10),0.5)" }}>{FREQ_LABELS[prefs.max_per_day] || "Custom"}</span>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
                 {[0, 1, 2, 3].map(n => (
-                  <button key={n} onClick={() => save({ ...prefs, max_per_day: n })} style={{ flex: 1, padding: "8px 0", borderRadius: 8, background: prefs.max_per_day === n ? "rgba(var(--accent-rgb),0.2)" : "rgba(245,245,240,0.06)", border: `1px solid ${prefs.max_per_day === n ? "rgba(var(--accent-rgb),0.5)" : "rgba(245,245,240,0.1)"}`, color: prefs.max_per_day === n ? "var(--accent)" : "rgba(245,245,240,0.5)", fontFamily: "var(--mono)", fontSize: 10, fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>
+                  <button key={n} onClick={() => save({ ...prefs, max_per_day: n })} style={{ flex: 1, padding: "8px 0", borderRadius: 8, background: prefs.max_per_day === n ? "rgba(var(--cm-red-rgb,255,59,48),0.12)" : "rgba(var(--cm-ink-rgb,10,10,10),0.05)", border: `1px solid ${prefs.max_per_day === n ? "rgba(var(--cm-red-rgb,255,59,48),0.4)" : "rgba(var(--cm-ink-rgb,10,10,10),0.1)"}`, color: prefs.max_per_day === n ? "var(--cm-red,#FF3B30)" : "rgba(var(--cm-ink-rgb,10,10,10),0.5)", fontFamily: "'Archivo',sans-serif", fontSize: 10, fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em" }}>
                     {FREQ_LABELS[n]}
                   </button>
                 ))}
               </div>
             </div>
             {/* Quiet hours */}
-            <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(245,245,240,0.06)" }}>
-              <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "#f5f5f0", marginBottom: 2 }}>Quiet Hours</div>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(245,245,240,0.35)", marginBottom: 10, letterSpacing: "0.06em" }}>No notifications during this window</div>
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)" }}>
+              <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "var(--cm-ink,#0A0A0A)", marginBottom: 2 }}>Quiet Hours</div>
+              <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 9, color: "rgba(var(--cm-ink-rgb,10,10,10),0.45)", marginBottom: 10, letterSpacing: "0.02em" }}>No notifications during this window</div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <select value={prefs.quiet_start} onChange={e => save({ ...prefs, quiet_start: parseInt(e.target.value) })} style={{ flex: 1, padding: "8px 10px", background: "rgba(245,245,240,0.06)", border: "1px solid rgba(245,245,240,0.12)", borderRadius: 8, color: "#f5f5f0", fontFamily: "var(--mono)", fontSize: 11, cursor: "pointer" }}>
+                <select value={prefs.quiet_start} onChange={e => save({ ...prefs, quiet_start: parseInt(e.target.value) })} style={{ flex: 1, padding: "8px 10px", background: "rgba(var(--cm-ink-rgb,10,10,10),0.05)", border: "1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)", borderRadius: 8, color: "var(--cm-ink,#0A0A0A)", fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 11, cursor: "pointer" }}>
                   {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
                 </select>
-                <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "rgba(245,245,240,0.35)" }}>to</span>
-                <select value={prefs.quiet_end} onChange={e => save({ ...prefs, quiet_end: parseInt(e.target.value) })} style={{ flex: 1, padding: "8px 10px", background: "rgba(245,245,240,0.06)", border: "1px solid rgba(245,245,240,0.12)", borderRadius: 8, color: "#f5f5f0", fontFamily: "var(--mono)", fontSize: 11, cursor: "pointer" }}>
+                <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 10, color: "rgba(var(--cm-ink-rgb,10,10,10),0.4)" }}>to</span>
+                <select value={prefs.quiet_end} onChange={e => save({ ...prefs, quiet_end: parseInt(e.target.value) })} style={{ flex: 1, padding: "8px 10px", background: "rgba(var(--cm-ink-rgb,10,10,10),0.05)", border: "1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)", borderRadius: 8, color: "var(--cm-ink,#0A0A0A)", fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 11, cursor: "pointer" }}>
                   {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
                 </select>
               </div>
@@ -5757,14 +6562,14 @@ function CoachOutreachSection({ user, eyebrowStyle, cardStyle }) {
               onChange={v => toggleSwitch(v, 'critical_override')}
             />
             {/* Per-category toggles */}
-            <div style={{ padding: "10px 16px 6px", borderTop: "1px solid rgba(245,245,240,0.06)" }}>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 8, color: "rgba(245,245,240,0.35)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 8 }}>// Notification Types</div>
+            <div style={{ padding: "10px 16px 6px", borderTop: "1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)" }}>
+              <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 10, color: "rgba(var(--cm-ink-rgb,10,10,10),0.4)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 8 }}>Notification types</div>
               {Object.entries(TRIGGER_CATEGORIES).map(([key, label], i, arr) => {
                 const val = prefs.categories?.[key] ?? true;
                 return (
                   <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: i < arr.length - 1 ? 10 : 4 }}>
-                    <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: "rgba(245,245,240,0.8)" }}>{label}</span>
-                    <div onClick={() => toggleSwitch(!val, key, 'categories')} style={{ width: 40, height: 22, borderRadius: 11, background: val ? "var(--accent)" : "rgba(245,245,240,0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                    <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: "var(--cm-ink,#0A0A0A)" }}>{label}</span>
+                    <div onClick={() => toggleSwitch(!val, key, 'categories')} style={{ width: 40, height: 22, borderRadius: 11, background: val ? "var(--cm-red,#FF3B30)" : "rgba(var(--cm-ink-rgb,10,10,10),0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
                       <div style={{ position: "absolute", top: 2, left: val ? 19 : 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
                     </div>
                   </div>
@@ -5774,34 +6579,92 @@ function CoachOutreachSection({ user, eyebrowStyle, cardStyle }) {
           </>
         )}
       </div>
-      {saving && <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(245,245,240,0.3)", textAlign: "center", marginTop: 4, letterSpacing: "0.1em" }}>saving…</div>}
+      {saving && <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 9, color: "rgba(var(--cm-ink-rgb,10,10,10),0.35)", textAlign: "center", marginTop: 4, letterSpacing: "0.06em" }}>saving…</div>}
     </>
   );
 }
 
+// ─── WHEEL COL (scroll-snap picker column, used in weight/height modals) ─────
+function WheelCol({options,value,onChange,width=80}){
+  const ref=useRef(null);
+  const idx=options.findIndex(o=>String(o)===String(value));
+  useEffect(()=>{
+    if(ref.current&&idx>=0) ref.current.scrollTop=idx*40;
+  },[value]);
+  return(
+    <div ref={ref}
+      onScroll={e=>{
+        const i=Math.round(e.target.scrollTop/40);
+        const c=Math.max(0,Math.min(options.length-1,i));
+        if(String(options[c])!==String(value)) onChange(options[c]);
+      }}
+      style={{width,height:200,overflowY:'scroll',scrollSnapType:'y mandatory',
+        WebkitOverflowScrolling:'touch',paddingTop:80,paddingBottom:80,
+        boxSizing:'border-box',msOverflowStyle:'none'}}
+    >
+      {options.map(opt=>(
+        <div key={opt} style={{height:40,scrollSnapAlign:'center',display:'flex',
+          alignItems:'center',justifyContent:'center',
+          fontFamily:"'Archivo',sans-serif",
+          fontWeight:String(opt)===String(value)?800:400,
+          fontSize:String(opt)===String(value)?24:16,
+          color:String(opt)===String(value)?'var(--cm-ink,#0A0A0A)':'rgba(var(--cm-ink-rgb,10,10,10),0.22)',
+          transition:'color 0.15s,font-size 0.15s',userSelect:'none'}}>
+          {opt}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── SETTINGS SECTION ────────────────────────────────────────────────────────
-export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,dayFocus,todayKey,isMobile,onSignOut,user,onPreviewBrief,calendarConnected,onCalendarConnect,onCalendarDisconnect,onLogInjury}) {
+export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,dayFocus,todayKey,isMobile,onSignOut,user,onPreviewBrief,calendarConnected,onCalendarConnect,onCalendarDisconnect,onLogInjury,onProfileUpdate}) {
   const [delStep,setDelStep]=useState(0);
+  const [aiOn,setAiOn]=useState(!!profile?.ai_features_enabled);
+  async function toggleAIFeatures(){
+    const next=!aiOn; setAiOn(next); setAIEnabled(next);
+    if(user){ try{ await sb.from('profiles').upsert({id:user.id,ai_features_enabled:next},{onConflict:'id'}); }catch{} }
+    if(onProfileUpdate) onProfileUpdate({ai_features_enabled:next});
+    showToast(next?"AI features enabled.":"AI features turned off.","success");
+  }
+  const [legalPage,setLegalPage]=useState(null); // null | 'privacy' | 'terms' | 'health-disclaimer' | 'health-data-notice' | 'support' — in-app bundled legal pages
   const [delInput,setDelInput]=useState("");
   const [deleting,setDeleting]=useState(false);
+  const [delError,setDelError]=useState("");
+  // Apple-compliant: deleting the account does NOT cancel the App Store subscription.
+  // Point users to Apple's subscription management (billing continues until they cancel there).
+  function openManageSubscription(){
+    const url="https://apps.apple.com/account/subscriptions";
+    try{ window.open(url,"_system") || window.open(url,"_blank") || (window.location.href=url); }
+    catch{ window.location.href=url; }
+  }
   const [displayPrefs,setDisplayPrefs]=useState(wPrefs?.displayPrefs||{});
+  const [meScreen,setMeScreen]=useState(null); // null | 'profile' | 'plan' | 'display'
   const [editModal,setEditModal]=useState(null);
   const [editValue,setEditValue]=useState("");
   const [localName,setLocalName]=useState(profile?.name||"");
-  const [localWeight,setLocalWeight]=useState(String(profile?.weight||""));
-  const [localHeight,setLocalHeight]=useState(String(profile?.height||""));
+  const [localWeight,setLocalWeight]=useState(profile?.weight_kg!=null?String(profile.weight_kg):"");
+  const [localHeight,setLocalHeight]=useState(profile?.height_cm!=null?String(profile.height_cm):"");
+  const [pickerWUnit,setPickerWUnit]=useState('lbs');
+  const [pickerWVal,setPickerWVal]=useState(180);
+  const [pickerHUnit,setPickerHUnit]=useState('ft');
+  const [pickerFt,setPickerFt]=useState(5);
+  const [pickerHIn,setPickerHIn]=useState(10);
+  const [pickerHCm,setPickerHCm]=useState(175);
   const [showGoalSelector,setShowGoalSelector]=useState(false);
   const [showSkillSelector,setShowSkillSelector]=useState(false);
-  const [stravaConnected,setStravaConnected]=useState(false);
-  const [stravaLoading,setStravaLoading]=useState(false);
-  const [stravaAthlete,setStravaAthlete]=useState(null);
-
-  useEffect(()=>{
-    if(!user?.id)return;
-    sb.from('connected_apps').select('metadata,connected_at').eq('user_id',user.id).eq('provider','strava').maybeSingle().then(({data})=>{
-      if(data){setStravaConnected(true);setStravaAthlete(data);}
-    });
-  },[user?.id]);
+  // Plan & Nutrition modal states
+  const [showDietPicker,setShowDietPicker]=useState(false);
+  const [showEquipmentPicker,setShowEquipmentPicker]=useState(false);
+  const [showRecoveryPicker,setShowRecoveryPicker]=useState(false);
+  const [showLongRunPicker,setShowLongRunPicker]=useState(false);
+  const [lrdOverrideDay,setLrdOverrideDay]=useState(null); // confirm before replacing a lift day
+  const [showRaceTypePicker,setShowRaceTypePicker]=useState(false);
+  const [showRaceDatePicker,setShowRaceDatePicker]=useState(false);
+  const [showCaloriePicker,setShowCaloriePicker]=useState(false);
+  // Strava + Calendar connect UI removed for v1 (saved for v2). Backend intact:
+  // api/strava OAuth flow, the connected_apps table, and LifeAwareTraining's
+  // CalendarSettingsPanel + calendarConnected/onCalendar* prop threading all remain.
 
   async function saveSettings(newWPrefs,newSchedule){
     if(!user)return;
@@ -5828,11 +6691,15 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
 
   async function deleteAccount() {
     if(!user||delInput.trim()!=="DELETE")return;
-    setDelStep(3);
+    setDelError("");
+    setDelStep(4);        // "Deleting…"
     setDeleting(true);
     try {
       const { data:{ session } } = await sb.auth.getSession();
-      const res = await fetch("/api/delete-account", {
+      // Absolute URL — a relative /api path hits the local capacitor origin in the
+      // native app and never reaches the server. Base matches the other API calls.
+      const base=import.meta.env.VITE_API_BASE_URL||import.meta.env.VITE_API_BASE||"";
+      const res = await fetch(`${base}/api/delete-account`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -5840,11 +6707,17 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         },
       });
       if (!res.ok) throw new Error("Delete failed");
+      // Log out of RevenueCat so the SDK doesn't retain/recreate the app user.
+      try{ const { Purchases } = await import('@revenuecat/purchases-capacitor'); await Purchases.logOut(); }catch{}
+      // Success → sign out → App unmounts back to the welcome/auth screen.
+      await sb.auth.signOut();
     } catch(e) {
-      // Fallback: client-side cleanup if server delete unavailable
-      await sb.from("profiles").delete().eq("id",user.id);
+      // No silent partial delete — surface a real error so the user can retry
+      // (leaving a half-deleted account is worse than a clear failure).
+      setDeleting(false);
+      setDelError("Couldn't delete your account. Check your connection and try again.");
+      setDelStep(3);       // back to the type-DELETE step
     }
-    await sb.auth.signOut();
   }
 
   const isPro=!!profile?.is_pro;
@@ -5859,17 +6732,22 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const currentGoal=wPrefs?.primaryGoal||profile?.primaryGoal;
   const currentSkill=wPrefs?.liftExp||profile?.liftExp||"beginner";
   const wUnit=wPrefs?.wUnit||profile?.wUnit||"lbs";
+  const hUnit=wPrefs?.hUnit||(wUnit==='kg'?'cm':'ft');
+  const kgToLbs=kg=>Math.round(kg*2.20462);
+  const lbsToKg=lbs=>+(lbs/2.20462).toFixed(1);
+  const cmToFtIn=cm=>{const t=cm/2.54;return{ft:Math.floor(t/12),inch:Math.round(t%12)};};
+  const ftInToCm=(ft,inch)=>+(((ft*12)+inch)*2.54).toFixed(1);
 
-  const eyebrowStyle={fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10,marginTop:24};
-  const cardStyle={background:"#0d0d0d",borderRadius:12,border:"1px solid rgba(245,245,240,0.07)",overflow:"hidden"};
+  const eyebrowStyle={fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,letterSpacing:"0.24em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",margin:"28px 0 12px 2px"};
+  const cardStyle={background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:12,border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",overflow:"hidden"};
   function MeRow({label:lbl,value:val,onPress,isLast,isDestructive,noChevron,rightEl}){
     return(
-      <div onClick={onPress} style={{padding:"14px 16px",borderBottom:isLast?"none":"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:onPress?"pointer":"default"}}>
-        <span style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:isDestructive?"var(--accent)":"#f5f5f0"}}>{lbl}</span>
+      <div onClick={onPress} style={{padding:"14px 16px",borderBottom:isLast?"none":"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:onPress?"pointer":"default"}}>
+        <span style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:isDestructive?"var(--cm-red,#FF3B30)":"var(--cm-ink,#0A0A0A)"}}>{lbl}</span>
         {rightEl||(!isDestructive&&(
           <div style={{display:"flex",alignItems:"center",gap:6}}>
-            {val&&<span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,color:"rgba(245,245,240,0.40)"}}>{val}</span>}
-            {!noChevron&&onPress&&<span style={{color:"rgba(245,245,240,0.25)",fontSize:18,lineHeight:1}}>›</span>}
+            {val&&<span style={{fontFamily:"'Archivo',sans-serif",fontWeight:500,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.40)"}}>{val}</span>}
+            {!noChevron&&onPress&&<span style={{color:"rgba(var(--cm-ink-rgb,10,10,10),0.25)",fontSize:18,lineHeight:1}}>›</span>}
           </div>
         ))}
       </div>
@@ -5878,436 +6756,917 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
 
   return (
     <div style={{padding:isMobile?"12px 18px":"0",paddingBottom:isMobile?100:0}}>
-      {/* ── ATHLETE PASSPORT ── */}
-      <AthletePassport user={user}/>
-      {/* ── REFER A FRIEND ── */}
-      <ReferAFriendCard user={user} eyebrowStyle={eyebrowStyle} />
-
-
-      {/* ── PROFILE ── */}
-      <div style={eyebrowStyle}>// Profile</div>
-      <div style={cardStyle}>
-        <MeRow label="Name" value={localName||"—"} onPress={()=>{setEditModal("name");setEditValue(localName);}}/>
-        <MeRow label="Goal" value={GOAL_LABELS[currentGoal]||"—"} onPress={()=>setShowGoalSelector(true)}/>
-        <MeRow label="Skill Level" value={SKILL_LABELS[currentSkill]||"Beginner"} onPress={()=>setShowSkillSelector(true)}/>
-        <MeRow label="Weight" value={localWeight?(localWeight+" "+wUnit):"—"} onPress={()=>{setEditModal("weight");setEditValue(localWeight);}}/>
-        <MeRow label="Height" value={localHeight?(localHeight+" cm"):"—"} onPress={()=>{setEditModal("height");setEditValue(localHeight);}} isLast/>
-      </div>
-
-      {/* ── DISPLAY ── */}
-      <div style={eyebrowStyle}>// Display</div>
-      <div style={cardStyle}>
-        {/* Skill Level Chips */}
-        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)"}}>
-          <div style={{fontSize:14,color:"#f5f5f0",fontFamily:"'Barlow',sans-serif",marginBottom:2}}>Experience Level</div>
-          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",marginBottom:12}}>Adjusts coaching language and visible metrics</div>
-          <div style={{display:"flex",gap:6}}>
-            {["beginner","intermediate","advanced"].map(level=>{
-              const isActive=currentSkill===level;
-              return(
-                <button key={level} onClick={async()=>{
-                  const newWp={...wPrefs,liftExp:level};
-                  setWPrefs(newWp);
-                  await saveSettings(newWp,null);
-                  showToast(`Display preferences updated for ${level} level.`,"success");
-                }} style={{padding:"8px 16px",borderRadius:20,border:isActive?"none":"1px solid rgba(245,245,240,0.15)",background:isActive?"var(--accent)":"transparent",color:isActive?"#fff":"rgba(245,245,240,0.5)",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.2s"}}>
-                  {level}
-                </button>
-              );
-            })}
+      {/* ── IDENTITY HERO (red canvas, no card) ── */}
+      {(()=>{
+        const rawInitials=localName
+          ? localName.trim().split(/\s+/).map(n=>n[0]).join('').toUpperCase().slice(0,2)
+          : '';
+        const _initials=rawInitials||localName?.[0]?.toUpperCase()||'—';
+        const _goalLabel=GOAL_LABELS[currentGoal]||currentGoal||'—';
+        const _skillCap=(currentSkill||'beginner').charAt(0).toUpperCase()+(currentSkill||'beginner').slice(1);
+        const _identityLine=`${_goalLabel} · ${wPrefs?.splitType||_skillCap}`;
+        const _daysActive=Object.values(schedule||{}).filter(v=>v&&v!=='rest').length;
+        const _calTarget=profile?.profile_data?.goalCals??profile?.calorie_target??'—';
+        return (
+          <div style={{paddingTop:12,paddingBottom:20}}>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:10,letterSpacing:"0.28em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)",marginBottom:14}}>Athlete</div>
+            <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:8}}>
+              <div style={{width:64,height:64,borderRadius:"50%",background:"rgba(255,255,255,0.18)",border:"2px solid rgba(255,255,255,0.5)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <span style={{fontFamily:"'Archivo','Barlow',sans-serif",fontWeight:800,fontSize:22,color:"#fff",lineHeight:1}}>{_initials}</span>
+              </div>
+              <div>
+                <div style={{fontFamily:"'Archivo','Barlow',sans-serif",fontWeight:800,fontSize:30,color:"#fff",textTransform:"uppercase",lineHeight:1.1}}>{localName||'—'}</div>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:11,letterSpacing:"0.04em",color:"rgba(255,255,255,0.72)",textTransform:"uppercase",marginTop:4}}>{_identityLine}</div>
+              </div>
+            </div>
           </div>
-        </div>
-        {/* Today Tab Toggles */}
-        <div style={{padding:"10px 16px 6px",borderBottom:"1px solid rgba(245,245,240,0.06)"}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// TODAY TAB</div>
-          {[
-            {key:"morning_brief",label:"Morning Brief",def:true},
-            {key:"streak_counter",label:"Streak Counter",def:true},
-            {key:"deload_alerts",label:"Deload Alerts",def:true},
-            {key:"plateau_alerts",label:"Plateau Alerts",def:true},
-            {key:"fatigue_detection",label:"Fatigue Detection",def:currentSkill!=="beginner"},
-            {key:"muscle_balance",label:"Muscle Balance",def:currentSkill==="advanced"},
-            {key:"program_adjustments",label:"Program Adjustments",def:currentSkill!=="beginner"},
-          ].map(({key,label,def})=>{
-            const val=displayPrefs[key]??def;
-            return(
-              <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
-                <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.8)"}}>{label}</span>
-                <div onClick={async()=>{
-                  const newDp={...displayPrefs,[key]:!val};
-                  setDisplayPrefs(newDp);
-                  const newWp={...wPrefs,displayPrefs:newDp};
-                  setWPrefs(newWp);
-                  await saveSettings(newWp,null);
-                }} style={{width:44,height:24,borderRadius:12,background:val?"var(--accent)":"rgba(245,245,240,0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
-                  <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        {/* During Workouts */}
-        <div style={{padding:"10px 16px 6px",borderBottom:"1px solid rgba(245,245,240,0.06)"}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// DURING WORKOUTS</div>
-          {[
-            {key:"rpe_input",label:"RPE Input",def:currentSkill!=="beginner"},
-            {key:"momentum_bar",label:"Momentum Bar",def:currentSkill!=="beginner"},
-          ].map(({key,label,def})=>{
-            const val=displayPrefs[key]??def;
-            return(
-              <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
-                <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.8)"}}>{label}</span>
-                <div onClick={async()=>{
-                  const newDp={...displayPrefs,[key]:!val};
-                  setDisplayPrefs(newDp);
-                  const newWp={...wPrefs,displayPrefs:newDp};
-                  setWPrefs(newWp);
-                  await saveSettings(newWp,null);
-                }} style={{width:44,height:24,borderRadius:12,background:val?"var(--accent)":"rgba(245,245,240,0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
-                  <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        {/* Nutrition */}
-        <div style={{padding:"10px 16px 6px"}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// NUTRITION</div>
-          {[
-            {key:"full_macro_breakdown",label:"Full Macro Breakdown",def:currentSkill!=="beginner"},
-            {key:"macro_memory",label:"Macro Memory",def:currentSkill!=="beginner"},
-            {key:"nutrition_timing",label:"Nutrition Timing",def:currentSkill!=="beginner"},
-          ].map(({key,label,def})=>{
-            const val=displayPrefs[key]??def;
-            return(
-              <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
-                <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.8)"}}>{label}</span>
-                <div onClick={async()=>{
-                  const newDp={...displayPrefs,[key]:!val};
-                  setDisplayPrefs(newDp);
-                  const newWp={...wPrefs,displayPrefs:newDp};
-                  setWPrefs(newWp);
-                  await saveSettings(newWp,null);
-                }} style={{width:44,height:24,borderRadius:12,background:val?"var(--accent)":"rgba(245,245,240,0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
-                  <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        );
+      })()}
+      {/* ── WHITE SHEET (wraps all existing sections) ── */}
+      <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:4,paddingTop:22,paddingBottom:28,marginLeft:isMobile?-18:0,marginRight:isMobile?-18:0,paddingLeft:isMobile?18:0,paddingRight:isMobile?18:0}}>
+      {/* ── GROUP 1: YOU ─────────────────────────────────────────────── */}
+      <div style={eyebrowStyle}>You</div>
+      {/* <AthletePassport user={user}/> — temporarily hidden, keep for later */}
+      <div style={cardStyle}>
+        {/* ─ Profile ─ */}
+        <MeRow label="Profile" value="Name, goal, body" onPress={()=>setMeScreen('profile')}/>
+        {/* ─ Plan & Nutrition ─ */}
+        <MeRow label="Plan & nutrition" value="Diet, calories, race" onPress={()=>setMeScreen('plan')}/>
+        {/* ─ Display ─ */}
+        <MeRow label="Display & tracking" value="Toggles, units" onPress={()=>setMeScreen('display')} isLast/>
       </div>
 
-      {/* ── APPEARANCE ── */}
-      <div style={eyebrowStyle}>// Appearance</div>
+      {/* ── GROUP 2: COACH ──────────────────────────────────────────── */}
+      <div style={eyebrowStyle}>Coach</div>
+      <div style={cardStyle}>
+        <MeRow label="Coaching style" value="Tone & personality" onPress={()=>setMeScreen('coachstyle')}/>
+        <MeRow label="Coach outreach" value="Outreach, quiet hours" onPress={()=>setMeScreen('notifications')}/>
+        <MeRow label="Patterns & memory" value="What coach remembers" onPress={()=>setMeScreen('patterns')} isLast/>
+      </div>
+
+      {/* ── GROUP 3: APPEARANCE ──────────────────────────────────────── */}
+      <div style={eyebrowStyle}>Appearance</div>
       <AppearanceSection user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} />
 
-      {/* ── SUBSCRIPTION ── */}
-      <div style={eyebrowStyle}>// Subscription</div>
+      {/* ── GROUP 4: YOUR VOICE ──────────────────────────────────────── */}
+      <div style={eyebrowStyle}>Your voice</div>
       <div style={cardStyle}>
-        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <span style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Plan</span>
-          <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,color:subIsPaid?"#34d399":subTier==="expired"?"var(--accent)":"rgba(245,245,240,0.5)",padding:"3px 10px",borderRadius:6,background:subIsPaid?"rgba(52,211,153,0.1)":"rgba(245,245,240,0.06)",border:`1px solid ${subIsPaid?"rgba(52,211,153,0.25)":"rgba(245,245,240,0.08)"}`}}>{subLabel}</span>
-        </div>
-        {subIsPaid?(
-          <>
-            {profile?.subscription_started_at&&<div style={{padding:"10px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",fontSize:12,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)"}}>Active since {new Date(profile.subscription_started_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>}
-            <MeRow label="Manage Subscription" onPress={()=>showToast("Manage via App Store → Subscriptions.","info",{duration:4000})} value=""/>
-            <div style={{padding:"8px 16px",fontSize:10,color:"rgba(245,245,240,0.25)",fontFamily:"var(--mono)",letterSpacing:"0.06em",borderBottom:"1px solid rgba(245,245,240,0.04)"}}>Manage or cancel via the App Store settings.</div>
-          </>
-        ):(
-          <div style={{margin:"12px 16px",padding:"16px",background:"rgba(var(--accent-rgb),0.05)",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:12}}>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,marginBottom:12}}>UPGRADE TO PRO.</div>
-            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Monthly</span><span style={{fontFamily:"var(--mono)",fontSize:11,color:"rgba(245,245,240,0.6)"}}>$12.99 / month</span></div>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Annual · Founding</span><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontFamily:"var(--mono)",fontSize:11,color:"rgba(245,245,240,0.6)"}}>$49.99 / year</span><span style={{background:"rgba(34,197,94,0.15)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:4,padding:"1px 6px",fontSize:9,color:"#22c55e",fontFamily:"var(--mono)",fontWeight:700}}>SAVE 68%</span></div></div>
-            </div>
-            <button onClick={()=>setShowPlansModal(true)} style={{width:"100%",padding:"12px",background:"var(--red)",border:"none",borderRadius:10,color:"#fff",fontFamily:"var(--condensed)",fontWeight:700,fontSize:14,letterSpacing:".06em",textTransform:"uppercase",cursor:"pointer"}}>VIEW PLANS →</button>
+        <div onClick={()=>{if(window.uj)window.uj.showWidget({section:"features"});}} style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
+          <div style={{width:36,height:36,borderRadius:9,background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--cm-red,#FF3B30)"><path d="M9 22h6v-1H9v1zm3-20C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26C17.81 13.47 19 11.38 19 9c0-3.87-3.13-7-7-7z"/></svg>
           </div>
-        )}
-        <MeRow label="Restore Purchases" isLast onPress={async()=>{
-          showToast("Checking purchases...","info");
-          const{data:{user:u}}=await sb.auth.getUser().catch(()=>({data:{user:null}}));
-          if(!u)return;
-          const tier=await restorePurchases(u.id);
-          if(tier)showToast(`Restored: ${tier==="monthly"?"Pro Monthly":"Pro Annual"} active.`,"success");
-          else showToast("No active purchases found.","info");
-        }} value=""/>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>Suggest a feature</div>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:2}}>Shape what we build next</div>
+          </div>
+          <span style={{color:"rgba(var(--cm-ink-rgb,10,10,10),0.25)",fontSize:18,lineHeight:1}}>›</span>
+        </div>
+        <div onClick={()=>{if(window.uj)window.uj.showWidget({section:"bugs"});}} style={{padding:"14px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
+          <div style={{width:36,height:36,borderRadius:9,background:"rgba(254,160,32,0.1)",border:"1px solid rgba(254,160,32,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#fea020"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+          </div>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>Report a problem</div>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:2}}>Something broken or off</div>
+          </div>
+          <span style={{color:"rgba(var(--cm-ink-rgb,10,10,10),0.25)",fontSize:18,lineHeight:1}}>›</span>
+        </div>
       </div>
 
-      {/* Plans modal — sheet */}
+      {/* ── GROUP 6: ACCOUNT ─────────────────────────────────────────── */}
+      <div style={eyebrowStyle}>Account</div>
+      <div style={cardStyle}>
+        <MeRow label="Account" value="Plan, purchases, privacy" onPress={()=>setMeScreen('account')}/>
+        <MeRow label="Connected apps" value="Apple Health" onPress={()=>setMeScreen('connected')}/>
+        <MeRow label="Sign Out" isDestructive isLast onPress={onSignOut}/>
+      </div>
+      </div>{/* end white sheet */}
+
+      {/* ── PLAN & NUTRITION SUB-SCREEN ── */}
+      {meScreen==='plan'&&(
+        <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
+          <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
+            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+          </div>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
+            <div style={eyebrowStyle}>Plan & nutrition</div>
+            <div style={cardStyle}>
+              {/* A. Diet Preset */}
+              {(()=>{
+                const DIET_OPTS=[
+                  {id:'balanced',label:'Balanced'},{id:'high-protein',label:'High Protein'},
+                  {id:'keto',label:'Keto'},{id:'vegan',label:'Vegan'},
+                  {id:'vegetarian',label:'Vegetarian'},{id:'carnivore',label:'Carnivore'},
+                  {id:'low-carb',label:'Low Carb'},{id:'pescatarian',label:'Pescatarian'},
+                  {id:'mediterranean',label:'Mediterranean'},
+                ];
+                const currentDiet=wPrefs?.mealPrepDiet||'balanced';
+                const currentDietLabel=DIET_OPTS.find(d=>d.id===currentDiet)?.label||'Balanced';
+                return <MeRow label="Diet Preset" value={currentDietLabel} onPress={()=>setShowDietPicker(true)}/>;
+              })()}
+              {/* B. Allergens / Restrictions */}
+              {(()=>{
+                const ALLERGEN_OPTS=[
+                  {v:'vegetarian',l:'Vegetarian'},{v:'vegan',l:'Vegan'},
+                  {v:'gluten',l:'Gluten Free'},{v:'dairy',l:'Dairy Free'},
+                  {v:'nuts',l:'No Nuts'},{v:'eggs',l:'No Eggs'},
+                  {v:'shellfish',l:'No Shellfish'},{v:'halal',l:'Halal'},
+                  {v:'kosher',l:'Kosher'},
+                ];
+                const current=(profile?.dietary||[]).filter(d=>d!=='none');
+                return(
+                  <div style={{padding:"14px 16px",borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+                    <div style={{fontSize:14,color:"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",marginBottom:6}}>Dietary Restrictions</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:4}}>
+                      {ALLERGEN_OPTS.map(({v,l})=>{
+                        const active=current.includes(v);
+                        return(
+                          <button key={v} onClick={async()=>{
+                            const next=active?current.filter(x=>x!==v):[...current,v];
+                            await sb.from("profiles").upsert({id:user.id,profile_data:{...profile,dietary:next}},{onConflict:"id"});
+                            onProfileUpdate?.({dietary:next});
+                          }} style={{padding:"6px 14px",borderRadius:20,border:active?"none":"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.15)",background:active?"var(--cm-red,#FF3B30)":"transparent",color:active?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontFamily:"'Archivo',sans-serif",fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.15s"}}>
+                            {l}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+              {/* C. Recovery Capacity */}
+              {(()=>{
+                const RC_LABELS={fast:"Very fast",normal:"Normal",slow:"Slower",very_slow:"Very slow"};
+                const currentRC=wPrefs?.recoveryCapacity||profile?.recovery_capacity||'normal';
+                return <MeRow label="Recovery Capacity" value={RC_LABELS[currentRC]||currentRC} onPress={()=>setShowRecoveryPicker(true)}/>;
+              })()}
+              {/* D. Long Run Day */}
+              {(()=>{
+                const currentLRD=wPrefs?.longRunDay;
+                return <MeRow label="Long Run Day" value={currentLRD||'—'} onPress={()=>setShowLongRunPicker(true)}/>;
+              })()}
+              {/* E. Race Type + Race Date */}
+              {(()=>{
+                const RACE_LABELS={'5k':'5K','10k':'10K','half_marathon':'Half Marathon','marathon':'Marathon','ultra':'Ultra','obstacle':'Obstacle / OCR','general':'General Fitness'};
+                const currentRT=profile?.run_race_type;
+                const currentRD=profile?.run_race_date;
+                return(
+                  <>
+                    <MeRow label="Race Type" value={currentRT?RACE_LABELS[currentRT]||currentRT:'—'} onPress={()=>setShowRaceTypePicker(true)}/>
+                    <MeRow label="Race Date" value={currentRD?new Date(currentRD+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—'} onPress={()=>setShowRaceDatePicker(true)}/>
+                  </>
+                );
+              })()}
+              {/* F. Daily calorie target */}
+              {(()=>{
+                const currentCals=profile?.goalCals??profile?.calorie_target;
+                return <MeRow label="Daily calorie target" value={currentCals?`${currentCals} kcal`:'—'} onPress={()=>setShowCaloriePicker(true)} isLast/>;
+              })()}
+              {/* G. Refeed Interval — deficit goals only */}
+              {(profile?.goal==="lose_fat"||profile?.goal==="recomp"||wPrefs?.primaryGoal==="lose_fat"||wPrefs?.primaryGoal==="recomp")&&(
+                <div style={{padding:"14px 16px",borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+                  <div style={{fontSize:14,color:"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",marginBottom:4}}>Refeed Interval</div>
+                  <div style={{fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",fontFamily:"'Archivo',sans-serif",marginBottom:10}}>Metabolism reset every N days in deficit</div>
+                  <div style={{display:"flex",gap:8}}>
+                    {[5,7,10].map(n=>(
+                      <button key={n} onClick={async()=>{const wp={...wPrefs,refeed_day_interval:n};setWPrefs(wp);await saveSettings(wp,null);await saveProfileField("refeed_day_interval",n);}} style={{flex:1,padding:"8px 0",borderRadius:8,background:(wPrefs?.refeed_day_interval||7)===n?"rgba(var(--cm-red-rgb,255,59,48),0.2)":"rgba(var(--cm-ink-rgb,10,10,10),0.06)",border:`1px solid ${(wPrefs?.refeed_day_interval||7)===n?"rgba(var(--cm-red-rgb,255,59,48),0.5)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)"}`,color:(wPrefs?.refeed_day_interval||7)===n?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.6)",fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                        {n}d
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── DISPLAY & TRACKING SUB-SCREEN ── */}
+      {meScreen==='display'&&(
+        <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
+          <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
+            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+          </div>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
+            <div style={eyebrowStyle}>Display & tracking</div>
+            <div style={cardStyle}>
+              {/* AI Features toggle — the opt-out the privacy policy references (strict off-until-consented) */}
+              <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",alignItems:"center",gap:12}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:14,color:"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",marginBottom:2}}>AI Features</div>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)"}}>Food descriptions, photo logging &amp; coaching via Anthropic. Off = core tracking only.</div>
+                </div>
+                <div onClick={toggleAIFeatures} style={{width:44,height:24,borderRadius:12,background:aiOn?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                  <div style={{position:"absolute",top:2,left:aiOn?22:2,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
+                </div>
+              </div>
+              {/* Skill Level Chips */}
+              <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+                <div style={{fontSize:14,color:"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",marginBottom:2}}>Experience Level</div>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginBottom:12}}>Adjusts coaching language and visible metrics</div>
+                <div style={{display:"flex",gap:6}}>
+                  {["beginner","intermediate","advanced"].map(level=>{
+                    const isActive=currentSkill===level;
+                    return(
+                      <button key={level} onClick={async()=>{
+                        const newWp={...wPrefs,liftExp:level};
+                        setWPrefs(newWp);
+                        await saveSettings(newWp,null);
+                        showToast(`Display preferences updated for ${level} level.`,"success");
+                      }} style={{padding:"8px 16px",borderRadius:20,border:isActive?"none":"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.15)",background:isActive?"var(--cm-red,#FF3B30)":"transparent",color:isActive?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontFamily:"'Archivo',sans-serif",fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.2s"}}>
+                        {level}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Today Tab Toggles */}
+              <div style={{padding:"10px 16px 6px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:8}}>Today tab</div>
+                {[
+                  {key:"morning_brief",label:"Morning Brief",def:true},
+                  {key:"streak_counter",label:"Streak Counter",def:true},
+                  {key:"deload_alerts",label:"Deload Alerts",def:true},
+                  {key:"plateau_alerts",label:"Plateau Alerts",def:true},
+                  {key:"fatigue_detection",label:"Fatigue Detection",def:currentSkill!=="beginner"},
+                  {key:"muscle_balance",label:"Muscle Balance",def:currentSkill==="advanced"},
+                  {key:"program_adjustments",label:"Program Adjustments",def:currentSkill!=="beginner"},
+                ].map(({key,label,def})=>{
+                  const val=displayPrefs[key]??def;
+                  return(
+                    <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
+                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)"}}>{label}</span>
+                      <div onClick={async()=>{
+                        const newDp={...displayPrefs,[key]:!val};
+                        setDisplayPrefs(newDp);
+                        const newWp={...wPrefs,displayPrefs:newDp};
+                        setWPrefs(newWp);
+                        await saveSettings(newWp,null);
+                      }} style={{width:44,height:24,borderRadius:12,background:val?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                        <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* During Workouts */}
+              <div style={{padding:"10px 16px 6px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:8}}>During workouts</div>
+                {[
+                  {key:"rpe_input",label:"RPE Input",def:currentSkill!=="beginner"},
+                  {key:"momentum_bar",label:"Momentum Bar",def:currentSkill!=="beginner"},
+                ].map(({key,label,def})=>{
+                  const val=displayPrefs[key]??def;
+                  return(
+                    <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
+                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)"}}>{label}</span>
+                      <div onClick={async()=>{
+                        const newDp={...displayPrefs,[key]:!val};
+                        setDisplayPrefs(newDp);
+                        const newWp={...wPrefs,displayPrefs:newDp};
+                        setWPrefs(newWp);
+                        await saveSettings(newWp,null);
+                      }} style={{width:44,height:24,borderRadius:12,background:val?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                        <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Nutrition */}
+              <div style={{padding:"10px 16px 6px"}}>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:8}}>Nutrition</div>
+                {[
+                  {key:"full_macro_breakdown",label:"Full Macro Breakdown",def:currentSkill!=="beginner"},
+                  {key:"macro_memory",label:"Macro Memory",def:currentSkill!=="beginner"},
+                  {key:"nutrition_timing",label:"Nutrition Timing",def:currentSkill!=="beginner"},
+                ].map(({key,label,def})=>{
+                  const val=displayPrefs[key]??def;
+                  return(
+                    <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
+                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)"}}>{label}</span>
+                      <div onClick={async()=>{
+                        const newDp={...displayPrefs,[key]:!val};
+                        setDisplayPrefs(newDp);
+                        const newWp={...wPrefs,displayPrefs:newDp};
+                        setWPrefs(newWp);
+                        await saveSettings(newWp,null);
+                      }} style={{width:44,height:24,borderRadius:12,background:val?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                        <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* General */}
+              <div style={{padding:"10px 16px 6px",borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:8}}>General</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
+                  <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)"}}>Units</span>
+                  <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)"}}>
+                    {["lbs","kg"].map(u=>(
+                      <button key={u} onClick={async()=>{
+                        const hU=u==="kg"?"cm":"ft";
+                        const wp={...wPrefs,wUnit:u,hUnit:hU};
+                        setWPrefs(wp);
+                        await saveSettings(wp,null);
+                        if(user)sb.from("profiles").upsert({id:user.id,units:u==="kg"?"metric":"imperial"},{onConflict:"id"}).then(()=>{});
+                      }} style={{padding:"6px 14px",background:wUnit===u?"var(--cm-red,#FF3B30)":"transparent",color:wUnit===u?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),0.4)",border:"none",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,cursor:"pointer",letterSpacing:"0.06em"}}>{u}</button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
+                  <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)"}}>Notifications</span>
+                  <Toggle value={wPrefs?.notifications!==false} onChange={v=>{const wp={...wPrefs,notifications:v};setWPrefs(wp);saveSettings(wp,null);}}/>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── PROFILE SUB-SCREEN ── */}
+      {meScreen==='profile'&&(
+        <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
+          <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
+            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:6}}>← Back</button>
+          </div>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
+            <div style={eyebrowStyle}>Profile</div>
+            <div style={cardStyle}>
+              <MeRow label="Name" value={localName||"—"} onPress={()=>{setEditModal("name");setEditValue(localName);}}/>
+              <MeRow label="Goal" value={GOAL_LABELS[currentGoal]||"—"} onPress={()=>setShowGoalSelector(true)}/>
+              <MeRow label="Skill Level" value={SKILL_LABELS[currentSkill]||"Beginner"} onPress={()=>setShowSkillSelector(true)}/>
+              <MeRow label="Equipment" value={wPrefs?.equipment||"Full Gym"} onPress={()=>setShowEquipmentPicker(true)}/>
+              <MeRow label="Weight" value={localWeight?(wUnit==='kg'?localWeight+' kg':kgToLbs(+localWeight)+' lbs'):"—"} onPress={()=>{
+                const kg=+localWeight||70;
+                const pu=wUnit;
+                setPickerWUnit(pu);
+                setPickerWVal(pu==='lbs'?kgToLbs(kg):Math.round(kg));
+                setEditModal("weight");
+              }}/>
+              <MeRow label="Height" value={localHeight?(hUnit==='cm'?localHeight+' cm':(()=>{const{ft,inch}=cmToFtIn(+localHeight);return ft+"'"+inch+'"';})()):"—"} onPress={()=>{
+                const cm=+localHeight||175;
+                const pu=hUnit;
+                setPickerHUnit(pu==='cm'?'cm':'ft+in');
+                if(pu==='cm'){setPickerHCm(Math.round(cm));}
+                else{const{ft,inch}=cmToFtIn(cm);setPickerFt(ft);setPickerHIn(inch);}
+                setEditModal("height");
+              }} isLast/>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── COACH SUB-SCREENS ── */}
+      {meScreen==='coachstyle'&&(
+        <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
+          <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
+            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+          </div>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
+            <div style={eyebrowStyle}>Coaching style</div>
+            <CommunicationStyleSection userId={user?.id}/>
+          </div>
+        </div>
+      )}
+      {meScreen==='notifications'&&(
+        <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
+          <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
+            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+          </div>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
+            <div style={eyebrowStyle}>Notifications</div>
+            <CoachOutreachSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle}/>
+          </div>
+        </div>
+      )}
+      {meScreen==='patterns'&&(
+        <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
+          <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
+            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+          </div>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
+            <div style={eyebrowStyle}>Patterns & memory</div>
+            <YourPatternsCard userId={user?.id}/>
+          </div>
+        </div>
+      )}
+
+      {/* ── CONNECTED APPS SUB-SCREEN ── */}
+      {meScreen==='connected'&&(
+        <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
+          <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
+            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+          </div>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
+            <div style={eyebrowStyle}>Connected apps</div>
+            <div style={cardStyle}>
+              {/* Apple Health */}
+              <div style={{padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{display:"flex",alignItems:"center",gap:12}}>
+                  <img src="/images/apple-health-icon.png" alt="Apple Health" style={{width:44,height:44,borderRadius:10,flexShrink:0,display:"block"}}/>
+                  <div>
+                    <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>Apple Health</div>
+                    <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:1}}>Sleep · HRV · Steps</div>
+                  </div>
+                </div>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:9,padding:"4px 10px",borderRadius:6,background:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.12)":"rgba(var(--cm-ink-rgb,10,10,10),0.06)",color:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"#34d399":"rgba(var(--cm-ink-rgb,10,10,10),0.4)",border:`1px solid ${typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.3)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,letterSpacing:"0.08em",textTransform:"uppercase"}}>
+                  {typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"iOS Ready":"iPhone Only"}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ACCOUNT SUB-SCREEN ── */}
+      {meScreen==='account'&&(
+        <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
+          <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
+            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+          </div>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
+            <div style={eyebrowStyle}>Account</div>
+            {/* Subscription */}
+            <div style={cardStyle}>
+              <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>Plan</span>
+                <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,color:subIsPaid?"#34d399":subTier==="expired"?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.5)",padding:"3px 10px",borderRadius:6,background:subIsPaid?"rgba(52,211,153,0.1)":"rgba(var(--cm-ink-rgb,10,10,10),0.06)",border:`1px solid ${subIsPaid?"rgba(52,211,153,0.25)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`}}>{subLabel}</span>
+              </div>
+              {subIsPaid?(
+                <>
+                  {profile?.subscription_started_at&&<div style={{padding:"10px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",fontFamily:"'Archivo',sans-serif"}}>Active since {new Date(profile.subscription_started_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>}
+                  <MeRow label="Manage Subscription" onPress={()=>showToast("Manage via App Store → Subscriptions.","info",{duration:4000})} value=""/>
+                  <div style={{padding:"8px 16px",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.25)",fontFamily:"'Archivo',sans-serif",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.04)"}}>Manage or cancel via the App Store settings.</div>
+                </>
+              ):(
+                <div style={{margin:"12px 16px",padding:"16px",background:"rgba(var(--cm-red-rgb,255,59,48),0.05)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.15)",borderRadius:12}}>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,marginBottom:12}}>UPGRADE TO PRO.</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Monthly</span><span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.6)"}}>$12.99 / month</span></div>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Annual</span><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.6)"}}>$49.99 / year</span><span style={{background:"rgba(34,197,94,0.15)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:4,padding:"1px 6px",fontSize:9,color:"#22c55e",fontFamily:"'Archivo',sans-serif",fontWeight:700}}>SAVE 68%</span></div></div>
+                  </div>
+                  <button onClick={()=>setShowPlansModal(true)} style={{width:"100%",padding:"12px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:10,color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:14,letterSpacing:".06em",textTransform:"uppercase",cursor:"pointer"}}>VIEW PLANS →</button>
+                </div>
+              )}
+              <MeRow label="Restore Purchases" isLast onPress={async()=>{
+                showToast("Checking purchases...","info");
+                const{data:{user:u}}=await sb.auth.getUser().catch(()=>({data:{user:null}}));
+                if(!u)return;
+                const tier=await restorePurchases(u.id);
+                if(tier)showToast(`Restored: ${tier==="monthly"?"Pro Monthly":"Pro Annual"} active.`,"success");
+                else showToast("No active purchases found.","info");
+              }} value=""/>
+            </div>
+            {/* Peer Comparison */}
+            <PeerComparisonSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle} hideEyebrow/>
+            {/* Legal & support — BUNDLED pages, reachable in-app (health disclaimers must not be web-only) */}
+            <div style={cardStyle}>
+              <MeRow label="Privacy Policy" onPress={()=>setLegalPage("privacy")} value=""/>
+              <MeRow label="Terms of Service" onPress={()=>setLegalPage("terms")} value=""/>
+              <MeRow label="Health Disclaimer" onPress={()=>setLegalPage("health-disclaimer")} value=""/>
+              <MeRow label="Health Data Notice" onPress={()=>setLegalPage("health-data-notice")} value=""/>
+              <MeRow label="Help & Support" onPress={()=>setLegalPage("support")} value=""/>
+              <MeRow label="Delete Account" isDestructive isLast onPress={()=>setDelStep(delStep===0?1:0)}/>
+            </div>
+
+            {/* In-app legal viewer — renders the bundled legal.jsx component full-screen (mirrors the
+                onboarding legal modal in NativeApp). No external URLs, no WKWebView navigation. */}
+            {legalPage&&(
+              <div style={{position:"fixed",inset:0,zIndex:99999,background:"#000",overflowY:"auto"}}>
+                <button onClick={()=>setLegalPage(null)} style={{position:"sticky",top:0,zIndex:1,display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.9)",border:"none",borderBottom:"1px solid rgba(245,245,240,0.1)",color:"var(--cm-red,#FF3B30)",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",padding:"calc(env(safe-area-inset-top,0px) + 14px) 20px 14px",width:"100%"}}>
+                  <svg width={16} height={16} viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+                  Back
+                </button>
+                {legalPage==="terms"?<TermsOfService/>:legalPage==="health-disclaimer"?<HealthDisclaimer/>:legalPage==="health-data-notice"?<HealthDataNotice/>:legalPage==="support"?<SupportPage/>:<PrivacyPolicy/>}
+              </div>
+            )}
+            {/* Delete confirmation — inline, follows Delete Account row */}
+            {delStep>0&&(
+              <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.06)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:12,padding:16,marginTop:8}}>
+                {delStep===1&&<>
+                  <div style={{fontSize:13,color:"var(--cm-red,#FF3B30)",fontWeight:700,marginBottom:8}}>Delete your account?</div>
+                  <div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginBottom:6}}>Permanently deletes your profile, logs, workouts, and all associated data.</div>
+                  <div style={{fontSize:11,color:"var(--cm-red,#FF3B30)",marginBottom:14,fontWeight:600}}>Cannot be undone.</div>
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={()=>setDelStep(0)} style={{flex:1,padding:"11px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                    <button onClick={()=>setDelStep(2)} style={{flex:1,padding:"11px",background:"var(--cm-red,#FF3B30)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Continue</button>
+                  </div>
+                </>}
+                {delStep===2&&<>
+                  <div style={{fontSize:13,color:"var(--cm-ink,#0A0A0A)",fontWeight:700,marginBottom:8}}>Before you go — your subscription</div>
+                  <div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.6)",lineHeight:1.55,marginBottom:12}}>Deleting your account does <strong style={{color:"var(--cm-ink,#0A0A0A)"}}>not</strong> cancel your subscription. If you have an active plan, Apple manages the billing and it will keep charging until you cancel it in your Apple subscription settings.</div>
+                  <button onClick={openManageSubscription} style={{width:"100%",padding:"11px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"var(--cm-ink,#0A0A0A)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.15)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit",marginBottom:12}}>Manage Subscription →</button>
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={()=>setDelStep(0)} style={{flex:1,padding:"11px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                    <button onClick={()=>setDelStep(3)} style={{flex:1,padding:"11px",background:"var(--cm-red,#FF3B30)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Continue</button>
+                  </div>
+                </>}
+                {delStep===3&&<>
+                  <div style={{fontSize:13,color:"var(--cm-red,#FF3B30)",fontWeight:700,marginBottom:8}}>Final confirmation</div>
+                  <div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginBottom:12}}>Type <strong style={{color:"var(--cm-ink,#0A0A0A)"}}>DELETE</strong> to permanently delete your account.</div>
+                  <input value={delInput} onChange={e=>setDelInput(e.target.value)} placeholder="Type DELETE here" style={{width:"100%",padding:"10px 12px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"#fff",border:`1px solid ${delInput==="DELETE"?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)"}`,borderRadius:8,fontSize:13,fontFamily:"inherit",marginBottom:12,boxSizing:"border-box"}}/>
+                  {delError&&<div style={{fontSize:11,color:"var(--cm-red,#FF3B30)",fontWeight:600,marginBottom:10}}>{delError}</div>}
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={()=>{setDelStep(0);setDelInput("");setDelError("");}} style={{flex:1,padding:"11px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                    <button onClick={deleteAccount} disabled={deleting||delInput.trim()!=="DELETE"} style={{flex:1,padding:"11px",background:delInput==="DELETE"?"var(--cm-red,#FF3B30)":"rgba(var(--cm-red-rgb,255,59,48),0.3)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:delInput==="DELETE"?"pointer":"not-allowed",fontFamily:"inherit"}}>{deleting?"Deleting...":"Delete Forever"}</button>
+                  </div>
+                </>}
+                {delStep===4&&<div style={{textAlign:"center",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)"}}>Deleting your account...</div>}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {/* Plans modal portal — renders into .goclub (themed scope), accessible from 'account' sub-screen */}
       {showPlansModal&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowPlansModal(false)}>
           <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0a0e1a",borderRadius:"18px 18px 0 0",padding:"24px 20px 44px",maxWidth:480,margin:"0 auto"}}>
-            <div style={{width:32,height:3,background:"rgba(var(--accent-rgb),0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,marginBottom:6}}>GO PRO.</div>
-            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.12em",marginBottom:20}}>10 ADAPT NOW · AI LOGGING · RECIPES · RESTAURANT AI</div>
-            {[{id:"monthly",label:"MONTHLY",price:"$12.99",per:"/month",badge:null,gradient:false},{id:"annual",label:"FOUNDING ANNUAL",price:"$49.99",per:"/year · $4.17/mo",badge:"FOUNDING MEMBER",saving:"Save 68% vs monthly · locked for life",gradient:true}].map(plan=>(
+            <div style={{width:32,height:3,background:"rgba(var(--cm-red-rgb,255,59,48),0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,marginBottom:6}}>GO PRO.</div>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.1em",marginBottom:20}}>10 ADAPT NOW · AI LOGGING · RECIPES · RESTAURANT AI</div>
+            {[{id:"monthly",label:"MONTHLY",price:"$12.99",per:"/month",badge:null,gradient:false},{id:"annual",label:"ANNUAL",price:"$49.99",per:"/year · $4.17/mo",badge:null,saving:"Save 68% vs monthly",gradient:true}].map(plan=>(
               <div key={plan.id} onClick={async()=>{
                 if(purchaseLoading)return;
                 setPurchaseLoading(plan.id);
-                const{data:{user:u}}=await sb.auth.getUser().catch(()=>({data:{user:null}}));
-                if(!u){setPurchaseLoading(null);return;}
-                const ok=plan.id==="monthly"?await purchaseMonthly(u.id):await purchaseAnnual(u.id);
-                setPurchaseLoading(null);
-                if(ok){setShowPlansModal(false);showToast(`${plan.id==="monthly"?"Monthly":"Annual"} subscription activated!`,"success");}
-                else showToast("Purchase failed. Try again.","error");
-              }} style={{background:plan.gradient?"linear-gradient(135deg,#0d0d0d,rgba(var(--accent-rgb),0.04))":"#0d0d0d",border:`1px solid ${plan.gradient?"var(--accent)":"rgba(var(--accent-rgb),0.1)"}`,borderRadius:14,padding:16,marginBottom:10,cursor:"pointer",position:"relative"}}>
-                {plan.badge&&<div style={{position:"absolute",top:-10,right:16,background:"var(--accent)",borderRadius:20,padding:"3px 10px",fontFamily:"var(--mono)",fontSize:8,color:"#fff",fontWeight:700}}>{plan.badge}</div>}
-                <div style={{fontFamily:"var(--mono)",fontSize:9,color:plan.gradient?"var(--accent)":"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:4}}>{plan.label}</div>
-                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:1}}>{plan.price}<span style={{fontFamily:"var(--mono)",fontSize:11,fontStyle:"normal",fontWeight:400,color:"rgba(245,245,240,0.4)"}}> {plan.per}</span></div>
-                {plan.saving&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#22c55e",marginTop:4}}>{plan.saving}</div>}
-                {purchaseLoading===plan.id&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:6}}>Processing...</div>}
+                try{
+                  const{data:{user:u}}=await sb.auth.getUser().catch(()=>({data:{user:null}}));
+                  if(!u){showToast("Please sign in to continue.","error");return;}
+                  // ── DEV-TEST BYPASS (build:sim → MODE!=="production") — visible simulated unlock.
+                  //    MODE-gated → terser-stripped from production `vite build` (never ships). ──
+                  if(import.meta.env.MODE!=="production"){
+                    const unlocked=await devUnlockEntitlement(u.id);
+                    if(unlocked){setShowPlansModal(false);showToast("Dev unlock — subscription simulated!","success");}
+                    else showToast("Dev unlock failed — check the console.","error");
+                    return;
+                  }
+                  // ── REAL PURCHASE (production) ──
+                  const ok=plan.id==="monthly"?await purchaseMonthly(u.id):await purchaseAnnual(u.id);
+                  if(ok){setShowPlansModal(false);showToast(`${plan.id==="monthly"?"Monthly":"Annual"} subscription activated!`,"success");}
+                  else showToast("Purchase cancelled or not completed.","error");
+                }catch(e){
+                  console.warn("[paywall] purchase failed:",e?.message,e);
+                  showToast(/package not found/i.test(e?.message||"")?"Subscriptions aren’t available yet. Please try again later.":"Purchase failed. Try again.","error");
+                }finally{setPurchaseLoading(null);}
+              }} style={{background:plan.gradient?"linear-gradient(135deg,#0d0d0d,rgba(var(--cm-red-rgb,255,59,48),0.04))":"var(--cm-paper,#FFFFFF)",border:`1px solid ${plan.gradient?"var(--cm-red,#FF3B30)":"rgba(var(--cm-red-rgb,255,59,48),0.1)"}`,borderRadius:14,padding:16,marginBottom:10,cursor:"pointer",position:"relative"}}>
+                {plan.badge&&<div style={{position:"absolute",top:-10,right:16,background:"var(--cm-red,#FF3B30)",borderRadius:20,padding:"3px 10px",fontFamily:"'Archivo',sans-serif",fontSize:8,color:"#fff",fontWeight:700}}>{plan.badge}</div>}
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:9,color:plan.gradient?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.4)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>{plan.label}</div>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:1}}>{plan.price}<span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontStyle:"normal",fontWeight:400,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)"}}> {plan.per}</span></div>
+                {plan.saving&&<div style={{fontFamily:"'Archivo',sans-serif",fontWeight:500,fontSize:9,color:"#22c55e",marginTop:4}}>{plan.saving}</div>}
+                {purchaseLoading===plan.id&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:6}}>Processing...</div>}
               </div>
             ))}
           </div>
         </div>,
-        document.body
-      )}
-
-      {/* ── YOUR VOICE ── */}
-      <div style={eyebrowStyle}>// Your Voice</div>
-      {[
-        {icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M9 22h6v-1H9v1zm3-20C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26C17.81 13.47 19 11.38 19 9c0-3.87-3.13-7-7-7z"/></svg>,title:"SUGGEST A FEATURE.",sub:"Shape what we build next",bg:"rgba(var(--accent-rgb),0.1)",bd:"rgba(var(--accent-rgb),0.2)",section:"feedback"},
-        {icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>,title:"REPORT A PROBLEM.",sub:"Help us fix what's broken",bg:"rgba(254,160,32,0.1)",bd:"rgba(254,160,32,0.2)",section:"feedback"},
-      ].map(({icon,title,sub,bg,bd,section})=>(
-        <div key={title} onClick={()=>{if(window.uj)window.uj.showWidget({section});}} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:"14px 16px",marginBottom:8,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}
-          onPointerDown={e=>e.currentTarget.style.borderColor="rgba(var(--accent-rgb),0.3)"}
-          onPointerUp={e=>e.currentTarget.style.borderColor="rgba(245,245,240,0.07)"}
-          onPointerLeave={e=>e.currentTarget.style.borderColor="rgba(245,245,240,0.07)"}
-        >
-          <div style={{width:40,height:40,borderRadius:10,background:bg,border:`1px solid ${bd}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{icon}</div>
-          <div style={{flex:1}}>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:17,color:"#f5f5f0"}}>{title}</div>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2}}>{sub}</div>
-          </div>
-          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.3)"}}>→</div>
-        </div>
-      ))}
-      <div onClick={()=>{if(window.uj)window.uj.showWidget({section:"roadmap"});}} style={{background:"rgba(245,245,240,0.02)",border:"1px solid rgba(245,245,240,0.05)",borderRadius:14,padding:"14px 16px",marginBottom:8,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}
-        onPointerDown={e=>e.currentTarget.style.borderColor="rgba(96,165,250,0.25)"}
-        onPointerUp={e=>e.currentTarget.style.borderColor="rgba(245,245,240,0.05)"}
-        onPointerLeave={e=>e.currentTarget.style.borderColor="rgba(245,245,240,0.05)"}
-      >
-        <div style={{width:40,height:40,borderRadius:10,background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
-        </div>
-        <div style={{flex:1}}>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:17,color:"rgba(245,245,240,0.7)"}}>SEE OUR ROADMAP.</div>
-          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.3)",marginTop:2}}>What we're building and what's coming next</div>
-        </div>
-        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.3)"}}>→</div>
-      </div>
-
-      {/* ── CONNECTED APPS ── */}
-      <div style={eyebrowStyle}>// Connected Apps</div>
-      <div style={cardStyle}>
-        {/* Strava */}
-        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <div style={{width:44,height:44,borderRadius:10,background:"#FC4C02",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
-            </div>
-            <div>
-              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Strava</div>
-              {stravaConnected&&stravaAthlete?.metadata?.firstname&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:1}}>{stravaAthlete.metadata.firstname}</div>}
-              {!stravaConnected&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:1}}>Sync runs & rides automatically</div>}
-            </div>
-          </div>
-          {stravaConnected?(
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <span style={{fontFamily:"var(--mono)",fontSize:9,color:"#22c55e",background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.2)",borderRadius:6,padding:"3px 8px"}}>CONNECTED</span>
-              <button onClick={async()=>{
-                if(!confirm("Disconnect Strava?"))return;
-                await sb.from('connected_apps').delete().eq('user_id',user.id).eq('provider','strava');
-                setStravaConnected(false);setStravaAthlete(null);
-                showToast("Strava disconnected","info");
-              }} style={{background:"transparent",border:"1px solid rgba(245,245,240,0.12)",borderRadius:6,color:"rgba(245,245,240,0.4)",fontSize:11,padding:"4px 10px",cursor:"pointer",fontFamily:"var(--mono)"}}>Disconnect</button>
-            </div>
-          ):(
-            <button onClick={async()=>{
-              if(!user?.id)return;
-              setStravaLoading(true);
-              const base=import.meta.env.VITE_API_BASE_URL||"";
-              window.location.href=`${base}/api/strava/auth?userId=${user.id}`;
-            }} disabled={stravaLoading} style={{background:"#FC4C02",border:"none",borderRadius:8,color:"#fff",fontFamily:"var(--mono)",fontSize:11,fontWeight:700,padding:"7px 14px",cursor:"pointer",letterSpacing:"0.06em"}}>
-              {stravaLoading?"CONNECTING…":"CONNECT"}
-            </button>
-          )}
-        </div>
-        {/* Calendar — Life-Aware Training */}
-        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)"}}>
-          <CalendarSettingsPanel connected={calendarConnected||false} onConnect={onCalendarConnect||(() =>{})} onDisconnect={onCalendarDisconnect||(() =>{})} prefs={wPrefs?.calendarPrefs||{}} onPrefsChange={async(key,val)=>{const next={...wPrefs,calendarPrefs:{...(wPrefs?.calendarPrefs||{}),[key]:val}};setWPrefs(next);if(user){try{await sb.from("profiles").upsert({id:user.id,wprefs:next},{onConflict:"id"});}catch{}}}}/>
-        </div>
-        {/* Apple Health */}
-        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <img src="/images/apple-health-icon.png" alt="Apple Health" style={{width:44,height:44,borderRadius:10,flexShrink:0,display:"block"}}/>
-            <div>
-              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Apple Health</div>
-              <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:1}}>Sleep · HRV · Steps</div>
-            </div>
-          </div>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,padding:"4px 10px",borderRadius:6,background:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.12)":"rgba(245,245,240,0.06)",color:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"#34d399":"rgba(245,245,240,0.4)",border:`1px solid ${typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.3)":"rgba(245,245,240,0.08)"}`,letterSpacing:"0.1em",textTransform:"uppercase"}}>
-            {typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"iOS Ready":"iPhone Only"}
-          </div>
-        </div>
-        {/* WHOOP */}
-        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <div style={{width:44,height:44,borderRadius:10,background:"#000",border:"1px solid rgba(245,245,240,0.15)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <svg width="22" height="14" viewBox="0 0 40 24" fill="#fff"><text x="0" y="18" fontSize="18" fontWeight="900" fontFamily="sans-serif">W</text></svg>
-            </div>
-            <div>
-              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>WHOOP</div>
-              <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:1}}>Recovery & strain data</div>
-            </div>
-          </div>
-          <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",background:"rgba(245,245,240,0.06)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:6,padding:"3px 8px"}}>COMING SOON</span>
-        </div>
-        {/* Garmin */}
-        <div style={{padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <div style={{width:44,height:44,borderRadius:10,background:"#005f9e",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
-            </div>
-            <div>
-              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Garmin</div>
-              <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:1}}>Workouts & health metrics</div>
-            </div>
-          </div>
-          <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",background:"rgba(245,245,240,0.06)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:6,padding:"3px 8px"}}>COMING SOON</span>
-        </div>
-      </div>
-
-      {/* ── SETTINGS ── */}
-      <div style={eyebrowStyle}>// Settings</div>
-      <div style={cardStyle}>
-        <MeRow label="Units" noChevron rightEl={
-          <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid rgba(245,245,240,0.12)"}}>
-            {["lbs","kg"].map(u=>(
-              <button key={u} onClick={async()=>{
-                const hU=u==="kg"?"cm":"ft";
-                const wp={...wPrefs,wUnit:u,hUnit:hU};
-                setWPrefs(wp);
-                await saveSettings(wp,null);
-                if(user)sb.from("profiles").upsert({id:user.id,units:u==="kg"?"metric":"imperial"},{onConflict:"id"}).then(()=>{});
-              }} style={{padding:"6px 14px",background:wUnit===u?"var(--accent)":"transparent",color:wUnit===u?"#fff":"rgba(245,245,240,0.4)",border:"none",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,cursor:"pointer",letterSpacing:"0.08em"}}>{u}</button>
-            ))}
-          </div>
-        }/>
-        <MeRow label="Notifications" noChevron rightEl={<Toggle value={wPrefs?.notifications!==false} onChange={v=>{const wp={...wPrefs,notifications:v};setWPrefs(wp);saveSettings(wp,null);}}/>}/>
-        {/* Calorie Cycling toggle removed: getDayTypeNutrition is now the single
-            per-day target system (ring + meal plan). Training-day/rest-day variation
-            is handled automatically by day type — no manual toggle needed. */}
-        {(profile?.goal==="lose_fat"||profile?.goal==="recomp"||wPrefs?.primaryGoal==="lose_fat"||wPrefs?.primaryGoal==="recomp")&&(
-          <div style={{padding:"14px 16px",borderTop:"1px solid rgba(245,245,240,0.06)"}}>
-            <div style={{fontSize:14,color:"#f5f5f0",fontFamily:"'Barlow',sans-serif",marginBottom:4}}>Refeed Interval</div>
-            <div style={{fontSize:11,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",marginBottom:10}}>Metabolism reset every N days in deficit</div>
-            <div style={{display:"flex",gap:8}}>
-              {[5,7,10].map(n=>(
-                <button key={n} onClick={async()=>{const wp={...wPrefs,refeed_day_interval:n};setWPrefs(wp);await saveSettings(wp,null);await saveProfileField("refeed_day_interval",n);}} style={{flex:1,padding:"8px 0",borderRadius:8,background:(wPrefs?.refeed_day_interval||7)===n?"rgba(var(--accent-rgb),0.2)":"rgba(245,245,240,0.06)",border:`1px solid ${(wPrefs?.refeed_day_interval||7)===n?"rgba(var(--accent-rgb),0.5)":"rgba(245,245,240,0.1)"}`,color:(wPrefs?.refeed_day_interval||7)===n?"var(--accent)":"rgba(245,245,240,0.6)",fontFamily:"var(--mono)",fontSize:12,fontWeight:700,cursor:"pointer"}}>
-                  {n}d
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── COACH OUTREACH ── */}
-      <PeerComparisonSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle}/>
-      <CoachOutreachSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle}/>
-
-      {/* ── ACCOUNT ── */}
-      <div style={eyebrowStyle}>// Account</div>
-      <div style={cardStyle}>
-        <MeRow label="Help & Support" onPress={()=>window.open("https://coach-macro.com/support","_blank")} value=""/>
-        <MeRow label="Privacy Policy" onPress={()=>window.open("https://coach-macro.com/privacy","_blank")} value=""/>
-        <MeRow label="Terms of Service" onPress={()=>window.open("https://coach-macro.com/terms","_blank")} value=""/>
-        <MeRow label="Delete Account" isDestructive onPress={()=>setDelStep(delStep===0?1:0)}/>
-        <MeRow label="Sign Out" isDestructive isLast onPress={onSignOut}/>
-      </div>
-
-      {/* Delete confirmation */}
-      {delStep>0&&(
-        <div style={{background:"rgba(var(--accent-rgb),0.06)",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:12,padding:16,marginTop:8}}>
-          {delStep===1&&<>
-            <div style={{fontSize:13,color:"var(--accent)",fontWeight:700,marginBottom:8}}>Delete your account?</div>
-            <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",marginBottom:6}}>Permanently deletes your profile, logs, workouts, and subscription records.</div>
-            <div style={{fontSize:11,color:"var(--accent)",marginBottom:14,fontWeight:600}}>Cannot be undone.</div>
-            <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>setDelStep(0)} style={{flex:1,padding:"11px",background:"rgba(245,245,240,0.05)",color:"rgba(245,245,240,0.5)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={()=>setDelStep(2)} style={{flex:1,padding:"11px",background:"var(--accent)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Continue</button>
-            </div>
-          </>}
-          {delStep===2&&<>
-            <div style={{fontSize:13,color:"var(--accent)",fontWeight:700,marginBottom:8}}>Final confirmation</div>
-            <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",marginBottom:12}}>Type <strong style={{color:"#f5f5f0"}}>DELETE</strong> to permanently delete your account.</div>
-            <input value={delInput} onChange={e=>setDelInput(e.target.value)} placeholder="Type DELETE here" style={{width:"100%",padding:"10px 12px",background:"rgba(245,245,240,0.05)",color:"#fff",border:`1px solid ${delInput==="DELETE"?"var(--accent)":"rgba(245,245,240,0.1)"}`,borderRadius:8,fontSize:13,fontFamily:"inherit",marginBottom:12,boxSizing:"border-box"}}/>
-            <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>{setDelStep(0);setDelInput("");}} style={{flex:1,padding:"11px",background:"rgba(245,245,240,0.05)",color:"rgba(245,245,240,0.5)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={deleteAccount} disabled={deleting||delInput.trim()!=="DELETE"} style={{flex:1,padding:"11px",background:delInput==="DELETE"?"var(--accent)":"rgba(var(--accent-rgb),0.3)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:delInput==="DELETE"?"pointer":"not-allowed",fontFamily:"inherit"}}>{deleting?"Deleting...":"Delete Forever"}</button>
-            </div>
-          </>}
-          {delStep===3&&<div style={{textAlign:"center",fontSize:13,color:"rgba(245,245,240,0.5)"}}>Deleting your account...</div>}
-        </div>
+        themeRoot()
       )}
 
       {/* ── EDIT FIELD MODAL ── */}
       {editModal&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setEditModal(null)}>
-          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>{editModal==="name"?"Edit Name":editModal==="weight"?"Edit Weight":"Edit Height"}</div>
-            <input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} type={editModal==="name"?"text":"number"} placeholder={editModal==="name"?"Your name":editModal==="weight"?`Weight in ${wUnit}`:"Height in cm"}
-              style={{width:"100%",padding:"12px 16px",background:"rgba(245,245,240,0.06)",color:"#f5f5f0",border:"1px solid rgba(245,245,240,0.12)",borderRadius:10,fontSize:16,fontFamily:"inherit",marginBottom:16,boxSizing:"border-box",outline:"none"}}/>
-            <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>setEditModal(null)} style={{flex:1,padding:14,background:"transparent",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,color:"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:44}}>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.24em",textTransform:"uppercase",marginBottom:16}}>{editModal==="name"?"Edit Name":editModal==="weight"?"Weight":editModal==="height"?"Height":""}</div>
+
+            {editModal==="name"&&(
+              <input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} type="text" placeholder="Your name"
+                style={{width:"100%",padding:"12px 16px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",color:"var(--cm-ink,#0A0A0A)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:10,fontSize:16,fontFamily:"inherit",marginBottom:16,boxSizing:"border-box",outline:"none"}}/>
+            )}
+
+            {editModal==="weight"&&(
+              <>
+                <div style={{display:"flex",gap:8,marginBottom:16,justifyContent:"center"}}>
+                  {['lbs','kg'].map(u=>(
+                    <button key={u} onClick={()=>{
+                      if(u===pickerWUnit) return;
+                      const newVal=u==='lbs'?kgToLbs(pickerWVal):Math.round(lbsToKg(pickerWVal));
+                      setPickerWUnit(u);
+                      setPickerWVal(newVal);
+                    }} style={{padding:"7px 22px",borderRadius:20,border:pickerWUnit===u?"none":"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.15)",background:pickerWUnit===u?"var(--cm-red,#FF3B30)":"transparent",color:pickerWUnit===u?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),0.45)",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:12,cursor:"pointer"}}>{u}</button>
+                  ))}
+                </div>
+                <div style={{position:"relative",display:"flex",justifyContent:"center"}}>
+                  <WheelCol
+                    options={pickerWUnit==='lbs'?Array.from({length:451},(_,i)=>i+50):Array.from({length:206},(_,i)=>i+25)}
+                    value={pickerWVal}
+                    onChange={setPickerWVal}
+                    width={120}
+                  />
+                  <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:120,height:40,border:"2px solid var(--cm-red,#FF3B30)",borderRadius:10,pointerEvents:"none"}}/>
+                </div>
+              </>
+            )}
+
+            {editModal==="height"&&(
+              <>
+                <div style={{display:"flex",gap:8,marginBottom:16,justifyContent:"center"}}>
+                  {['ft+in','cm'].map(u=>(
+                    <button key={u} onClick={()=>{
+                      if(u===pickerHUnit) return;
+                      if(u==='cm'){const cm=ftInToCm(pickerFt,pickerHIn);setPickerHCm(Math.round(cm));}
+                      else{const{ft,inch}=cmToFtIn(pickerHCm);setPickerFt(ft);setPickerHIn(inch);}
+                      setPickerHUnit(u);
+                    }} style={{padding:"7px 22px",borderRadius:20,border:pickerHUnit===u?"none":"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.15)",background:pickerHUnit===u?"var(--cm-red,#FF3B30)":"transparent",color:pickerHUnit===u?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),0.45)",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:12,cursor:"pointer"}}>{u==='ft+in'?"ft & in":"cm"}</button>
+                  ))}
+                </div>
+                {pickerHUnit==='ft+in'?(
+                  <div style={{display:"flex",justifyContent:"center",gap:24,position:"relative"}}>
+                    <div style={{textAlign:"center"}}>
+                      <WheelCol options={[3,4,5,6,7,8]} value={pickerFt} onChange={setPickerFt} width={72}/>
+                      <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginTop:4}}>ft</div>
+                    </div>
+                    <div style={{textAlign:"center"}}>
+                      <WheelCol options={[0,1,2,3,4,5,6,7,8,9,10,11]} value={pickerHIn} onChange={setPickerHIn} width={72}/>
+                      <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginTop:4}}>in</div>
+                    </div>
+                    <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:168,height:40,border:"2px solid var(--cm-red,#FF3B30)",borderRadius:10,pointerEvents:"none"}}/>
+                  </div>
+                ):(
+                  <div style={{display:"flex",justifyContent:"center",position:"relative"}}>
+                    <WheelCol options={Array.from({length:111},(_,i)=>i+120)} value={pickerHCm} onChange={setPickerHCm} width={110}/>
+                    <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:110,height:40,border:"2px solid var(--cm-red,#FF3B30)",borderRadius:10,pointerEvents:"none"}}/>
+                  </div>
+                )}
+              </>
+            )}
+
+            <div style={{display:"flex",gap:8,marginTop:20}}>
+              <button onClick={()=>setEditModal(null)} style={{flex:1,padding:14,background:"transparent",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
               <button onClick={async()=>{
-                const v=editValue.trim();if(!v){setEditModal(null);return;}
-                if(editModal==="name"){setLocalName(v);await saveProfileField("name",v);}
-                else if(editModal==="weight"){setLocalWeight(v);await saveProfileField("weight",v);}
-                else if(editModal==="height"){setLocalHeight(v);await saveProfileField("height",v);}
+                if(editModal==="name"){
+                  const v=editValue.trim();if(!v){setEditModal(null);return;}
+                  setLocalName(v);await saveProfileField("name",v);
+                } else if(editModal==="weight"){
+                  const kg=pickerWUnit==='lbs'?lbsToKg(pickerWVal):pickerWVal;
+                  setLocalWeight(String(kg));
+                  await saveProfileField("weight_kg",kg);
+                  if(pickerWUnit!==wUnit){const wp={...wPrefs,wUnit:pickerWUnit,hUnit:pickerWUnit==='kg'?'cm':'ft'};setWPrefs(wp);await saveSettings(wp,null);}
+                } else if(editModal==="height"){
+                  const cm=pickerHUnit==='cm'?pickerHCm:ftInToCm(pickerFt,pickerHIn);
+                  setLocalHeight(String(+(cm).toFixed(1)));
+                  await saveProfileField("height_cm",+(cm).toFixed(1));
+                  const hu=pickerHUnit==='cm'?'cm':'ft';
+                  if(hu!==(wPrefs?.hUnit||'ft')){const wp={...wPrefs,hUnit:hu};setWPrefs(wp);await saveSettings(wp,null);}
+                }
                 setEditModal(null);
-              }} style={{flex:1,padding:14,background:"var(--accent)",border:"none",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
+              }} style={{flex:1,padding:14,background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
             </div>
           </div>
         </div>,
-        document.body
+        themeRoot()
       )}
 
       {/* ── GOAL SELECTOR MODAL ── */}
       {showGoalSelector&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowGoalSelector(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Goal</div>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Goal</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {Object.entries(GOAL_LABELS).map(([key,label])=>(
-                <button key={key} onClick={async()=>{const wp={...wPrefs,primaryGoal:key};setWPrefs(wp);await saveSettings(wp,null);setShowGoalSelector(false);}} style={{padding:"14px 16px",background:currentGoal===key?"rgba(var(--accent-rgb),0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${currentGoal===key?"rgba(var(--accent-rgb),0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:currentGoal===key?"var(--accent)":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:currentGoal===key?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <button key={key} onClick={async()=>{const wp={...wPrefs,primaryGoal:key};setWPrefs(wp);await saveSettings(wp,null);setShowGoalSelector(false);}} style={{padding:"14px 16px",background:currentGoal===key?"rgba(var(--cm-red-rgb,255,59,48),0.15)":"rgba(var(--cm-ink-rgb,10,10,10),0.04)",border:`1px solid ${currentGoal===key?"rgba(var(--cm-red-rgb,255,59,48),0.4)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,borderRadius:10,color:currentGoal===key?"var(--cm-red,#FF3B30)":"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:currentGoal===key?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   {label}{currentGoal===key&&<span>✓</span>}
                 </button>
               ))}
             </div>
           </div>
         </div>,
-        document.body
+        themeRoot()
       )}
 
       {/* ── SKILL SELECTOR MODAL ── */}
       {showSkillSelector&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowSkillSelector(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Skill Level</div>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Skill Level</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {[{key:"beginner",label:"Beginner",sub:"Under 1 year"},{key:"intermediate",label:"Intermediate",sub:"1–4 years"},{key:"advanced",label:"Advanced",sub:"4+ years"}].map(({key,label,sub})=>(
-                <button key={key} onClick={async()=>{const wp={...wPrefs,liftExp:key};setWPrefs(wp);await saveSettings(wp,null);setShowSkillSelector(false);}} style={{padding:"14px 16px",background:currentSkill===key?"rgba(var(--accent-rgb),0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${currentSkill===key?"rgba(var(--accent-rgb),0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:currentSkill===key?"var(--accent)":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:currentSkill===key?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <div><div>{label}</div><div style={{fontSize:12,color:"rgba(245,245,240,0.4)",marginTop:2}}>{sub}</div></div>
+                <button key={key} onClick={async()=>{const wp={...wPrefs,liftExp:key};setWPrefs(wp);await saveSettings(wp,null);setShowSkillSelector(false);}} style={{padding:"14px 16px",background:currentSkill===key?"rgba(var(--cm-red-rgb,255,59,48),0.15)":"rgba(var(--cm-ink-rgb,10,10,10),0.04)",border:`1px solid ${currentSkill===key?"rgba(var(--cm-red-rgb,255,59,48),0.4)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,borderRadius:10,color:currentSkill===key?"var(--cm-red,#FF3B30)":"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:currentSkill===key?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div><div>{label}</div><div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:2}}>{sub}</div></div>
                   {currentSkill===key&&<span>✓</span>}
                 </button>
               ))}
             </div>
           </div>
         </div>,
-        document.body
+        themeRoot()
+      )}
+
+      {/* ── DIET PRESET MODAL ── */}
+      {showEquipmentPicker&&ReactDOM.createPortal(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowEquipmentPicker(false)}>
+            <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40,maxHeight:"75vh",overflowY:"auto"}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>Training Equipment</div>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",marginBottom:16}}>Changing this updates how your workouts are built and which exercises get substituted.</div>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {[
+                  {v:"Full Gym",sub:"Barbells, cables, machines, dumbbells — everything"},
+                  {v:"Home Gym",sub:"Dumbbells, barbell, maybe a rack"},
+                  {v:"Dumbbells Only",sub:"Limited equipment — we'll substitute intelligently"},
+                  {v:"Bodyweight Only",sub:"No equipment — calisthenics progressions"},
+                ].map(({v,sub})=>{
+                  const sel=(wPrefs?.equipment||"Full Gym")===v;
+                  return(
+                    <button key={v} onClick={async()=>{const wp={...wPrefs,equipment:v};setWPrefs(wp);await saveSettings(wp,null);setShowEquipmentPicker(false);}} style={{padding:"14px 16px",background:sel?"rgba(var(--cm-red-rgb,255,59,48),0.15)":"rgba(var(--cm-ink-rgb,10,10,10),0.04)",border:`1px solid ${sel?"rgba(var(--cm-red-rgb,255,59,48),0.4)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,borderRadius:10,cursor:"pointer",textAlign:"left",display:"flex",flexDirection:"column",gap:3}}>
+                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:600,color:sel?"var(--cm-red,#FF3B30)":"var(--cm-ink,#0A0A0A)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>{v}{sel&&<span>✓</span>}</span>
+                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:12,fontWeight:400,color:sel?"rgba(var(--cm-red-rgb,255,59,48),0.7)":"rgba(var(--cm-ink-rgb,10,10,10),0.4)"}}>{sub}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>,
+          themeRoot()
+        )}
+
+      {showDietPicker&&ReactDOM.createPortal(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowDietPicker(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40,maxHeight:"75vh",overflowY:"auto"}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Diet Preset</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {[{id:'balanced',label:'Balanced'},{id:'high-protein',label:'High Protein'},{id:'keto',label:'Keto'},{id:'vegan',label:'Vegan'},{id:'vegetarian',label:'Vegetarian'},{id:'carnivore',label:'Carnivore'},{id:'low-carb',label:'Low Carb'},{id:'pescatarian',label:'Pescatarian'},{id:'mediterranean',label:'Mediterranean'}].map(({id,label})=>{
+                const sel=(wPrefs?.mealPrepDiet||'balanced')===id;
+                return(
+                  <button key={id} onClick={async()=>{const wp={...wPrefs,mealPrepDiet:id};setWPrefs(wp);await saveSettings(wp,null);setShowDietPicker(false);}} style={{padding:"14px 16px",background:sel?"rgba(var(--cm-red-rgb,255,59,48),0.15)":"rgba(var(--cm-ink-rgb,10,10,10),0.04)",border:`1px solid ${sel?"rgba(var(--cm-red-rgb,255,59,48),0.4)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,borderRadius:10,color:sel?"var(--cm-red,#FF3B30)":"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    {label}{sel&&<span>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>,
+        themeRoot()
+      )}
+
+      {/* ── RECOVERY CAPACITY MODAL ── */}
+      {showRecoveryPicker&&ReactDOM.createPortal(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowRecoveryPicker(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Recovery Capacity</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {[{v:'fast',l:'Very fast',d:'Ready to go the next day'},{v:'normal',l:'Normal',d:'A bit sore for about a day'},{v:'slow',l:'Slower',d:'Need 2–3 days to feel fresh'},{v:'very_slow',l:'Very slow',d:'4+ days to fully bounce back'}].map(({v,l,d})=>{
+                const sel=(wPrefs?.recoveryCapacity||profile?.recovery_capacity||'normal')===v;
+                return(
+                  <button key={v} onClick={async()=>{
+                    await saveProfileField('recovery_capacity',v);
+                    const wp={...wPrefs,recoveryCapacity:v};setWPrefs(wp);await saveSettings(wp,null);
+                    onProfileUpdate?.({recovery_capacity:v});
+                    setShowRecoveryPicker(false);
+                  }} style={{padding:"14px 16px",background:sel?"rgba(var(--cm-red-rgb,255,59,48),0.15)":"rgba(var(--cm-ink-rgb,10,10,10),0.04)",border:`1px solid ${sel?"rgba(var(--cm-red-rgb,255,59,48),0.4)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,borderRadius:10,color:sel?"var(--cm-red,#FF3B30)":"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <div><div>{l}</div><div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:2}}>{d}</div></div>
+                    {sel&&<span>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>,
+        themeRoot()
+      )}
+
+      {/* ── LONG RUN DAY MODAL ── */}
+      {showLongRunPicker&&ReactDOM.createPortal(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>{setShowLongRunPicker(false);setLrdOverrideDay(null);}}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Long Run Day</div>
+            {(()=>{
+              const LIFT=['training','hyrox','hybrid'];
+              async function applyLongRun(d){
+                const cur=schedule[d];
+                const oldLrd=wPrefs?.longRunDay;
+                const newSchedule={...schedule};
+                // Demote the previous long-run day (only if it's still run/cardio)
+                if(oldLrd&&oldLrd!==d&&(newSchedule[oldLrd]==='run'||newSchedule[oldLrd]==='cardio')){
+                  newSchedule[oldLrd]='rest';
+                }
+                // Promote the new day to 'run' if not already run/cardio
+                if(cur!=='run'&&cur!=='cardio'){
+                  newSchedule[d]='run';
+                }
+                const wp={...wPrefs,longRunDay:d};
+                setSchedule(newSchedule);
+                setWPrefs(wp);
+                await saveSettings(wp,newSchedule); // persists BOTH wprefs + schedule
+                setLrdOverrideDay(null);
+                setShowLongRunPicker(false);
+              }
+              return(
+                <>
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day=>{
+                      const sel=wPrefs?.longRunDay===day;
+                      const cur=schedule[day];
+                      return(
+                        <button key={day} onClick={()=>{
+                          if(LIFT.includes(cur)){setLrdOverrideDay(day);}
+                          else{applyLongRun(day);}
+                        }} style={{padding:"14px 16px",background:sel?"rgba(var(--cm-red-rgb,255,59,48),0.15)":"rgba(var(--cm-ink-rgb,10,10,10),0.04)",border:`1px solid ${sel?"rgba(var(--cm-red-rgb,255,59,48),0.4)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,borderRadius:10,color:sel?"var(--cm-red,#FF3B30)":"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                          <div>
+                            {day}
+                            {cur&&cur!=='rest'&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",marginLeft:8}}>{DAY_CFG[cur]?.label||cur}</span>}
+                          </div>
+                          {sel&&<span>✓</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {/* Inline guardrail: confirm before replacing a lift/structured day */}
+                  {lrdOverrideDay&&(
+                    <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.08)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.25)",borderRadius:10,padding:14,marginTop:12}}>
+                      <div style={{fontSize:13,color:"var(--cm-red,#FF3B30)",fontWeight:700,marginBottom:6}}>{lrdOverrideDay} is your {DAY_CFG[schedule[lrdOverrideDay]]?.label||'training'} day — replace it with your long run?</div>
+                      <div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginBottom:10}}>This changes the schedule type to Run for {lrdOverrideDay}.</div>
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={()=>setLrdOverrideDay(null)} style={{flex:1,padding:"10px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                        <button onClick={()=>applyLongRun(lrdOverrideDay)} style={{flex:1,padding:"10px",background:"var(--cm-red,#FF3B30)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Replace</button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        </div>,
+        themeRoot()
+      )}
+
+      {/* ── RACE TYPE MODAL ── */}
+      {showRaceTypePicker&&ReactDOM.createPortal(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowRaceTypePicker(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Race Type</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {[{v:'5k',l:'5K'},{v:'10k',l:'10K'},{v:'half_marathon',l:'Half Marathon'},{v:'marathon',l:'Marathon'},{v:'ultra',l:'Ultra'},{v:'obstacle',l:'Obstacle / OCR'},{v:'general',l:'General Fitness'}].map(({v,l})=>{
+                const sel=profile?.run_race_type===v;
+                return(
+                  <button key={v} onClick={async()=>{
+                    await saveProfileField('run_race_type',v);
+                    onProfileUpdate?.({run_race_type:v});
+                    setShowRaceTypePicker(false);
+                  }} style={{padding:"14px 16px",background:sel?"rgba(var(--cm-red-rgb,255,59,48),0.15)":"rgba(var(--cm-ink-rgb,10,10,10),0.04)",border:`1px solid ${sel?"rgba(var(--cm-red-rgb,255,59,48),0.4)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,borderRadius:10,color:sel?"var(--cm-red,#FF3B30)":"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    {l}{sel&&<span>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>,
+        themeRoot()
+      )}
+
+      {/* ── RACE DATE PICKER ── */}
+      {showRaceDatePicker&&ReactDOM.createPortal(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowRaceDatePicker(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Race Date</div>
+            <input type="date" defaultValue={profile?.run_race_date||''} min={new Date().toISOString().split('T')[0]}
+              style={{width:"100%",padding:"12px 16px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",color:"var(--cm-ink,#0A0A0A)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:10,fontSize:16,fontFamily:"inherit",marginBottom:16,boxSizing:"border-box",outline:"none",colorScheme:"dark"}}
+              onChange={async(e)=>{
+                const val=e.target.value;
+                if(!val)return;
+                await saveProfileField('run_race_date',val);
+                onProfileUpdate?.({run_race_date:val});
+                setShowRaceDatePicker(false);
+              }}/>
+            <button onClick={()=>setShowRaceDatePicker(false)} style={{width:"100%",padding:14,background:"transparent",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+          </div>
+        </div>,
+        themeRoot()
+      )}
+
+      {/* ── CALORIE TARGET PICKER ── */}
+      {showCaloriePicker&&ReactDOM.createPortal(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowCaloriePicker(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>Daily Calorie Target</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",marginBottom:16}}>Moves the ring immediately. Enter a value between 800 and 7000 kcal.</div>
+            <input
+              type="number"
+              inputMode="numeric"
+              defaultValue={profile?.goalCals??profile?.calorie_target??''}
+              placeholder="e.g. 2200"
+              style={{width:"100%",padding:"12px 16px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",color:"var(--cm-ink,#0A0A0A)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:10,fontSize:20,fontFamily:"inherit",marginBottom:16,boxSizing:"border-box",outline:"none"}}
+              id="cal-target-input"
+            />
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>setShowCaloriePicker(false)} style={{flex:1,padding:14,background:"transparent",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={async()=>{
+                const raw=document.getElementById('cal-target-input')?.value;
+                const v=parseInt(raw,10);
+                if(!raw||isNaN(v)||v<800||v>7000){showToast("Enter a value between 800 and 7000","error");return;}
+                if(!user)return;
+                // Matches allergens row spread: {id, profile_data:{...profile, key:val}}
+                await sb.from("profiles").upsert(
+                  {id:user.id,
+                   calorie_target:v,
+                   profile_data:{...profile,goalCals:v,calorie_target:v,manual_calorie_target:true}},
+                  {onConflict:"id"});
+                onProfileUpdate?.({goalCals:v,calorie_target:v,manual_calorie_target:true});
+                showToast("Saved","success");
+                setShowCaloriePicker(false);
+              }} style={{flex:2,padding:14,background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
+            </div>
+          </div>
+        </div>,
+        themeRoot()
       )}
     </div>
   );
@@ -6344,16 +7703,8 @@ export function PromoScreen({profile, onValidCode, onNoCode}) {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900;ital@0,900;1,900&family=Inter:wght@300;400;500;600;700;800&display=swap');`}</style>
       <div style={{width:'100%',maxWidth:440}}>
         {/* Logo */}
-        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:48}}>
-          <svg width={52} height={22} viewBox="0 0 52 22">
-            <rect x={0}  y={0}  width={14} height={22} rx={3} fill={T.prot}/>
-            <rect x={19} y={5}  width={14} height={17} rx={3} fill={T.carb}/>
-            <rect x={38} y={10} width={14} height={12} rx={3} fill={T.fat}/>
-          </svg>
-          <div style={{fontFamily:"var(--condensed)",fontWeight:900,letterSpacing:3,fontSize:17,lineHeight:1.1}}>
-            <div style={{color:'#fff'}}>COACH</div>
-            <div><span style={{color:T.prot}}>M</span><span style={{color:T.carb}}>A</span><span style={{color:T.fat}}>C</span><span style={{color:'#fff'}}>RO</span></div>
-          </div>
+        <div style={{marginBottom:48}}>
+          <Logo size={26} text={true} textColor="#fff" />
         </div>
 
         {/* Headline */}
@@ -6396,7 +7747,7 @@ export function PromoScreen({profile, onValidCode, onNoCode}) {
           Start 7-Day Free Trial →
         </button>
         <div style={{fontSize:12,color:T.mu,textAlign:'center',lineHeight:1.6}}>
-          No charge until day 8 · Cancel anytime · $12.99/mo or $49.99/yr founding price
+          No charge until day 8 · Cancel anytime · $12.99/mo or $49.99/yr
         </div>
       </div>
     </div>
@@ -6408,7 +7759,7 @@ export function Paywall({profile}) {
   const [plan, setPlan] = useState('annual');
   const [purchasing, setPurchasing] = useState(false);
   const plans = {
-    annual:  {label:'Founding Annual', badge:'FOUNDING — SAVE 68%', price:'$49.99', per:'/yr',  sub:'$4.17/month · billed annually · locked for life', note:'7 days free, then $49.99/yr'},
+    annual:  {label:'Annual', badge:'SAVE 68%', price:'$49.99', per:'/yr',  sub:'$4.17/month · billed annually', note:'7 days free, then $49.99/yr'},
     monthly: {label:'Monthly',         badge:null,                   price:'$12.99', per:'/mo',  sub:'billed monthly · cancel anytime',                    note:'7 days free, then $12.99/mo'},
   };
 
@@ -6418,10 +7769,26 @@ export function Paywall({profile}) {
     try {
       const { data: { user: u } } = await sb.auth.getUser().catch(() => ({ data: { user: null } }));
       if (!u) { showToast('Please sign in to continue.', 'error'); return; }
+
+      // ── DEV-TEST BYPASS (build:sim → MODE!=="production") — visible simulated unlock.
+      //    MODE-gated → terser-stripped from production `vite build` (never ships). ──
+      if (import.meta.env.MODE !== 'production') {
+        const unlocked = await devUnlockEntitlement(u.id);
+        if (unlocked) { showToast('Dev unlock — subscription simulated. Loading your app…', 'success'); setTimeout(() => window.location.reload(), 800); }
+        else showToast('Dev unlock failed — check the console.', 'error');
+        return;
+      }
+
+      // ── REAL PURCHASE (production) ──
       const ok = plan === 'annual' ? await purchaseAnnual(u.id) : await purchaseMonthly(u.id);
       if (ok) window.location.reload();
-      else showToast('Purchase failed. Try again.', 'error');
-    } catch { showToast('Purchase failed. Try again.', 'error'); }
+      else showToast('Purchase cancelled or not completed.', 'error');
+    } catch (e) {
+      console.warn('[paywall] purchase failed:', e?.message, e);
+      showToast(/package not found/i.test(e?.message || '')
+        ? 'Subscriptions aren’t available yet. Please try again later.'
+        : 'Purchase failed. Try again.', 'error');
+    }
     finally { setPurchasing(false); }
   }
   const p = plans[plan];
@@ -6430,16 +7797,8 @@ export function Paywall({profile}) {
     <div style={{minHeight:'100vh',background:T.bg,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900;ital@0,900;1,900&family=Inter:wght@300;400;500;600;700;800&display=swap');`}</style>
       <div style={{width:'100%',maxWidth:440}}>
-        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:36}}>
-          <svg width={52} height={22} viewBox="0 0 52 22">
-            <rect x={0}  y={0}  width={14} height={22} rx={3} fill={T.prot}/>
-            <rect x={19} y={5}  width={14} height={17} rx={3} fill={T.carb}/>
-            <rect x={38} y={10} width={14} height={12} rx={3} fill={T.fat}/>
-          </svg>
-          <div style={{fontFamily:"var(--condensed)",fontWeight:900,letterSpacing:3,fontSize:17,lineHeight:1.1}}>
-            <div style={{color:'#fff'}}>COACH</div>
-            <div><span style={{color:T.prot}}>M</span><span style={{color:T.carb}}>A</span><span style={{color:T.fat}}>C</span><span style={{color:'#fff'}}>RO</span></div>
-          </div>
+        <div style={{marginBottom:36}}>
+          <Logo size={26} text={true} textColor="#fff" />
         </div>
 
         <div style={{fontFamily:"var(--condensed)",fontSize:44,fontWeight:900,fontStyle:'italic',lineHeight:.9,marginBottom:10}}>
@@ -6467,7 +7826,7 @@ export function Paywall({profile}) {
           <div style={{fontSize:13,color:T.mu,marginBottom:4}}>{p.sub}</div>
           <div style={{fontSize:13,color:T.carb,fontWeight:700,marginBottom:20}}>{p.note}</div>
           <div style={{display:'flex',flexDirection:'column',gap:0,marginBottom:24,borderTop:`1px solid ${T.bd}`,paddingTop:16}}>
-            {['Everything in one app — Fuel + Train','Dynamic macros that shift daily with your schedule','AI food logging — describe any meal instantly','Progressive overload tracking — every set, every session','Restaurant AI, recipe generator, barcode scanner','Strava, Apple Health, Garmin, Fitbit integrations','Running plans, Hyrox mode, Hybrid athlete support'].map(f=>(
+            {['Everything in one app — Fuel + Train','Dynamic macros that shift daily with your schedule','AI food logging — describe any meal instantly','Progressive overload tracking — every set, every session','Restaurant AI, recipe generator, barcode scanner','Apple Health integration','Running plans, Hyrox mode, Hybrid athlete support'].map(f=>(
               <div key={f} style={{display:'flex',gap:10,padding:'7px 0',borderBottom:`1px solid rgba(245,245,240,0.05)`,fontSize:13,color:'#ccc',alignItems:'flex-start'}}>
                 <span style={{color:T.prot,fontWeight:800,flexShrink:0}}>✓</span>{f}
               </div>
@@ -6491,7 +7850,7 @@ export function UpgradeScreen({ profile, onContinue }) {
   const [purchasing, setPurchasing] = useState(false);
   const firstName = (profile?.name || '').split(' ')[0] || 'there';
   const plans = {
-    annual:  { label:'Founding Annual', badge:'FOUNDING — SAVE 68%', price:'$49.99', per:'/yr',  sub:'$4.17/month · billed annually · locked for life' },
+    annual:  { label:'Annual', badge:'SAVE 68%', price:'$49.99', per:'/yr',  sub:'$4.17/month · billed annually' },
     monthly: { label:'Monthly',         badge:null,                   price:'$12.99', per:'/mo',  sub:'billed monthly · cancel anytime' },
   };
 
@@ -6501,10 +7860,26 @@ export function UpgradeScreen({ profile, onContinue }) {
     try {
       const { data: { user: u } } = await sb.auth.getUser().catch(() => ({ data: { user: null } }));
       if (!u) { showToast('Please sign in to continue.', 'error'); return; }
+
+      // ── DEV-TEST BYPASS (build:sim → MODE!=="production") — visible simulated unlock.
+      //    MODE-gated → terser-stripped from production `vite build` (never ships). ──
+      if (import.meta.env.MODE !== 'production') {
+        const unlocked = await devUnlockEntitlement(u.id);
+        if (unlocked) { showToast('Dev unlock — subscription simulated. Continuing…', 'success'); onContinue?.(); }
+        else showToast('Dev unlock failed — check the console.', 'error');
+        return;
+      }
+
+      // ── REAL PURCHASE (production) ──
       const ok = plan === 'annual' ? await purchaseAnnual(u.id) : await purchaseMonthly(u.id);
       if (ok) onContinue?.();
-      else showToast('Purchase failed. Try again.', 'error');
-    } catch { showToast('Purchase failed. Try again.', 'error'); }
+      else showToast('Purchase cancelled or not completed.', 'error');
+    } catch (e) {
+      console.warn('[paywall] purchase failed:', e?.message, e);
+      showToast(/package not found/i.test(e?.message || '')
+        ? 'Subscriptions aren’t available yet. Please try again later.'
+        : 'Purchase failed. Try again.', 'error');
+    }
     finally { setPurchasing(false); }
   }
   const p = plans[plan];
@@ -6529,23 +7904,15 @@ export function UpgradeScreen({ profile, onContinue }) {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900;ital@0,900;1,900&family=Inter:wght@300;400;500;600;700;800&display=swap');`}</style>
       <div style={{ width:'100%', maxWidth:440 }}>
 
-        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:32 }}>
-          <svg width={52} height={22} viewBox="0 0 52 22">
-            <rect x={0}  y={0}  width={14} height={22} rx={3} fill={T.prot}/>
-            <rect x={19} y={5}  width={14} height={17} rx={3} fill={T.carb}/>
-            <rect x={38} y={10} width={14} height={12} rx={3} fill={T.fat}/>
-          </svg>
-          <div style={{ fontFamily:"var(--condensed)", fontWeight:900, letterSpacing:3, fontSize:17, lineHeight:1.1 }}>
-            <div style={{ color:'#fff' }}>COACH</div>
-            <div><span style={{ color:T.prot }}>M</span><span style={{ color:T.carb }}>A</span><span style={{ color:T.fat }}>C</span><span style={{ color:'#fff' }}>RO</span></div>
-          </div>
+        <div style={{ marginBottom:32 }}>
+          <Logo size={26} text={true} textColor="#fff" />
         </div>
 
         <div style={{ fontFamily:"var(--condensed)", fontSize:44, fontWeight:900, fontStyle:'italic', lineHeight:.92, marginBottom:10 }}>
           YOUR TRIAL<br/><span style={{ color:T.prot }}>HAS ENDED.</span>
         </div>
         <p style={{ fontSize:15, color:'#888', marginBottom:24, lineHeight:1.65 }}>
-          Hey {firstName} — your 14-day free trial is up. Upgrade to keep AI features, or continue with core tracking for free.
+          Hey {firstName} — your 7-day free trial is up. Upgrade to keep AI features, or continue with core tracking for free.
         </p>
 
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:24 }}>
@@ -6608,15 +7975,8 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
   const [purchaseError, setPurchaseError] = useState("");
 
   // ── Dynamic values ──────────────────────────────────────────────────────
-  const trialDays = (() => {
-    if (!profile?.trial_started_at || !profile?.trial_ends_at) return 7;
-    const start = new Date(profile.trial_started_at);
-    const end   = new Date(profile.trial_ends_at);
-    const days  = Math.round((end - start) / (1000 * 60 * 60 * 24));
-    return days >= 10 ? 14 : 7;
-  })();
-
-  const eyebrow   = trialDays === 14 ? "// your two weeks are up" : "// your free week is up";
+  // Trial is always 7 days (single source of truth) — no 14-day path exists.
+  const eyebrow   = "// your free week is up";
   const firstName = profile?.first_name || profile?.name?.split(" ")[0] || null;
 
   // ── Purchase handlers ───────────────────────────────────────────────────
@@ -6625,16 +7985,32 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
     return user?.id;
   }
 
+  // Shared error surfacing for the mid-app purchase handlers (setPurchaseError-based).
+  function surfacePurchaseError(e) {
+    console.warn("[paywall] purchase failed:", e?.message, e);
+    setPurchaseError(/package not found/i.test(e?.message || "")
+      ? "Subscriptions aren’t available yet. Please try again later."
+      : "Purchase failed. Try again.");
+  }
+
   async function purchaseMonthlyFn() {
     setPurchaseError("");
     try {
       setLoading(true);
       const uid = await getUid();
-      if (!uid) return;
+      if (!uid) { setPurchaseError("Please sign in to continue."); return; }
+      // ── DEV-TEST BYPASS (build:sim → MODE!=="production") — visible simulated unlock.
+      //    MODE-gated → terser-stripped from production `vite build` (never ships). ──
+      if (import.meta.env.MODE !== "production") {
+        if (await devUnlockEntitlement(uid)) onSubscribed?.();
+        else setPurchaseError("Dev unlock failed — check the console.");
+        return;
+      }
+      // ── REAL PURCHASE (production) ──
       const ok = await purchaseMonthly(uid);
       if (ok) onSubscribed?.();
-      else setPurchaseError("Purchase failed. Try again.");
-    } catch { setPurchaseError("Purchase failed. Try again."); }
+      else setPurchaseError("Purchase cancelled or not completed.");
+    } catch (e) { surfacePurchaseError(e); }
     finally { setLoading(false); }
   }
 
@@ -6643,11 +8019,19 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
     try {
       setLoading(true);
       const uid = await getUid();
-      if (!uid) return;
+      if (!uid) { setPurchaseError("Please sign in to continue."); return; }
+      // ── DEV-TEST BYPASS (build:sim → MODE!=="production") — visible simulated unlock.
+      //    MODE-gated → terser-stripped from production `vite build` (never ships). ──
+      if (import.meta.env.MODE !== "production") {
+        if (await devUnlockEntitlement(uid)) onSubscribed?.();
+        else setPurchaseError("Dev unlock failed — check the console.");
+        return;
+      }
+      // ── REAL PURCHASE (production) ──
       const ok = await purchaseAnnual(uid);
       if (ok) onSubscribed?.();
-      else setPurchaseError("Purchase failed. Try again.");
-    } catch { setPurchaseError("Purchase failed. Try again."); }
+      else setPurchaseError("Purchase cancelled or not completed.");
+    } catch (e) { surfacePurchaseError(e); }
     finally { setLoading(false); }
   }
 
@@ -6769,11 +8153,6 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
 
           {plan === "annual" && (
             <>
-              {/* Badge */}
-              <div style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid var(--accent)', borderRadius: 20, padding: '4px 12px', marginBottom: 18, marginTop: 4 }}>
-                <span style={{ ...mono, fontSize: 9.5, color: 'var(--accent)', letterSpacing: 1.8, textTransform: 'uppercase' }}>FOUNDING · LOCKED FOR LIFE</span>
-              </div>
-
               {/* Price row */}
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 10 }}>
                 <span style={{ ...condensed, fontStyle: 'italic', fontSize: 24, color: 'rgba(255,255,255,0.5)', textDecoration: 'line-through', textDecorationColor: 'var(--accent)', lineHeight: 1 }}>$69.99</span>
@@ -6822,7 +8201,7 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
 
         {/* 9 ── TRUST ROW */}
         <div style={{ ...mono, fontSize: 10.5, color: '#fff', letterSpacing: 1.4, textTransform: 'uppercase', textAlign: 'center', marginBottom: 12 }}>
-          $0.00 TODAY · CANCEL ANYTIME · LOCKED FOR LIFE
+          $0.00 TODAY · CANCEL ANYTIME
         </div>
 
         {/* 10 ── RESTORE LINK */}

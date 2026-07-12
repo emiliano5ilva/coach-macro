@@ -3,27 +3,28 @@
 // Applies CSS custom properties to :root so the entire app reacts instantly.
 
 export const ACCENT_COLORS = [
-  { id: 'red',    name: 'Red',           hex: '#FF3B30', rgb: '255,59,48'   },
-  { id: 'blue',   name: 'Electric Blue', hex: '#0A84FF', rgb: '10,132,255'  },
-  { id: 'gold',   name: 'Gold',          hex: '#FFD60A', rgb: '255,214,10'  },
-  { id: 'green',  name: 'Forest Green',  hex: '#30D158', rgb: '48,209,88'   },
-  { id: 'orange', name: 'Orange',        hex: '#FF9F0A', rgb: '255,159,10'  },
-  { id: 'purple', name: 'Purple',        hex: '#BF5AF2', rgb: '191,90,242'  },
-  { id: 'pink',   name: 'Pink',          hex: '#FF375F', rgb: '255,55,95'   },
-  { id: 'white',  name: 'White',         hex: '#FFFFFF', rgb: '255,255,255' },
+  { id: 'red',        name: 'Red',         hex: '#FF3B30', rgb: '255,59,48'  },
+  { id: 'royalblue',  name: 'Royal Blue',  hex: '#0001FC', rgb: '0,1,252'    },
+  { id: 'pink',       name: 'Pink',        hex: '#FD14F1', rgb: '253,20,241' },
+  { id: 'orange',     name: 'Orange',      hex: '#FF5C00', rgb: '255,92,0'   },
+  { id: 'rose',       name: 'Rose',        hex: '#FD1E8D', rgb: '253,30,141' },
+  { id: 'green',      name: 'Green',       hex: '#2CFE05', rgb: '44,254,5'   },
+  { id: 'purple',     name: 'Purple',      hex: '#9D00FF', rgb: '157,0,255'  },
+  { id: 'neonpurple', name: 'Neon Purple', hex: '#BF00FD', rgb: '191,0,253'  },
 ];
 
 export const BG_COLORS = [
-  { id: 'black',    name: 'Black',         hex: '#000000', rgb: '0,0,0'       },
-  { id: 'charcoal', name: 'Charcoal',      hex: '#1C1C1E', rgb: '28,28,30'    },
-  { id: 'navy',     name: 'Dark Navy',     hex: '#0A1628', rgb: '10,22,40'    },
-  { id: 'forest',   name: 'Deep Forest',   hex: '#0A1F0A', rgb: '10,31,10'    },
-  { id: 'dpurple',  name: 'Deep Purple',   hex: '#1A0A2E', rgb: '26,10,46'    },
-  { id: 'burgundy', name: 'Dark Burgundy', hex: '#1F0A0A', rgb: '31,10,10'    },
   { id: 'white',    name: 'White',         hex: '#FFFFFF', rgb: '255,255,255' },
+  { id: 'black',    name: 'Black',         hex: '#000000', rgb: '0,0,0'       },
+  // Reserved — re-add when dynamic palette ships:
+  // { id: 'charcoal', name: 'Charcoal',      hex: '#1C1C1E', rgb: '28,28,30'    },
+  // { id: 'navy',     name: 'Dark Navy',     hex: '#0A1628', rgb: '10,22,40'    },
+  // { id: 'forest',   name: 'Deep Forest',   hex: '#0A1F0A', rgb: '10,31,10'    },
+  // { id: 'dpurple',  name: 'Deep Purple',   hex: '#1A0A2E', rgb: '26,10,46'    },
+  // { id: 'burgundy', name: 'Dark Burgundy', hex: '#1F0A0A', rgb: '31,10,10'    },
 ];
 
-export const DEFAULT_THEME = { accent: 'red', bg: 'black' };
+export const DEFAULT_THEME = { accent: 'red', bg: 'white' };
 
 // ── WCAG helpers ──────────────────────────────────────────────────────────────
 
@@ -66,6 +67,14 @@ function liftColor(rgb, amount) {
   return `#${[r, g, b].map(lift).map(v => v.toString(16).padStart(2, '0')).join('')}`;
 }
 
+// Darken toward black by `amount` (0..1). Mirror of liftColor — used for --cm-accent-deep
+// (canvas gradient floor + accent-on-white text like tags / phase pill / Save button).
+function deepColorRgb(rgb, amount) {
+  const [r, g, b] = rgb.split(',').map(Number);
+  const deep = (c) => Math.max(0, Math.round(c * (1 - amount)));
+  return [r, g, b].map(deep);
+}
+
 // ── Apply theme to :root CSS variables ───────────────────────────────────────
 
 export function applyTheme(accentId, bgId) {
@@ -85,8 +94,17 @@ export function applyTheme(accentId, bgId) {
   const cardBg     = light ? '#ececec'               : liftColor(bg.rgb, 0.06);
   const cardBorder = light ? 'rgba(0,0,0,0.10)'     : 'rgba(245,245,240,0.07)';
 
-  const root = document.documentElement;
-  const set  = (k, v) => root.style.setProperty(k, v);
+  const goclub = document.querySelector('.goclub');
+  if (!goclub) {
+    // .goclub isn't mounted yet (pre-auth: splash/login/onboarding).
+    // Do NOT write to :root — it would bleed into non-themed screens.
+    // The App-mount effect re-calls applyTheme once .goclub exists.
+    // Still update the status-bar meta tag, then bail.
+    const metaEl = document.querySelector('meta[name="theme-color"]');
+    if (metaEl) metaEl.setAttribute('content', bg.hex);
+    return;
+  }
+  const set = (k, v) => goclub.style.setProperty(k, v);
 
   // Theme tokens
   set('--accent',        accent.hex);
@@ -119,11 +137,41 @@ export function applyTheme(accentId, bgId) {
   set('--white-faint',   textFaint);
   set('--white-border',  `rgba(${accent.rgb},0.08)`);
 
-  // Body background + document meta color
+  // Tab bar background — translucent blur bar, adapts to theme
+  const tabBarBg = light ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)';
+  set('--tab-bar-bg', tabBarBg);
+
+  // Body background — set directly so html/body/#root safe-area zones follow the theme.
+  // applyTheme() sets vars on .goclub (not :root), so ancestors need an explicit set.
   document.body.style.background = bg.hex;
-  document.body.style.backgroundImage = light
-    ? 'none'
-    : `radial-gradient(ellipse at 30% 20%,rgba(${accent.rgb},0.06),transparent 50%)`;
+
+  // ── Bridge to --cm-* namespace (the redesigned red/white system) ──
+  // Paper is white on white-bg, near-black (#0A0A0A) on dark-bg — pure black (#000000) is too harsh on red canvas.
+  const isLight = bg.id === 'white';
+  const cmPaperHex = isLight ? '#FFFFFF' : '#0A0A0A';
+  const cmPaperRgb = isLight ? '255,255,255' : '10,10,10';
+  const cmInkHex   = isLight ? '#0A0A0A' : '#FFFFFF';
+  const cmInkRgb   = isLight ? '10,10,10' : '255,255,255';
+  const cmDeepRgb = deepColorRgb(accent.rgb, 0.18); // ~82% toward black — per-theme deep accent
+  set('--cm-red',        accent.hex);
+  set('--cm-red-rgb',    accent.rgb);
+  set('--cm-accent',     accent.hex);
+  set('--cm-accent-rgb', accent.rgb);
+  set('--cm-accent-deep',     `rgb(${cmDeepRgb.join(',')})`);
+  set('--cm-accent-deep-rgb', cmDeepRgb.join(','));
+  set('--cm-paper',      cmPaperHex);
+  set('--cm-paper-rgb',  cmPaperRgb);
+  set('--cm-ink',        cmInkHex);
+  set('--cm-ink-rgb',    cmInkRgb);
+  // Recovery-load traffic-light tokens (Week Editor ribbon + flags). Theme-CONSTANT (semantic
+  // green/amber/red read the same across all 8 themes); exposed as tokens + -rgb triples so the
+  // ribbon can tint at low alpha. NOT accent-derived — status color must stay legible on any accent.
+  set('--cm-good',     '#2E9E6B'); set('--cm-good-rgb', '46,158,107');
+  set('--cm-warn',     '#E8A13A'); set('--cm-warn-rgb', '232,161,58');
+  set('--cm-bad',      '#E5533B'); set('--cm-bad-rgb',  '229,83,59');
+
+  // Status bar tint only — body background intentionally NOT set here;
+  // login/onboarding set their own hardcoded backgrounds, and .goclub sets the tab canvas.
   const metaTheme = document.querySelector('meta[name="theme-color"]');
   if (metaTheme) metaTheme.setAttribute('content', bg.hex);
 }

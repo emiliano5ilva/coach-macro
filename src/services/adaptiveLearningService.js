@@ -28,7 +28,7 @@ export async function saveAdaptiveFactors(userId, factors) {
 
 // ─── Core detector ────────────────────────────────────────────────────────────
 
-export async function detectSystematicBias(userId) {
+export async function detectSystematicBias(userId, profile) {
   if (!userId) return { ...DEFAULT_FACTORS };
 
   const since = new Date(Date.now() - 60 * 864e5).toISOString().split('T')[0];
@@ -104,13 +104,14 @@ export async function detectSystematicBias(userId) {
   // Look at bodyweight_logs for spike-normalize patterns
   const { data: bwLogs } = await sb
     .from('bodyweight_logs')
-    .select('weight, unit, created_at')
+    .select('weight, created_at')
     .eq('user_id', userId)
     .gte('created_at', since)
     .order('created_at');
 
   if (bwLogs?.length >= 10) {
-    const weights = bwLogs.map(l => parseFloat(l.weight) * (l.unit === 'kg' ? 2.205 : 1));
+    const isKg = profile?.wUnit === 'kg';
+    const weights = bwLogs.map(l => parseFloat(l.weight) * (isKg ? 2.205 : 1));
     const spikes = countSpikeAndNormalize(weights);
     if (spikes >= 3) factors.water_retention_sensitivity = 'high';
     else if (spikes >= 1) factors.water_retention_sensitivity = 'medium';
@@ -158,7 +159,7 @@ export function applyAdaptiveFactors(rawResult, factors) {
 
 // ─── Weekly recalibration ─────────────────────────────────────────────────────
 
-export async function recalibrateFactors(userId) {
+export async function recalibrateFactors(userId, profile) {
   if (!userId) return;
 
   const current = await getAdaptiveFactors(userId);
@@ -184,7 +185,7 @@ export async function recalibrateFactors(userId) {
 
   const { data: bwLogs } = await sb
     .from('bodyweight_logs')
-    .select('weight, unit, created_at')
+    .select('weight, created_at')
     .eq('user_id', userId)
     .gte('created_at', twoWeeksAgo)
     .order('created_at');
@@ -196,9 +197,10 @@ export async function recalibrateFactors(userId) {
     s + ((r.avg_calories || 0) - (r.calculated_tdee || 0)), 0);
   const predictedLbsChange = totalCalBalance / 3500;
 
-  // Actual weight change
-  const firstWeight = parseFloat(bwLogs[0].weight) * (bwLogs[0].unit === 'kg' ? 2.205 : 1);
-  const lastWeight  = parseFloat(bwLogs[bwLogs.length - 1].weight) * (bwLogs[bwLogs.length - 1].unit === 'kg' ? 2.205 : 1);
+  // Actual weight change — convert to lbs using profile.wUnit (bodyweight_logs has no unit column)
+  const isKg = profile?.wUnit === 'kg';
+  const firstWeight = parseFloat(bwLogs[0].weight) * (isKg ? 2.205 : 1);
+  const lastWeight  = parseFloat(bwLogs[bwLogs.length - 1].weight) * (isKg ? 2.205 : 1);
   const actualLbsChange = lastWeight - firstWeight;
 
   const predictionError = Math.abs(predictedLbsChange - actualLbsChange);

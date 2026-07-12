@@ -1,6 +1,7 @@
 export { sb } from "./supabase.js";
 import { sb } from "./supabase.js";
 import { safetyCheck } from "./utils/safety.js";
+import { ensureAIConsent, AIConsentDeclined } from "./services/aiConsent.js";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -65,6 +66,7 @@ export async function streamAI(prompt, max = 900, feature = "default", onChunk, 
 }
 
 export async function ai(prompt, max = 900, feature = "default") {
+  if (!(await ensureAIConsent())) throw new AIConsentDeclined();
   const { data: { session } } = await sb.auth.getSession();
   if (!session?.access_token) throw new Error("Not authenticated");
   const body = JSON.stringify({
@@ -78,11 +80,12 @@ export async function ai(prompt, max = 900, feature = "default") {
     "Authorization": `Bearer ${session.access_token}`,
   };
   const _url = `${API_BASE}/api/claude`;
-  console.log('[ai] POST', _url, '| feature:', feature, '| max:', max);
+  const _dev = import.meta.env.MODE !== "production";
+  _dev && console.log('[ai] POST', _url, '| feature:', feature, '| max:', max);
   const response = await fetch(_url, { method: "POST", headers, body });
-  console.log('[ai] response status:', response.status, '| feature:', feature);
+  _dev && console.log('[ai] response status:', response.status, '| feature:', feature);
   const text = await response.text();
-  console.log('[ai] response body (first 300):', text.slice(0, 300));
+  _dev && console.log('[ai] response body (first 300):', text.slice(0, 300));
   const d = JSON.parse(text);
   if (response.status === 402) {
     window.dispatchEvent(new CustomEvent("cm:subscription-required", { detail: d }));
@@ -113,6 +116,7 @@ export async function ai(prompt, max = 900, feature = "default") {
 // Fix: (1) server now uses max(clientMax, serverLimit) for tool_choice calls so 400
 // never truncates; (2) this function throws on empty input or max_tokens truncation.
 export async function aiWithTools(prompt, tools, toolName, max = 8000, feature = "default") {
+  if (!(await ensureAIConsent())) throw new AIConsentDeclined();
   const { data: { session } } = await sb.auth.getSession();
   if (!session?.access_token) throw new Error("Not authenticated");
   const body = JSON.stringify({
@@ -182,6 +186,7 @@ export async function aiWithTools(prompt, tools, toolName, max = 8000, feature =
 }
 
 export async function aiWithVision(base64Image, mediaType, textPrompt, max = 900, feature = "default") {
+  if (!(await ensureAIConsent())) throw new AIConsentDeclined();
   const { data: { session } } = await sb.auth.getSession();
   if (!session?.access_token) throw new Error("Not authenticated");
   const headers = {
@@ -222,6 +227,7 @@ export async function aiWithVision(base64Image, mediaType, textPrompt, max = 900
 // Same guarantees as aiWithTools: model MUST fill the schema, returns toolUse.input
 // directly (no JSON parsing), throws on truncation or empty output.
 export async function aiWithToolsAndVision(base64Image, mediaType, textPrompt, tools, toolName, max = 2000, feature = "default") {
+  if (!(await ensureAIConsent())) throw new AIConsentDeclined();
   const { data: { session } } = await sb.auth.getSession();
   if (!session?.access_token) throw new Error("Not authenticated");
   const body = JSON.stringify({

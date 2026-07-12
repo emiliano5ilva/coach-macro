@@ -1,10 +1,10 @@
 import { sb } from '../client';
 import { musclesToSvgIds, svgIdsToMuscleGroups } from '../data/muscleMapping';
-import { EXERCISE_MUSCLE_GROUP } from '../exercise_database';
+import { EXERCISE_MUSCLE_GROUP, getMuscleGroup } from '../exercise_database';
 import { computeLoadMetrics } from './trainingLoadService';
 import { getCycleAdjustment } from './cyclePatternService';
 
-const GROUP_TO_SVG = {
+export const GROUP_TO_SVG = {
   chest:     ['chest'],
   back:      ['traps', 'lats', 'lower-back'],
   shoulders: ['shoulders-f', 'rear-delts'],
@@ -16,14 +16,16 @@ const GROUP_TO_SVG = {
 // Maps EXERCISE_MUSCLE_GROUP values → the 6 tracked groups
 const NORMALIZE_GROUP = {
   chest: 'chest', back: 'back', shoulders: 'shoulders',
-  arms: 'arms', core: 'core',
+  arms: 'arms', biceps: 'arms', triceps: 'arms', core: 'core',
   legs: 'legs', glutes: 'legs', calves: 'legs',
   cardio: null,
+  // full_body intentionally absent — falls through to exercise_cache fallback
+  // which fans out to multiple real muscle groups from DB data.
 };
 
 const ALL_GROUPS = ['chest', 'back', 'shoulders', 'arms', 'core', 'legs'];
 
-const OPTIMAL_SETS = {
+export const OPTIMAL_SETS = {
   chest:     [10, 20],
   back:      [10, 20],
   shoulders: [12, 20],
@@ -35,7 +37,7 @@ const OPTIMAL_SETS = {
 // Called immediately after a workout session completes.
 // completedExercises = [{name, sets: [{weight, reps, done}]}]
 export async function recordWorkoutRecovery(userId, completedExercises) {
-  if (!userId || !completedExercises?.length) return;
+  if (!userId || !completedExercises?.length) { return; }
 
   const groupsHit = new Set();
 
@@ -44,7 +46,7 @@ export async function recordWorkoutRecovery(userId, completedExercises) {
   completedExercises.forEach(ex => {
     const name = ex.name || ex.exercise_name;
     if (!name) return;
-    const raw = EXERCISE_MUSCLE_GROUP[name];
+    const raw = getMuscleGroup(name);
     const normalized = raw ? NORMALIZE_GROUP[raw] : null;
     if (normalized) {
       groupsHit.add(normalized);
@@ -74,7 +76,7 @@ export async function recordWorkoutRecovery(userId, completedExercises) {
     }
   }
 
-  if (!groupsHit.size) return;
+  if (!groupsHit.size) { return; }
 
   const now = new Date().toISOString();
   const upserts = [...groupsHit].map(group => ({
@@ -84,9 +86,10 @@ export async function recordWorkoutRecovery(userId, completedExercises) {
     last_trained_at: now,
   }));
 
-  await sb
+  const { error: upsertErr } = await sb
     .from('muscle_recovery')
     .upsert(upserts, { onConflict: 'user_id,muscle_group' });
+  if (upsertErr) console.warn('[recoveryService] upsert failed', upsertErr);
 }
 
 // Returns recovery state keyed by muscle group.
@@ -148,7 +151,7 @@ export async function getOptimizationData(userId) {
     (log.workout?.exercises || []).forEach(ex => {
       const doneSets = (ex.sets || []).filter(s => s.done).length;
       if (!doneSets) return;
-      const raw = EXERCISE_MUSCLE_GROUP[ex.name];
+      const raw = getMuscleGroup(ex.name);
       const group = raw ? NORMALIZE_GROUP[raw] : null;
       if (group && group in setsByGroup) {
         setsByGroup[group] += doneSets;

@@ -1,7 +1,10 @@
 node_modules/
 dist/
+build/
 .env
 .env.local
 .env*.local
+.env.local.save
+.env*.save
 memory/
 .vercel

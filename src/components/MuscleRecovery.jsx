@@ -1,14 +1,7 @@
 import { useState, useEffect } from 'react';
 import BodyMap from './BodyMap';
 import { getRecoveryData, getOptimizationData } from '../services/recoveryService';
-
-const THERMAL = {
-  hot:  '#FFE500',
-  warm: '#FF6D00',
-  red:  '#CC1100',
-  cool: '#00BFFF',
-  cold: '#2a2a2a',
-};
+import { thermalAt, THERMAL_NODATA, THERMAL_CSS } from '../data/thermalPalette';
 
 const MUSCLE_MAP = {
   chest:     ['chest'],
@@ -21,19 +14,19 @@ const MUSCLE_MAP = {
 
 const NAMES = { chest:'Chest', back:'Back', shoulders:'Shoulders', arms:'Arms', core:'Core', legs:'Legs' };
 
+// Recovery: pct 0–100 where 100=fully rested (cold/blue), 0=just trained (hot/yellow)
+// t = 1 - pct/100 → pct=100→t=0→blue, pct=0→t=1→yellow
 function thermalColor(pct) {
-  if (pct === null || pct === undefined) return THERMAL.cold;
-  if (pct >= 85) return THERMAL.cool;
-  if (pct >= 70) return THERMAL.red;
-  if (pct >= 50) return THERMAL.warm;
-  return THERMAL.hot;
+  if (pct === null || pct === undefined) return THERMAL_NODATA;
+  return thermalAt(1 - pct / 100);
 }
 
+// Optimization: 4 representative positions on the gradient
 function optColor(status) {
-  if (status === 'OVERLOADED')   return THERMAL.hot;
-  if (status === 'OPTIMAL')      return THERMAL.red;
-  if (status === 'UNDERTRAINED') return THERMAL.cool;
-  return THERMAL.cold;
+  if (status === 'OVERLOADED')   return thermalAt(0.95); // hot
+  if (status === 'OPTIMAL')      return thermalAt(0.62); // red/primed
+  if (status === 'UNDERTRAINED') return thermalAt(0.10); // cold
+  return THERMAL_NODATA;                                 // UNTRAINED / no data
 }
 
 function recoveryStatus(pct) {
@@ -72,7 +65,7 @@ function buildOptCoachText(data) {
   return '"Volume is well distributed across all groups. Stay the course."';
 }
 
-export default function MuscleRecovery({ userId, recoveryData: propRecovery, optimizationData: propOptim }) {
+export default function MuscleRecovery({ userId, recoveryData: propRecovery, optimizationData: propOptim, recoveryPromise }) {
   const [mode, setMode] = useState('recovery');
   const [localRecovery, setLocalRecovery] = useState(null);
   const [localOptim, setLocalOptim]       = useState(null);
@@ -94,6 +87,21 @@ export default function MuscleRecovery({ userId, recoveryData: propRecovery, opt
 
   useEffect(() => {
     if (!userId) return;
+    // Case A: prefetch already resolved — both props present, skip fetch entirely
+    if (propRecovery && propOptim) { return; }
+    // Case B: prefetch in flight — hook into shared promise to avoid double-fetch
+    if (recoveryPromise) {
+      setLoading(true);
+      recoveryPromise
+        .then(result => {
+          if (result?.rec) setLocalRecovery(result.rec);
+          if (result?.opt) setLocalOptim(result.opt);
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+      return;
+    }
+    // Case C: no prefetch (first-render race) — own fetch as fallback
     fetchData(userId);
   }, [userId]);
 
@@ -131,8 +139,8 @@ export default function MuscleRecovery({ userId, recoveryData: propRecovery, opt
     return () => window.removeEventListener('focus', handler);
   }, [userId]);
 
-  const recoveryData     = userId ? localRecovery : propRecovery;
-  const optimizationData = userId ? localOptim    : propOptim;
+  const recoveryData     = localRecovery ?? propRecovery;
+  const optimizationData = localOptim    ?? propOptim;
 
   function getColors() {
     if (loading && !recoveryData) {
@@ -183,7 +191,7 @@ export default function MuscleRecovery({ userId, recoveryData: propRecovery, opt
         ))}
       </div>
 
-      <div style={s.eyebrow}>// Muscle status</div>
+      <div style={s.eyebrow}>Muscle Status</div>
 
       {/* Body map */}
       <div style={s.mapWrap}>
@@ -211,13 +219,13 @@ export default function MuscleRecovery({ userId, recoveryData: propRecovery, opt
 
       {/* Coach card */}
       <div style={s.coachCard}>
-        <div style={s.coachLabel}>// Coach</div>
+        <div style={s.coachLabel}>Coach</div>
         <div style={s.coachText}>{coachText}</div>
       </div>
       {!recoveryData&&!loading&&(
         <div style={{textAlign:"center",padding:"16px 0 4px"}}>
-          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.3)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>LOG SESSIONS TO SEE YOUR MUSCLE RECOVERY MAP.</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,color:"rgba(245,245,240,0.35)",lineHeight:1.5}}>Complete your first session and Coach Macro will track which muscles need rest and which are ready to train.</div>
+          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--text-faint)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>LOG SESSIONS TO SEE YOUR MUSCLE RECOVERY MAP.</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,color:"var(--text-dim)",lineHeight:1.5}}>Complete your first session and Coach Macro will track which muscles need rest and which are ready to train.</div>
         </div>
       )}
     </div>
@@ -226,16 +234,16 @@ export default function MuscleRecovery({ userId, recoveryData: propRecovery, opt
 
 const s = {
   wrapper: {
-    backgroundColor: '#0a0a0a',
+    backgroundColor: 'var(--card-bg)',
     borderRadius: 14,
-    border: '1px solid rgba(245,245,240,0.07)',
+    border: '1px solid var(--card-border)',
     padding: 16,
     marginBottom: 16,
   },
   tabs: {
     display: 'flex',
     flexDirection: 'row',
-    borderBottom: '1px solid rgba(245,245,240,0.07)',
+    borderBottom: '1px solid var(--card-border)',
     margin: '-16px -16px 16px -16px',
   },
   tab: {
@@ -244,26 +252,27 @@ const s = {
     letterSpacing: '0.14em',
     textTransform: 'uppercase',
     padding: '10px 16px',
-    color: 'rgba(245,245,240,0.35)',
+    color: 'var(--text-faint)',
     border: 'none',
     borderBottom: '2px solid transparent',
     background: 'none',
     cursor: 'pointer',
   },
   tabActive: {
-    color: '#e8341c',
-    borderBottom: '2px solid #e8341c',
+    color: 'var(--accent)',
+    borderBottom: '2px solid var(--accent)',
   },
   eyebrow: {
     fontFamily: "'DM Mono', 'SF Mono', monospace",
-    fontSize: 9,
-    color: '#e8341c',
+    fontSize: 11,
+    fontWeight: 700,
+    color: 'var(--accent)',
     letterSpacing: '0.16em',
     textTransform: 'uppercase',
     marginBottom: 12,
   },
   mapWrap: {
-    backgroundColor: '#000000',
+    backgroundColor: 'var(--bg)',
     borderRadius: 10,
     padding: 8,
     marginBottom: 14,
@@ -278,8 +287,8 @@ const s = {
   },
   legendLabel: {
     fontFamily: "'DM Mono', 'SF Mono', monospace",
-    fontSize: 8,
-    color: 'rgba(245,245,240,0.3)',
+    fontSize: 9,
+    color: 'var(--text-faint)',
     letterSpacing: '0.1em',
     textTransform: 'uppercase',
     whiteSpace: 'nowrap',
@@ -289,7 +298,7 @@ const s = {
     height: 6,
     borderRadius: 3,
     margin: '0 8px',
-    background: 'linear-gradient(to right, #2a2a2a, #00BFFF, #CC1100, #FF6D00, #FFE500)',
+    background: THERMAL_CSS,
   },
   chipGrid: {
     display: 'flex',
@@ -303,7 +312,7 @@ const s = {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(10,10,10,0.8)',
+    backgroundColor: 'var(--card-bg)',
     borderRadius: 8,
     padding: 8,
     width: 'calc(50% - 3px)',
@@ -317,10 +326,10 @@ const s = {
   },
   chipLabel: {
     fontFamily: "'DM Mono', 'SF Mono', monospace",
-    fontSize: 8,
+    fontSize: 9,
     letterSpacing: '0.12em',
     textTransform: 'uppercase',
-    color: 'rgba(245,245,240,0.35)',
+    color: 'var(--text-faint)',
     marginBottom: 3,
   },
   chipStatus: {
@@ -333,29 +342,29 @@ const s = {
   chipPct: {
     fontFamily: "'DM Mono', 'SF Mono', monospace",
     fontSize: 9,
-    color: 'rgba(245,245,240,0.3)',
+    color: 'var(--text-faint)',
     marginLeft: 'auto',
     flexShrink: 0,
   },
   coachCard: {
-    backgroundColor: 'rgba(232,52,28,0.05)',
-    borderLeft: '3px solid #e8341c',
+    backgroundColor: 'rgba(var(--accent-rgb),0.05)',
+    borderLeft: '3px solid var(--accent)',
     borderRadius: '0 8px 8px 0',
     padding: 12,
   },
   coachLabel: {
     fontFamily: "'DM Mono', 'SF Mono', monospace",
-    fontSize: 8,
+    fontSize: 9,
     letterSpacing: '0.16em',
     textTransform: 'uppercase',
-    color: '#e8341c',
+    color: 'var(--accent)',
     marginBottom: 5,
   },
   coachText: {
     fontFamily: "'Barlow Condensed', sans-serif",
     fontStyle: 'italic',
     fontSize: 14,
-    color: '#f5f5f0',
+    color: 'var(--text-dim)',
     lineHeight: '20px',
   },
 };

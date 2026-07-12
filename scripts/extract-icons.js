@@ -165,6 +165,28 @@ FLUENT_NAMES.push(
   "tired-face",
   "skull"
 );
+// Tab-bar emojicon icons (Premium Pass). fork-and-knife-with-plate (fuel) already pushed above.
+FLUENT_NAMES.push(
+  "alarm-clock",             // today
+  "person-lifting-weights",  // train + quick-log Lift
+  "chart-increasing",        // progress
+  "bust-in-silhouette"       // me
+);
+// Quick-log panel icons (Sub-step 3). Lift=person-lifting-weights, Food=fork-and-knife-with-plate (both above).
+FLUENT_NAMES.push(
+  "running-shoe",            // quick-log Run
+  "droplet"                  // quick-log Water
+);
+// Run-summary coach card glyphs. Fuel=fork-and-knife-with-plate already pushed above.
+FLUENT_NAMES.push(
+  "sleeping-face"            // rest/recovery card (flat-set equivalent of the 😴 rest-day glyph)
+);
+// Onboarding goal-card glyphs (ob_new.jsx case 24). flexed-biceps already pushed above (Build Muscle).
+FLUENT_NAMES.push(
+  "fire",                             // Lose Fat  (was 🔥)
+  "balance-scale",                    // Maintain  (was ⚖️)
+  "counterclockwise-arrows-button"    // Recomp    (was 🔄)
+);
 
 const TWEMOJI_NAMES = collectNames(TWEMOJI_FALLBACK_MAP, "twemoji");
 

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { T } from "./components.jsx";
 import { sb } from "./client.js";
 import { showToast } from "./utils/toast.js";
+import { ensureAIConsent } from "./services/aiConsent.js";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "";
 
@@ -720,6 +721,8 @@ export default function PhotoFoodLogger({ user, profile, onLog, onClose }) {
   async function handleAnalyze(description, base64Override) {
     const b64 = base64Override || capturedBase64;
     if (!b64) return;
+    // AI consent gate — a food photo goes to Anthropic. Off/declined → cancel (stay on preview).
+    if (!(await ensureAIConsent())) return;
     abortRef.current = false;
     setPhase("analyzing");
 

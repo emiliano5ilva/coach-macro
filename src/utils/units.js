@@ -37,7 +37,7 @@ export function displayDistance(km, units) {
 export function displayPace(secondsPerKm, units) {
   if (!secondsPerKm) return null;
   if (!isMetric(units)) {
-    const secPerMile = secondsPerKm * 1.60934;
+    const secPerMile = secondsPerKm * 1.609344;
     const m = Math.floor(secPerMile / 60);
     const s = Math.round(secPerMile % 60);
     return `${m}:${s.toString().padStart(2, '0')}/mi`;

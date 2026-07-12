@@ -1,23 +1,55 @@
 // ─── RUNNING PACE CALCULATION SYSTEM ─────────────────────────────────────────
 // All paces derived from a single number: the user's estimated 5K time in seconds.
 
-export const getPacesFromTime = (seconds5K) => {
-  if (!seconds5K || seconds5K <= 0) return null;
-  const pacePerMile = seconds5K / 3.1;
+import { vdotFromRaceTime, trainingPaces } from '../services/paceService.js';
+
+const KM_PER_MI = 1.609344;
+
+// Zone paces from a 5K time via the validated Daniels VDOT engine (paceService) — replaces the old
+// flat 5K-pace multipliers (which overshot the slow zones). Returns each zone as { secs(sec/mi),
+// display 'M:SS/mi' } — SAME shape as before so the run card + computeGoalPace(runPaces.tempo) are
+// unchanged. Bad/missing input → null (paces block hides; NaN can't render).
+export const getPacesFromTime = (raw) => {
+  // Robust parse — number → seconds; "MM:SS"/"H:MM:SS" → seconds; numeric string → Number; else null.
+  let seconds5K;
+  if (typeof raw === 'number') {
+    seconds5K = raw;
+  } else if (typeof raw === 'string' && raw.includes(':')) {
+    const p = raw.split(':').map(Number);
+    seconds5K = p.some(n => !isFinite(n)) ? NaN
+      : p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2]
+      : p.length === 2 ? p[0] * 60 + p[1]
+      : NaN;
+  } else {
+    seconds5K = Number(raw);
+  }
+  if (!isFinite(seconds5K) || seconds5K <= 0) return null;
+
+  const vdot = vdotFromRaceTime(5000, seconds5K / 60);
+  const tp = trainingPaces(vdot); // sec/km per zone
+  if (!tp || !isFinite(tp.easy)) return null;
+
   const fmt = (secs) => {
     const m = Math.floor(secs / 60);
     const s = Math.round(secs % 60);
     return s < 10 ? `${m}:0${s}` : `${m}:${s}`;
   };
+  // sec/km → sec/mi
+  const mi = (secPerKm) => secPerKm * KM_PER_MI;
+  const zone = (secPerKm) => ({ secs: mi(secPerKm), display: fmt(mi(secPerKm)) + '/mi' });
+
+  // maintenance = steady (between easy and tempo) — blend ~75% toward tempo's effort, in sec/km.
+  const maintenanceKm = tp.easy + (tp.tempo - tp.easy) * 0.5;
+
   return {
-    easy:        { secs: pacePerMile * 1.35, display: fmt(pacePerMile * 1.35) + '/mi' },
-    maintenance: { secs: pacePerMile * 1.25, display: fmt(pacePerMile * 1.25) + '/mi' },
-    tempo:       { secs: pacePerMile * 1.08, display: fmt(pacePerMile * 1.08) + '/mi' },
-    marathon:    { secs: pacePerMile * 1.15, display: fmt(pacePerMile * 1.15) + '/mi' },
-    interval5K:  { secs: pacePerMile * 0.98, display: fmt(pacePerMile * 0.98) + '/mi' },
-    interval1mi: { secs: pacePerMile * 0.95, display: fmt(pacePerMile * 0.95) + '/mi' },
-    longRun:     { secs: pacePerMile * 1.30, display: fmt(pacePerMile * 1.30) + '/mi' },
-    stride:      { secs: pacePerMile * 0.88, display: fmt(pacePerMile * 0.88) + '/mi' },
+    easy:        zone(tp.easy),
+    maintenance: zone(maintenanceKm),
+    tempo:       zone(tp.tempo),
+    marathon:    zone(tp.marathon),
+    interval5K:  zone(tp.interval),
+    interval1mi: zone(tp.rep),
+    longRun:     zone(tp.long),
+    stride:      zone(tp.rep),
   };
 };
 
@@ -59,7 +91,7 @@ export const updateRaceTime = (current5K, targetPaceSecs, actualPaceSecs, sessio
 // Derive goal pace (sec/mi) from a goal finish time + race distance.
 // Returns { secs, display } matching the paces object shape.
 // Falls back to tempo when goal time is missing or distance unknown.
-const RACE_DIST_MI = { '5k': 3.107, '10k': 6.214, 'half': 13.109, 'marathon': 26.219, 'general': null };
+const RACE_DIST_MI = { '5k': 3.106856, '10k': 6.213712, 'half': 13.109375, 'marathon': 26.21875, 'general': null };
 
 export const computeGoalPace = (goalTimeSecs, raceDistance, fallbackTempo) => {
   const distMi = RACE_DIST_MI[raceDistance];

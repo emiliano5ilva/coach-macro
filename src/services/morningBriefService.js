@@ -1,4 +1,4 @@
-import { sb, ai } from '../client';
+import { sb } from '../client';
 import { getTodayInsights } from './validationService.js';
 import { recallApplicableLearnings } from './coachMemoryService.js';
 import { getHyroxPhase } from './hyroxPeriodisationService.js';
@@ -15,16 +15,40 @@ import { computeLoadMetrics } from './trainingLoadService.js';
 import { predictSoreness } from './domsLearningService.js';
 import { getCycleAdjustment } from './cyclePatternService.js';
 import { getWeatherPaceAdjustment } from './weatherService.js';
+import { resolveProgram } from '../utils/programResolver.js';
+import { selectDayKey, baseName } from '../programs.js';
+
+// Race a promise against a timeout so a hanging network call (geolocation/weather/DB) degrades to
+// a fallback instead of stalling brief generation forever. Never rejects (a rejection → fallback too).
+function withTimeout(promise, ms, fallback, label) {
+  let t;
+  const timeout = new Promise(resolve => { t = setTimeout(() => { console.warn('[brief] timeout:', label); resolve(fallback); }, ms); });
+  return Promise.race([
+    Promise.resolve(promise).then(v => v, () => fallback),
+    timeout,
+  ]).finally(() => clearTimeout(t));
+}
 
 export async function gatherBriefContext(userId) {
-  const { data: row } = await sb
-    .from('profiles')
-    .select('profile_data, wprefs, first_name, goal, skill_level, hyrox_race_date, hyrox_category, hyrox_experience, hyrox_weak_stations')
-    .eq('id', userId)
-    .maybeSingle();
+  const { data: row } = await withTimeout(
+    sb.from('profiles')
+      .select('profile_data, wprefs, first_name, goal, skill_level, hyrox_race_date, hyrox_category, hyrox_experience, hyrox_weak_stations, schedule, run_race_type, run_race_date, program_start_date')
+      .eq('id', userId)
+      .maybeSingle(),
+    6000, { data: null }, 'profiles');
 
   const p = row?.profile_data || {};
   const wp = row?.wprefs || {};
+  // Canonical program mode — SAME source the Today card (ob_screens2) and Train tab
+  // (sections.jsx) use, so the brief describes the program identically and can't be
+  // driven by the stale-sticky run_race_type. run_race_type/run_race_date are COLUMNS
+  // (not in profile_data), so fold them into the profile arg resolveProgram reads.
+  const _profileForResolve = { ...p, run_race_type: row?.run_race_type ?? null, run_race_date: row?.run_race_date ?? null };
+  const _resolved = resolveProgram(wp, _profileForResolve);
+  const _mode = _resolved.mode;
+  const _progName = (((_mode === 'lifting' || _mode === 'conditioning')
+    && _resolved.displayName && _resolved.displayName !== 'No program set')
+    ? _resolved.displayName : null) || wp.splitType || 'PPL';
   // Prefer dedicated columns over JSONB fallbacks
   const firstName = row?.first_name || p.name || 'Athlete';
   const goalVal   = row?.goal || (p.goal || '').toLowerCase() || 'build_muscle';
@@ -32,23 +56,35 @@ export async function gatherBriefContext(userId) {
 
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const todayKey = days[new Date().getDay()];
-  const schedule = wp.schedule || {};
+  const schedule = row?.schedule || wp.schedule || {};
   const dayFocus = wp.dayFocus || {};
   const todayType = schedule[todayKey] || 'rest';
-  const todayFocus = dayFocus[todayKey] || (todayType === 'rest' ? 'Rest' : 'Training');
+  let todayFocus = dayFocus[todayKey] || (todayType === 'rest' ? 'Rest' : 'Training');
+  // For lifting/conditioning, name the actual split day ("Lower") via the SAME selector
+  // the Today card/WeekStrip use (selectDayKey), so the brief agrees with the card.
+  // _WDAYS + the training-day count mirror NativeApp.jsx:932 exactly to guarantee the
+  // same daysPerWeek → same selectDayKey result (Object.values(schedule) would diverge
+  // on any non-weekday key). dayOffset 0 = today, matching the card's WeekStrip.
+  if ((_mode === 'lifting' || _mode === 'conditioning') && todayType === 'training') {
+    const _WDAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const _dpw = _WDAYS.filter(d => schedule[d] === 'training').length || 4;
+    const _psd = row?.program_start_date || null; // [B] never tenure startDate; selectDayKey bootstraps from null
+    const _dk = selectDayKey(wp.splitType, _dpw, schedule, _psd, 0);
+    if (_dk) todayFocus = baseName(_dk);
+  }
 
   const [{ data: lastWorkout }, { data: foodLogs }] = await Promise.all([
-    sb.from('workout_logs')
+    withTimeout(sb.from('workout_logs')
       .select('date, workout')
       .eq('user_id', userId)
       .order('date', { ascending: false })
       .limit(1)
-      .maybeSingle(),
-    sb.from('food_logs')
+      .maybeSingle(), 5000, { data: null }, 'lastWorkout'),
+    withTimeout(sb.from('food_logs')
       .select('date, entries')
       .eq('user_id', userId)
       .gte('date', (() => { const d = new Date(); d.setDate(d.getDate() - 14); return d.toISOString().split('T')[0]; })())
-      .order('date', { ascending: false }),
+      .order('date', { ascending: false }), 5000, { data: [] }, 'foodLogs'),
   ]);
 
   const todayStr = new Date().toISOString().split('T')[0];
@@ -78,26 +114,28 @@ export async function gatherBriefContext(userId) {
 
   const goalNames = { build_muscle:'Build Muscle', get_stronger:'Get Stronger', lose_fat:'Lose Fat', recomp:'Body Recomposition', train_for_race:'Train for a Race', get_faster:'Get Faster' };
 
-  const isHyrox = !!(wp.isHyrox || row?.hyrox_race_date);
+  const isHyrox = (_mode === 'hyrox' || _mode === 'hybrid-hyrox');
   const hyroxRaceDate = wp.hyroxRaceDate || row?.hyrox_race_date || null;
   const hyroxPhase = hyroxRaceDate ? getHyroxPhase(hyroxRaceDate) : null;
   const runRaceDate = row?.run_race_date || wp.runRaceDate || null;
-  const runPhase = runRaceDate ? getRunningPhase(runRaceDate) : null;
+  const runPhase = (_mode === 'running' && runRaceDate) ? getRunningPhase(runRaceDate) : null;
   const strengthCompDate = row?.strength_comp_date || wp.strengthCompDate || null;
   const strengthPhase = strengthCompDate ? getStrengthPhase(strengthCompDate) : null;
 
+  // Each enrichment is timeout-guarded → a hanging/slow service degrades to its fallback instead
+  // of stalling the whole gather (every ctx field has a template fallback, so absence is safe).
   const [activeDeload, upcomingDeload, plateaus, latestBalance, recentAdjs, rpeTrends, nutritionProtocol, todayCheckinRow, adaptiveProfileRow, rawValidationInsights, yWorkoutRow] = await Promise.all([
-    getActiveDeload(userId).catch(() => null),
-    getUpcomingDeload(userId).catch(() => null),
-    getActivePlateaus(userId).catch(() => []),
-    getLatestBalance(userId).catch(() => null),
-    getRecentAdjustments(userId).catch(() => []),
-    analyseRPETrends(userId).catch(() => null),
-    getTodayNutritionProtocol(userId).catch(() => null),
-    sb.from('morning_checkins').select('*').eq('user_id', userId).eq('date', todayStr).maybeSingle().then(r=>r.data).catch(()=>null),
-    sb.from('profiles').select('adaptive_profile').eq('id', userId).maybeSingle().then(r=>r.data?.adaptive_profile).catch(()=>null),
-    getTodayInsights(userId).catch(() => []),  // cached daily — fast SELECT
-    sb.from('workout_logs').select('date,workout,pr_count,volume_lbs,session_duration_mins').eq('user_id', userId).eq('date', yesterdayStr).maybeSingle().then(r=>r.data).catch(()=>null),
+    withTimeout(getActiveDeload(userId).catch(() => null), 4000, null, 'activeDeload'),
+    withTimeout(getUpcomingDeload(userId).catch(() => null), 4000, null, 'upcomingDeload'),
+    withTimeout(getActivePlateaus(userId).catch(() => []), 4000, [], 'plateaus'),
+    withTimeout(getLatestBalance(userId).catch(() => null), 4000, null, 'latestBalance'),
+    withTimeout(getRecentAdjustments(userId).catch(() => []), 4000, [], 'recentAdjs'),
+    withTimeout(analyseRPETrends(userId).catch(() => null), 4000, null, 'rpeTrends'),
+    withTimeout(getTodayNutritionProtocol(userId).catch(() => null), 4000, null, 'nutritionProtocol'),
+    withTimeout(sb.from('morning_checkins').select('*').eq('user_id', userId).eq('date', todayStr).maybeSingle().then(r=>r.data).catch(()=>null), 4000, null, 'morningCheckin'),
+    withTimeout(sb.from('profiles').select('adaptive_profile').eq('id', userId).maybeSingle().then(r=>r.data?.adaptive_profile).catch(()=>null), 4000, null, 'adaptiveProfile'),
+    withTimeout(getTodayInsights(userId).catch(() => []), 4000, [], 'todayInsights'),
+    withTimeout(sb.from('workout_logs').select('date,workout,pr_count,volume_lbs,session_duration_mins').eq('user_id', userId).eq('date', yesterdayStr).maybeSingle().then(r=>r.data).catch(()=>null), 4000, null, 'yWorkout'),
   ]);
   const balanceCorrections = latestBalance ? getBalanceCorrections(latestBalance) : [];
 
@@ -122,7 +160,7 @@ export async function gatherBriefContext(userId) {
     primaryGoal: goalNames[p.primaryGoal || goal] || (p.primaryGoal || goal),
     todayFocus,
     todayType,
-    splitType: wp.splitType || 'PPL',
+    splitType: _progName,
     weekNum: Math.floor(Math.max(0, (new Date() - startD) / 86400000) / 7) + 1,
     lastSession: lastWorkout
       ? `${lastWorkout.workout?.focus || 'Workout'} on ${new Date(lastWorkout.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' })}`
@@ -207,7 +245,7 @@ export async function gatherBriefContext(userId) {
   try {
     const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowKey = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][tomorrow.getDay()];
-    const tomorrowType = (wp.schedule || {})[tomorrowKey] || 'rest';
+    const tomorrowType = (row?.schedule || wp.schedule || {})[tomorrowKey] || 'rest';
     const tomorrowFocus = (wp.dayFocus || {})[tomorrowKey] || null;
     const tomorrowSession = tomorrowType === 'training' ? { type: tomorrowFocus || 'Strength', exercises: null } : null;
     ctx.preLoadingNote = getPreLoadingNote(tomorrowSession, p);
@@ -215,7 +253,7 @@ export async function gatherBriefContext(userId) {
 
   // Protein distribution — food_logs has calories/protein inside entries JSONB, not top-level
   try {
-    const { data: recentFoodRows } = await sb.from('food_logs').select('date,entries').eq('user_id', userId).order('date', { ascending: false }).limit(7);
+    const { data: recentFoodRows } = await withTimeout(sb.from('food_logs').select('date,entries').eq('user_id', userId).order('date', { ascending: false }).limit(7), 4000, { data: [] }, 'proteinHistory');
     const foodHistoryRows = (recentFoodRows || []).map(r => ({
       date: r.date,
       calories: (r.entries||[]).reduce((s,e)=>s+(e.calories||0),0),
@@ -227,7 +265,7 @@ export async function gatherBriefContext(userId) {
 
   // DOMS predictions
   try {
-    const { data: recentLogsForDoms } = await sb.from('workout_logs').select('date,workout').eq('user_id', userId).order('date', { ascending: false }).limit(30);
+    const { data: recentLogsForDoms } = await withTimeout(sb.from('workout_logs').select('date,workout').eq('user_id', userId).order('date', { ascending: false }).limit(30), 4000, { data: [] }, 'domsLogs');
     const domsProfile = adaptiveProfileRow?.domsProfile ?? null;
     const domsPreds = predictSoreness(recentLogsForDoms ?? [], domsProfile, 1);
     ctx.domsPredictions = Object.entries(domsPreds)
@@ -250,19 +288,21 @@ export async function gatherBriefContext(userId) {
   ctx.weatherNote = null;
   try {
     const tomorrowKeyW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(Date.now()+864e5).getDay()];
-    const tomorrowTypeW = (wp.schedule || {})[tomorrowKeyW] || 'rest';
+    const tomorrowTypeW = (row?.schedule || wp.schedule || {})[tomorrowKeyW] || 'rest';
     const isRunDay = tomorrowTypeW === 'training' || todayType === 'training';
     if (isRunDay && (wp.isHybrid || wp.isHyrox || (wp.splitType||'').toLowerCase().includes('run'))) {
-      const coords = await new Promise(resolve => {
+      // getCurrentPosition's `timeout` does NOT run while a WKWebView permission prompt is pending,
+      // so it can hang forever — race it against a hard outer timeout that resolves to null.
+      const coords = await withTimeout(new Promise(resolve => {
         if (!navigator?.geolocation) { resolve(null); return; }
         navigator.geolocation.getCurrentPosition(
           pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
           () => resolve(null),
           { timeout: 4000, maximumAge: 3600000 }
         );
-      });
+      }), 4500, null, 'geolocation');
       if (coords) {
-        const weather = await getWeatherPaceAdjustment(coords.lat, coords.lon).catch(() => null);
+        const weather = await withTimeout(getWeatherPaceAdjustment(coords.lat, coords.lon).catch(() => null), 4000, null, 'weather');
         ctx.weatherNote = weather?.note ?? null;
       }
     }
@@ -284,213 +324,219 @@ export async function gatherBriefContext(userId) {
   return ctx;
 }
 
-export async function generateBriefContent(ctx) {
-  const yNutLine = ctx.yesterdayNutrition
-    ? `${Math.round(ctx.yesterdayNutrition.calories)} kcal, ${Math.round(ctx.yesterdayNutrition.protein)}g protein logged`
-    : 'no nutrition logged';
-  const yWorkLine = ctx.yesterdayWorkout
-    ? `${ctx.yesterdayWorkout.focus} session${ctx.yesterdayWorkout.prCount > 0 ? ` (${ctx.yesterdayWorkout.prCount} PR${ctx.yesterdayWorkout.prCount > 1 ? 's' : ''})` : ''}${ctx.yesterdayWorkout.volumeLbs > 0 ? ` — ${(ctx.yesterdayWorkout.volumeLbs / 1000).toFixed(1)}k lbs` : ''}`
-    : 'rest day (no workout logged)';
-  const yNote = `Yesterday: ${yWorkLine}. Nutrition: ${yNutLine}.`;
+export function buildBriefFromTemplate(ctx) {
+  // Local, deterministic morning brief — composes the SAME 6-field shape the UI renders, from the
+  // structured ctx, with day-of-year-rotated phrasing variants (stable within a day, fresh across
+  // days). No network AI. Personality-ready: every line composes into a var, so a later
+  // adaptMessageSync(says/tip, profile, {scenario:'morning_brief'}) wrap is a one-liner.
+  const c = ctx || {};
+  const name = c.name || 'Athlete';
+  const tier = (c.liftExp || 'intermediate').toLowerCase();
+  const macros = c.macros || {};
+  const cals = macros.calories || 2200;
+  const protG = macros.protein || 150;
 
-  const fatigueBlock = ctx.fatigueLevel === 'high'
-    ? `FATIGUE ALERT: This athlete is showing high fatigue signals from RPE trending data${ctx.fatigueExercises?.length ? ` (affected: ${ctx.fatigueExercises.join(', ')})` : ''}. Coach Says MUST recommend backing off intensity today or taking a rest day. Do NOT recommend pushing hard.`
-    : ctx.fatigueLevel === 'medium'
-      ? `MILD FATIGUE: RPE is trending up slightly${ctx.fatigueExercises?.length ? ` on ${ctx.fatigueExercises.join(', ')}` : ''}. Coach Says should mention monitoring effort today and backing off if needed.`
-      : '';
+  // Deterministic rotation by day-of-year (UTC); per-field offset so fields don't rotate in lockstep.
+  const now = new Date();
+  const doy = Math.floor((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - Date.UTC(now.getFullYear(), 0, 0)) / 86400000);
+  const pick = (arr, off = 0) => arr[(doy + off) % arr.length];
 
-  const adjustmentBlock = ctx.lastAdjustment
-    ? ctx.lastAdjustment.action === 'advance'
-      ? `NOTE: Program was advanced to Week ${ctx.lastAdjustment.new_week} based on strong performance signals. Mention this briefly in today section — athlete is ahead of schedule.`
-      : `NOTE: Program week was repeated (Week ${ctx.lastAdjustment.new_week}) due to: ${ctx.lastAdjustment.reason}. Reference this in today section — frame it as smart training, not failure.`
-    : '';
+  // ── greeting — time-of-day bucket + name ──────────────────────────────────
+  const hr = now.getHours();
+  const bucket = hr < 5 ? 'late' : hr < 12 ? 'morning' : hr < 17 ? 'midday' : hr < 22 ? 'evening' : 'late';
+  const GREET = {
+    morning: [`Morning, ${name}.`, `Rise and grind, ${name}.`, `Good morning, ${name}.`, `Up and at it, ${name}.`],
+    midday:  [`Afternoon, ${name}.`, `Midday check-in, ${name}.`, `Hey ${name} — let's get into it.`, `Good afternoon, ${name}.`],
+    evening: [`Evening, ${name}.`, `Good evening, ${name}.`, `Hey ${name} — let's close the day strong.`, `Evening check-in, ${name}.`],
+    late:    [`Up early, ${name}?`, `Burning the candle, ${name}.`, `Hey ${name}.`, `Quiet hours, ${name}.`],
+  };
+  const greeting = pick(GREET[bucket], 0);
 
-  const runningBlock = ctx.runPhase
-    ? `RUNNING CONTEXT:\nPhase: ${ctx.runPhase}\nWeeks to race: ${ctx.runWeeksToRace}\nFocus workout type: ${ctx.runFocusWorkout || 'easy run'}\nCoach Says should reflect the current running phase and what matters most right now.`
-    : '';
+  // ── yesterday — workout recap (PRs/volume) vs rest; fold in nutrition ──────
+  const yw = c.yesterdayWorkout;
+  const yn = c.yesterdayNutrition;
+  const nutBit = yn ? `${Math.round(yn.calories)} kcal and ${Math.round(yn.protein)}g protein` : null;
+  let yesterday;
+  if (yw) {
+    const pr = yw.prCount > 0 ? ` with ${yw.prCount} PR${yw.prCount > 1 ? 's' : ''}` : '';
+    const vol = yw.volumeLbs > 0 ? ` — ${(yw.volumeLbs / 1000).toFixed(1)}k lbs moved` : '';
+    const base = pick([
+      `Yesterday you put in a ${yw.focus} session${pr}${vol}.`,
+      `${yw.focus} was on the menu yesterday${pr}${vol}.`,
+      `You logged ${yw.focus} yesterday${pr}${vol}.`,
+    ], 1);
+    const nut = nutBit
+      ? pick([` Fuel: ${nutBit} logged.`, ` On the plate: ${nutBit}.`, ` You hit ${nutBit}.`], 2)
+      : pick([` Nutrition wasn't logged, though.`, ` No food logged to back it up.`], 2);
+    yesterday = base + nut;
+  } else {
+    const base = pick([
+      `Yesterday was a rest day — exactly when the work starts paying off.`,
+      `Rest day yesterday. That's where the growth actually happens.`,
+      `You rested yesterday — recovery is part of the plan, not a break from it.`,
+    ], 1);
+    yesterday = base + (nutBit ? pick([` Fuel: ${nutBit} logged.`, ` You still logged ${nutBit}.`], 2) : '');
+  }
 
-  const strengthCompBlock = ctx.strengthPhase
-    ? `STRENGTH COMPETITION CONTEXT:\nPhase: ${ctx.strengthPhase}\nWeeks to competition: ${ctx.strengthWeeksToComp}\nRep range focus: ${ctx.strengthRepRange || '4-6'}\nCoach Says should reflect the current strength phase — what to prioritise in training.`
-    : '';
+  // ── today — rest vs training + focus/phase + macro priority ────────────────
+  const isRest = c.todayType === 'rest';
+  const restWord = tier === 'beginner' ? 'rest week' : 'deload';
+  let today;
+  if (isRest) {
+    today = pick([
+      `Today's a rest day. Hit ${cals} kcal and ${protG}g protein to fuel recovery — light movement only if you feel like it.`,
+      `Rest day today. Keep protein near ${protG}g and let the body rebuild — that's the job.`,
+      `No training today. Prioritise ${protG}g protein, real food, and good sleep. Recovery is the work.`,
+    ], 3);
+  } else {
+    const focus = (c.todayFocus && c.todayFocus !== 'Training') ? c.todayFocus : (c.splitType || 'training');
+    const phaseLine = c.runPhase
+      ? ` You're in the ${c.runPhase} block${c.runWeeksToRace ? `, ${c.runWeeksToRace}w to race` : ''} — ${c.runFocusWorkout || 'keep it controlled'}.`
+      : (c.isHyrox && c.hyroxPhase)
+        ? ` Hyrox ${c.hyroxPhase}${c.weeksToRace ? `, ${c.weeksToRace}w out` : ''}${c.hyroxWeakStations?.length ? ` — sharpen ${c.hyroxWeakStations[0]}` : ''}.`
+        : c.strengthPhase
+          ? ` Strength ${c.strengthPhase}${c.strengthWeeksToComp ? `, ${c.strengthWeeksToComp}w to comp` : ''}${c.strengthRepRange ? ` — live in the ${c.strengthRepRange} range` : ''}.`
+          : '';
+    const deloadBit = c.isDeloadWeek ? ` It's a ${restWord} — lighter on purpose; keep the movement clean and let the adaptations land.` : '';
+    const base = pick([
+      `Today is ${focus}. Lock in ${cals} kcal and ${protG}g protein to back it up.`,
+      `${focus} on deck. Spread ${protG}g protein across the day and aim for ${cals} kcal.`,
+      `It's ${focus} today. Targets: ${cals} kcal, ${protG}g protein. Show up and earn it.`,
+    ], 3);
+    today = base + phaseLine + deloadBit;
+  }
 
-  const nutritionBlock = ctx.nutritionProtocol && ctx.nutritionProtocol !== 'standard'
-    ? ctx.nutritionProtocol === 'refeed'
-      ? `NUTRITION: Today is a REFEED DAY (${ctx.adjustedCalories} kcal). Briefly mention this in yesterday or coach_says — frame it as a metabolism reset, not a cheat day.`
-      : ctx.nutritionProtocol === 'carb_load'
-        ? `NUTRITION: Tomorrow is race day — today is a CARB LOADING day (${ctx.adjustedCalories} kcal). Reference this in today section — top up glycogen, go easy on fat.`
-        : ctx.nutritionProtocol === 'race_day'
-          ? `NUTRITION: RACE DAY. Targets are high-carb (${ctx.adjustedCalories} kcal). Reference this in today and coach_says.`
-          : ctx.nutritionProtocol === 'training_day'
-            ? `NUTRITION: Calorie cycling active — training day boost to ${ctx.adjustedCalories} kcal. Mention extra fuel in today section.`
-            : ''
-    : '';
+  // ── coach_says — PRIORITY-PICK the single most relevant non-null signal ────
+  const A = c.weeklyAnalysis;
+  const ck = c.todayCheckin;
+  let says, tip;
+  if (A?.injuryRisk && A.injuryRisk !== 'low') {
+    says = pick([
+      `Your data's flagging injury risk${A.injuryNote ? ` — ${String(A.injuryNote).toLowerCase()}` : ''}. Dial the intensity back today and don't push through anything sharp.`,
+      `I'm seeing elevated injury risk in your numbers. Today is clean, controlled reps — not maxing out.`,
+      `Heads up: injury risk is trending up. Form and full recovery beat load right now.`,
+    ], 4);
+    tip = pick([`Form over load. Protect the body.`, `Nothing sharp today. Train smart.`, `Ease the intensity — stay healthy.`], 5);
+  } else if (c.fatigueLevel === 'high') {
+    const ex = c.fatigueExercises?.length ? ` (${c.fatigueExercises.join(', ')})` : '';
+    says = pick([
+      `Your effort's been creeping up${ex} — that's accumulated fatigue. Back off today or take it as recovery.`,
+      `The data says you're running low${ex}. Ease up today; pushing now just costs you later.`,
+      `Fatigue is high${ex}. The smart play today is lighter work or full rest — you've earned it.`,
+    ], 4);
+    tip = pick([`You're tired. Ease up today.`, `Recover hard. Push another day.`, `Back off — fatigue is real.`], 5);
+  } else if (ck && ck.readiness != null && ck.readiness <= 2) {
+    says = pick([
+      `You checked in low on readiness today. Listen to that — keep it light and let the tank refill.`,
+      `Readiness is down this morning. No hero sets; movement quality over numbers today.`,
+    ], 4);
+    tip = pick([`Low tank today. Keep it light.`, `Move well, don't grind.`], 5);
+  } else if (c.isDeloadWeek) {
+    says = pick([
+      `It's a ${restWord} — lighter on purpose. This is where the gains you've built actually lock in.`,
+      `Don't fight the ${restWord}. Easy work now means you come back stronger.`,
+      `${restWord === 'deload' ? 'Deload' : 'Rest'} week: quality of movement beats intensity. Trust it.`,
+    ], 4);
+    tip = pick([`Light on purpose. Let it lock in.`, `Easy week. Come back stronger.`, `Recover now. Build later.`], 5);
+  } else if (c.activePlateaus?.length) {
+    const p0 = c.activePlateaus[0];
+    says = pick([
+      `${p0.exercise} has stalled — time to switch it up with ${p0.strategy}. The same approach won't break it.`,
+      `You're plateaued on ${p0.exercise}. ${p0.strategy} is how you get it moving again.`,
+    ], 4);
+    tip = pick([`Break the ${p0.exercise} plateau today.`, `New approach on ${p0.exercise}.`], 5);
+  } else if (c.topValidation) {
+    says = c.topValidation.message + (c.topValidation.recommendation ? ` ${c.topValidation.recommendation}` : '');
+    tip = pick([`One fix today: act on the data.`, `Small change, big difference. Do it.`], 5);
+  } else if (c.streak >= 3) {
+    says = pick([
+      `${c.streak} days logged in a row — that consistency is the whole game. Keep the chain alive.`,
+      `${c.streak}-day streak. Momentum like this is exactly what gets results — don't break it today.`,
+      `You've logged ${c.streak} straight days. That's the habit doing the heavy lifting.`,
+    ], 4);
+    tip = pick([`${c.streak} days strong. Keep it going.`, `Don't break the streak today.`, `Consistency's winning. Log today.`], 5);
+  } else if (c.sleepAvg && c.sleepAvg < 6.5) {
+    says = pick([
+      `Sleep's been short (~${c.sleepAvg}h). That's your recovery ceiling — protect tonight's sleep like a session.`,
+      `You're averaging ~${c.sleepAvg}h. More sleep does more for results than any extra set right now.`,
+    ], 4);
+    tip = pick([`Get to bed early. Sleep is training.`, `Protect your sleep tonight.`], 5);
+  } else if (c.proteinInsight?.message) {
+    says = c.proteinInsight.message;
+    tip = pick([`Nail your protein today.`, `Protein first. That's the job.`], 5);
+  } else if (c.hrvNote) {
+    says = `${c.hrvNote}. Let that guide how hard you go today.`;
+    tip = pick([`Let recovery set the pace.`, `Listen to the data today.`], 5);
+  } else if (c.domsPredictions?.length) {
+    const d0 = c.domsPredictions[0];
+    says = `Your ${d0.zone} is likely ${d0.status} today (~${d0.hoursToRecovery}h to recover). Train around it.`;
+    tip = pick([`Work around the soreness today.`, `Let sore muscles recover.`], 5);
+  } else if (c.weatherNote) {
+    says = c.weatherNote;
+    tip = pick([`Dress for the conditions. Adjust pace.`, `Plan around the weather today.`], 5);
+  } else if (c.memoryRecall?.suggestion) {
+    says = c.memoryRecall.suggestion;
+    tip = pick([`What worked before works again.`, `Lean on what's worked for you.`], 5);
+  } else if (isRest) {
+    says = pick([
+      `Nothing to prove today — recovery is where the work you've done turns into results.`,
+      `Rest is a weapon when you use it on purpose. Eat well, sleep well, come back hungry.`,
+      `The best athletes recover as hard as they train. Today's your day to do exactly that.`,
+    ], 4);
+    tip = pick([`Rest with intent. Refuel. Recharge.`, `Recover like it matters — it does.`, `Eat, sleep, grow.`], 5);
+  } else {
+    says = pick([
+      `Show up, do the work, trust the process — that's how every result you want gets built.`,
+      `No secrets today. Consistent effort on the basics is what moves the needle.`,
+      `One good session at a time. That's the whole strategy — go get this one.`,
+    ], 4);
+    tip = pick([`Show up. Do the work.`, `Earn it today.`, `One solid session. Go.`], 5);
+  }
 
-  const hyroxBlock = ctx.isHyrox && ctx.hyroxPhase
-    ? `- HYROX: ${ctx.weeksToRace}w to race | Phase: ${ctx.hyroxPhase}${ctx.hyroxWeakStations?.length ? ` | Weak stations: ${ctx.hyroxWeakStations.join(', ')}` : ''}${ctx.hyroxCategory ? ` | Category: ${ctx.hyroxCategory}` : ''}`
-    : '';
-
-  const goalTimelineBlock = ctx.goalTimeline
-    ? `GOAL DEADLINE: Athlete wants to achieve their goal within ${ctx.goalTimeline}. Reference this timeline in today or coach_says if relevant — create a sense of productive urgency without pressure.`
-    : '';
-
-  const femaleHealthBlock = ctx.sex === 'female' && (ctx.menopauseSymptoms?.length || ctx.cycleCondition)
-    ? `FEMALE HEALTH CONTEXT:${ctx.cycleCondition ? ` Cycle condition: ${ctx.cycleCondition}.` : ''}${ctx.menopauseSymptoms?.length ? ` Menopause symptoms: ${ctx.menopauseSymptoms.join(', ')}.` : ''} Tailor coach_says to acknowledge these factors — recovery, energy variability, and appropriate intensity. Be supportive and science-informed, not generic.`
-    : '';
-
-  const strengthWeightClassBlock = ctx.strengthWeightClass
-    ? `STRENGTH COMPETITION: Weight class target: ${ctx.strengthWeightClass}${ctx.strengthCompType ? ` | Type: ${ctx.strengthCompType}` : ''}${ctx.strengthCompFederation ? ` | Federation: ${ctx.strengthCompFederation}` : ''}. If relevant, briefly mention weight management or competition prep context.`
-    : '';
-
-  const deloadBlock = ctx.isDeloadWeek
-    ? `IMPORTANT: This is a DELOAD WEEK. Today section should reference the lighter training and explain why it is productive not lazy. Coach Says should focus on quality of movement not intensity. Deload weeks are where the adaptations set in.`
-    : ctx.deloadIncoming
-      ? `NOTE: A deload week starts on ${ctx.deloadStartDate}. You may briefly reference this if relevant to recovery context.`
-      : '';
-
-  const muscleImbalanceBlock = ctx.muscleImbalance
-    ? `MUSCLE BALANCE ALERT:\n${ctx.muscleImbalance === 'push_pull'
-        ? 'Push volume significantly exceeds pull volume. If today is a push session suggest adding a pull exercise.'
-        : 'Quad volume significantly exceeds posterior chain. If today is legs suggest adding Romanian deadlifts.'}\nSeverity: ${ctx.imbalanceSeverity}`
-    : '';
-
-  const plateauBlock = ctx.activePlateaus?.length > 0
-    ? `PLATEAU CONTEXT:\nThese lifts are currently stalled:\n${ctx.activePlateaus.map(p => `${p.exercise}: use ${p.strategy}`).join('\n')}\nIf today involves these exercises reference the plateau-breaking strategy in Coach Says.`
-    : '';
-
-  const skillTier = (ctx.liftExp || 'intermediate').toLowerCase();
-  const writingStyleBlock = skillTier === 'beginner'
-    ? `WRITING STYLE: This athlete is a BEGINNER. Write in plain everyday language — no jargon. Never say "deload", "RPE", "periodisation", "hypertrophy", "TDEE", "progressive overload", or similar technical terms. Instead say "rest week", "how hard the workout felt", "your eating plan", "building muscle", "calorie target", "gradually adding weight". Keep it warm, encouraging, and simple. Explain the why in plain English.`
-    : skillTier === 'advanced'
-      ? `WRITING STYLE: This is an ADVANCED athlete. Use precise coaching language — RPE, deload, hypertrophy, progressive overload, periodisation are all fine. Be concise and data-driven. Skip motivational fluff.`
-      : `WRITING STYLE: This is an INTERMEDIATE athlete. Use standard coaching terms but briefly clarify any technical concepts when relevant. Be direct and data-informed.`;
-
-  // ── Adaptive coaching block ────────────────────────────────────────────────
-  const checkin = ctx.todayCheckin;
-  const analysis = ctx.weeklyAnalysis;
-  const adaptiveBlock = (checkin || analysis) ? `
-ADAPTIVE COACHING DATA:
-${JSON.stringify({
-  todayReadiness: checkin?.readiness ?? null,
-  soreness: checkin ? {
-    level: checkin.overall_soreness,
-    primaryAreas: checkin.primary_soreness,
-    secondaryAreas: checkin.secondary_soreness,
-  } : null,
-  weeklyAnalysis: analysis ? {
-    status: analysis.trainingStatus,
-    insight: analysis.keyInsight,
-    nutritionNote: analysis.nutritionInsight,
-    morningNote: analysis.morningBriefNote,
-    focusAreas: analysis.focusNextWeek,
-    deloadRecommended: analysis.deloadRecommended,
-    injuryRisk: analysis.injuryRisk,
-    injuryNote: analysis.injuryNote,
-  } : null,
-}, null, 2)}
-
-Use this data to make the brief feel like a real coach who knows this athlete intimately. Reference soreness by muscle name if reported. Acknowledge what is progressing. Be specific about today's session adjustments. Never be generic.` : '';
-
-  // Daily data-signal block — only for high/severe validated findings
-  const validationBlock = ctx.topValidation
-    ? `\n\nDAILY DATA SIGNAL (${ctx.topValidation.priority.toUpperCase()}, ${ctx.topValidation.confidence}% confidence):
-${ctx.topValidation.message}
-Suggested action: ${ctx.topValidation.recommendation}
-INSTRUCTION: Weave this into coach_says as ONE sharp, specific line spoken like a coach who noticed this in the data. Do NOT present it as a system alert or list it separately. Example: "Protein only hit 40% of days this week — that's the gap between good and great right now." Keep the rest of the brief tight.`
-    : '';
-
-  // Coach memory block — only when there's applicable history
-  const memoryBlock = ctx.memoryRecall?.suggestion
-    ? `\n\nCOACH MEMORY — WHAT WORKED BEFORE:
-${ctx.memoryRecall.suggestion}${ctx.memoryRecall.pastExample?.intervention
-      ? `\nPreviously: ${ctx.memoryRecall.pastExample.intervention} → outcome: ${ctx.memoryRecall.pastExample.outcome} (${ctx.memoryRecall.pastExample.when})`
-      : ''}
-INSTRUCTION: If directly relevant today, add one sentence to coach_says in the style "last time X happened, Y made the difference." Only include if it genuinely applies — don't force a callback. Never more than one sentence.`
-    : '';
-
-  // Training load block
-  const sixtyDaysAgo = (() => { const d=new Date(); d.setDate(d.getDate()-60); return d.toISOString().split('T')[0]; })();
-  const { data: { user: _loadUser } } = await sb.auth.getUser().catch(() => ({data:{user:null}}));
-  const { data: loadLogs } = _loadUser?.id
-    ? await sb.from('workout_logs').select('date,session_duration_mins,workout,volume_lbs').eq('user_id', _loadUser.id).gte('date', sixtyDaysAgo).order('date',{ascending:false}).limit(60)
-    : { data: [] };
-  const load = computeLoadMetrics(ctx._workoutLogs ?? loadLogs ?? []);
-  const tsbBlock = load.tsb < -20
-    ? `\n\nLOAD ALERT: Training stress balance is critically negative (TSB: ${load.tsb}). Athlete is likely overreached. Recommend recovery focus today.`
-    : (load.tsb > 10 && ctx.runProfile?.raceDate)
-    ? `\n\nFORM PEAK: Athlete is in optimal form (TSB: +${load.tsb}). Race-ready.`
-    : '';
-
-  const hrvBlock = ctx.hrvNote
-    ? `\n\nHRV NOTE: ${ctx.hrvNote}. Reference this in coach_says if it meaningfully affects today's training recommendation.`
-    : '';
-  const cycleBlock = ctx.cycleInsight
-    ? `\n\nCYCLE INSIGHT: ${ctx.cycleInsight} Reference this in session framing.`
-    : '';
-
-  const domsBlock = ctx.domsPredictions?.length
-    ? `\n\nDOMS PREDICTIONS: Based on this athlete's personal soreness timeline:\n${ctx.domsPredictions.map(d => `${d.zone}: ${d.status}, recovers in ~${d.hoursToRecovery}h`).join(', ')}\nReference this when recommending today's focus.`
-    : '';
-
-  const weatherBlock = ctx.weatherNote
-    ? `\n\nWEATHER NOTE: ${ctx.weatherNote} Warn the athlete explicitly in coach_says before they head out.`
-    : '';
-  const preLoadBlock = ctx.preLoadingNote
-    ? `\n\nTONIGHT'S NUTRITION NOTE: ${ctx.preLoadingNote.message} Adjust the evening meal recommendation accordingly.`
-    : '';
-  const proteinBlock = ctx.proteinInsight
-    ? `\n\nPROTEIN INSIGHT: ${ctx.proteinInsight.message}`
-    : '';
-
-  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.\n\n${writingStyleBlock}${deloadBlock ? `\n\n${deloadBlock}` : ''}${fatigueBlock ? `\n\n${fatigueBlock}` : ''}${adjustmentBlock ? `\n\n${adjustmentBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}${nutritionBlock ? `\n\n${nutritionBlock}` : ''}${runningBlock ? `\n\n${runningBlock}` : ''}${strengthCompBlock ? `\n\n${strengthCompBlock}` : ''}${goalTimelineBlock ? `\n\n${goalTimelineBlock}` : ''}${femaleHealthBlock ? `\n\n${femaleHealthBlock}` : ''}${strengthWeightClassBlock ? `\n\n${strengthWeightClassBlock}` : ''}${adaptiveBlock}${validationBlock}${memoryBlock}${tsbBlock}${hrvBlock}${cycleBlock}${domsBlock}${weatherBlock}${preLoadBlock}${proteinBlock}
-
-Context:
-- Name: ${ctx.name}
-- Goal: ${ctx.primaryGoal}
-- Experience level: ${skillTier}
-- Today: ${ctx.todayFocus} (${ctx.todayType === 'rest' ? 'rest day' : 'training day'}) — Week ${ctx.weekNum} of ${ctx.splitType}
-- Last session: ${ctx.lastSession}
-- Today's targets: ${ctx.macros.calories} kcal | ${ctx.macros.protein}g protein | ${ctx.macros.carbs}g carbs | ${ctx.macros.fat}g fat
-- Logging streak: ${ctx.streak} days
-- Sleep: ${ctx.sleepAvg}h avg
-- ${yNote}${hyroxBlock ? `\n- ${hyroxBlock}` : ''}
-
-Return ONLY valid JSON:
-{
-  "greeting": "Short punchy greeting using their first name (1 sentence)",
-  "yesterday": "Yesterday recap — session or rest, nutrition hit or miss (1-2 sentences, specific numbers if available)",
-  "today": "Today's focus — specific target, key lift or macro priority aligned to their goal (2-3 sentences)",
-  "coach_says": "One sharp insight based on their data — streak, sleep, pattern, or momentum (1-2 sentences)",
-  "coach_tip": "ONE short punchy sentence (max 12 words). What a real coach would say to this athlete before their session. Direct. No fluff. Examples: 'Focus on form over load today.' / 'Heavy today. Earn it.' / 'Your body is recovered. Push.' / 'Nail your protein today — that is the job.'",
-  "sign_off": "— Coach Macro"
+  return { greeting, yesterday, today, coach_says: says, coach_tip: tip, sign_off: '— Coach Macro' };
 }
 
-Direct. Specific. Like a real coach texting. No generic phrases.`;
-
-  const raw = await ai(prompt, 600, 'morning_brief');
-  const match = raw.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error('No JSON in AI response');
-  return JSON.parse(match[0]);
+// Pure template engine — NO network ai() in the path (the ai() brief failed system-wide since
+// 2026-06-26). Same 6-field shape; getMorningBrief caches it identically (one per user per day).
+export async function generateBriefContent(ctx) {
+  return buildBriefFromTemplate(ctx);
 }
 
 export async function getMorningBrief(userId) {
+  console.log('[brief] getMorningBrief called for', userId);
   const todayStr = new Date().toISOString().split('T')[0];
 
-  const { data: cached } = await sb
-    .from('morning_briefs')
-    .select('content')
-    .eq('user_id', userId)
-    .eq('brief_date', todayStr)
-    .maybeSingle();
+  const { data: cached } = await withTimeout(
+    sb.from('morning_briefs').select('content').eq('user_id', userId).eq('brief_date', todayStr).maybeSingle(),
+    5000, { data: null }, 'cacheRead');
 
-  if (cached?.content) return cached.content;
+  if (cached?.content) { console.log('[brief] cache hit'); return cached.content; }
 
+  console.log('[brief] no cache — gathering context…');
   const ctx = await gatherBriefContext(userId).catch(e => { console.error('[brief] gatherBriefContext threw:',e?.message,e); throw e; });
-  const content = await generateBriefContent(ctx).catch(e => { console.error('[brief] generateBriefContent threw:',e?.message,e); throw e; });
+  console.log('[brief] gather done');
 
-  await sb.from('morning_briefs').upsert(
-    { user_id: userId, brief_date: todayStr, content, generated_at: new Date().toISOString() },
-    { onConflict: 'user_id,brief_date' }
-  );
+  // Template build — log any throw (a real-ctx null a variant didn't guard) so it's visible.
+  let content;
+  try {
+    content = buildBriefFromTemplate(ctx);
+  } catch (e) {
+    console.error('[brief] buildBriefFromTemplate threw:', e?.message, e);
+    throw e;
+  }
+  console.log('[brief] template done');
+
+  // Cache write — surface (don't swallow) a write failure; still return the brief either way.
+  try {
+    const { error: upErr } = await withTimeout(sb.from('morning_briefs').upsert(
+      { user_id: userId, brief_date: todayStr, content, generated_at: new Date().toISOString() },
+      { onConflict: 'user_id,brief_date' }
+    ), 6000, { error: { message: 'upsert timeout' } }, 'cacheWrite');
+    if (upErr) console.error('[brief] morning_briefs upsert error:', upErr.message, upErr);
+    else console.log('[brief] cached');
+  } catch (e) {
+    console.error('[brief] morning_briefs upsert threw:', e?.message, e);
+  }
 
   return content;
 }

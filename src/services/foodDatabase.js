@@ -149,10 +149,11 @@ const getNutrient = (nutrients, nutrientId) => {
 
 const searchUSDA = async (query) => {
   try {
-    // Static `import.meta.env.VITE_API_BASE` (no `?.`) so Vite replaces just this key at build
+    // Static `import.meta.env.VITE_API_BASE` (no `?.`) so Vite replaces just these keys at build
     // time instead of materializing the whole import.meta.env object into the bundle (which would
     // dump every VITE_* var — secrets included). Outer typeof guard covers non-ESM contexts.
-    const API_BASE = typeof import.meta !== "undefined" ? (import.meta.env.VITE_API_BASE || "") : "";
+    // Fall back to VITE_API_BASE_URL (what client.js uses) — .env.local only sets the _URL variant.
+    const API_BASE = typeof import.meta !== "undefined" ? (import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_BASE_URL || "") : "";
     const res = await fetch(`${API_BASE}/api/food-search-usda?query=${encodeURIComponent(query)}`, {
       signal: AbortSignal.timeout(6000),
     });
@@ -164,10 +165,14 @@ const searchUSDA = async (query) => {
       .map(food => ({
         id: `usda_${food.fdcId}`,
         source: "usda",
+        fdcId: food.fdcId,                                       // raw id → on-tap detail fetch for household measures
         name: food.description,
         brand: food.brandOwner || null,
         servingSize: 100,
         servingUnit: "g",
+        servingQuantity: null,                                   // USDA search has no household serving
+        category: food.foodCategory || null,
+        isLiquid: /beverage/i.test(food.foodCategory || ""),     // USDA "Beverages" category → liquid
         calories: getNutrient(food.foodNutrients, 1008),
         protein: getNutrient(food.foodNutrients, 1003),
         carbs: getNutrient(food.foodNutrients, 1005),
@@ -182,24 +187,53 @@ const searchUSDA = async (query) => {
   }
 };
 
+// Fetch USDA household/count measures for one food (on tap). Returns [{label, grams}]
+// or [] on any failure / no portions / non-USDA food — the caller falls back to the
+// existing grams/oz/serving units. Partial coverage: USDA foods with defined portions
+// only. Full universal count/unit coverage = Nutritionix post-revenue upgrade (v2).
+// NOTE: requires the /api/food-detail-usda proxy to be DEPLOYED — no-op until then.
+export const getUsdaFoodDetail = async (fdcId) => {
+  if (!fdcId) return [];
+  try {
+    const API_BASE = typeof import.meta !== "undefined" ? (import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_BASE_URL || "") : "";
+    const res = await fetch(`${API_BASE}/api/food-detail-usda?fdcId=${encodeURIComponent(fdcId)}`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.portions) ? data.portions : [];
+  } catch {
+    return [];
+  }
+};
+
 // ── Open Food Facts ───────────────────────────────────────────────────────────
 
 const searchOpenFoodFacts = async (query) => {
   try {
-    const url = `${OFF_BASE}/cgi/search.pl?search_terms=${encodeURIComponent(query)}&json=1&page_size=10&fields=product_name,brands,serving_size,nutriments,id`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    // lc=en → prefer English product names (cuts foreign-language noise at the source).
+    const url = `${OFF_BASE}/cgi/search.pl?search_terms=${encodeURIComponent(query)}&json=1&page_size=20&lc=en&fields=product_name,brands,serving_size,serving_quantity,categories_tags,nutriments,id`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(2500) }); // OFF is flaky (503s) — fail fast, don't stall the search
     if (!res.ok) return [];
     const data = await res.json();
     if (!data.products) return [];
     return data.products
       .filter(p => p.product_name && p.nutriments?.["energy-kcal_100g"])
-      .map(product => ({
+      .map(product => {
+      // Liquid detection: serving_size in ml (e.g. "900ml"/"1L") or a beverage category tag.
+      const servStr = (product.serving_size || "").toLowerCase();
+      const isMl = /\d\s*(ml|milliliter|cl|litre|liter|l)\b/.test(servStr);
+      const catLiquid = (product.categories_tags || []).some(c => /beverage|drink|milk|juice|soda|water|smoothie|coffee|tea|kombucha/.test(c));
+      const isLiquid = isMl || catLiquid;
+      return {
         id: `off_${product.id || product._id}`,
         source: "openfoodfacts",
         name: product.product_name,
         brand: product.brands || null,
         servingSize: parseFloat(product.serving_size) || 100,
-        servingUnit: "g",
+        servingUnit: isMl ? "ml" : "g",
+        servingQuantity: product.serving_quantity ? Math.round(product.serving_quantity * 10) / 10 : (parseFloat(product.serving_size) || null),
+        isLiquid,
         calories: Math.round(product.nutriments["energy-kcal_100g"] || 0),
         protein: Math.round((product.nutriments["proteins_100g"] || 0) * 10) / 10,
         carbs: Math.round((product.nutriments["carbohydrates_100g"] || 0) * 10) / 10,
@@ -207,7 +241,8 @@ const searchOpenFoodFacts = async (query) => {
         fiber: Math.round((product.nutriments["fiber_100g"] || 0) * 10) / 10,
         sugar: Math.round((product.nutriments["sugars_100g"] || 0) * 10) / 10,
         sodium: Math.round((product.nutriments["sodium_100g"] || 0) * 1000) / 1000,
-      }))
+      };
+      })
       .filter(f => f.calories > 0 || f.protein > 0);
   } catch {
     return [];
@@ -224,12 +259,35 @@ const deduplicateFoods = (foods) => {
   });
 };
 
+// Relevance score of a food name vs the query. Returns -1 to DROP (no meaningful
+// match — kills tangential/foreign garbage like Danish jam for "fettuccine alfredo").
+// Higher = better; exact/prefix/full-phrase matches rank above loose token matches.
+const scoreRelevance = (name, query) => {
+  const n = (name || "").toLowerCase().trim();
+  if (!n) return -1;
+  const q = query.toLowerCase().trim();
+  if (n === q) return 1000;
+  const qTokens = q.split(/[\s,]+/).filter(Boolean);
+  const sig = qTokens.filter(t => t.length >= 3);
+  const check = sig.length ? sig : qTokens;      // fall back to all tokens for short queries
+  const matched = check.filter(t => n.includes(t));
+  if (matched.length === 0) return -1;           // no query term in the name → DROP
+  let score = matched.length * 12;               // token coverage
+  if (matched.length === check.length) score += 40;   // every query term present (best)
+  if (n.startsWith(q)) score += 500;
+  else if (n.includes(q)) score += 200;          // full phrase somewhere in the name
+  const nTokens = n.split(/[\s,()]+/).filter(Boolean);
+  for (const t of check) if (nTokens.includes(t)) score += 6;   // whole-word (not substring) bonus
+  score -= Math.min(n.length, 80) * 0.05;        // prefer concise names on ties
+  return score;
+};
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 const FOOD_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 export const searchFoods = async (query) => {
   if (!query || query.length < 2) return [];
-  const cacheKey = `food_search_${query.toLowerCase().trim()}`;
+  const cacheKey = `food_search_v2_${query.toLowerCase().trim()}`;  // v2 → invalidates pre-ranking cache
   try {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
@@ -238,6 +296,7 @@ export const searchFoods = async (query) => {
     }
   } catch {}
   try {
+    // USDA first (English, curated, covers prepared dishes via FNDDS); OFF second (branded/global).
     const settled = await Promise.allSettled([
       searchUSDA(query),
       searchOpenFoodFacts(query),
@@ -248,7 +307,19 @@ export const searchFoods = async (query) => {
     const combined = settled.flatMap(r =>
       r.status === "fulfilled" && Array.isArray(r.value) ? r.value : []
     );
-    const results = deduplicateFoods(combined).slice(0, 20);
+    // Relevance rank: drop non-matching junk, sort best-match first, USDA wins ties.
+    const ranked = combined
+      .map(f => ({ f, s: scoreRelevance(f.name, query), usda: f.source === "usda" ? 1 : 0 }))
+      .filter(x => x.s >= 0)
+      .sort((a, b) => (b.s - a.s) || (b.usda - a.usda))
+      .map(x => x.f);
+    // Fallback: if the strict substring filter dropped EVERYTHING (e.g. a typo/partial
+    // like "Fetuc" that USDA/OFF fuzzy-matched to "Fettuccine…" but our rule didn't),
+    // show the raw source results (USDA first) instead of a blank "no results".
+    const finalList = ranked.length
+      ? ranked
+      : combined.slice().sort((a, b) => ((b.source === "usda") - (a.source === "usda")));
+    const results = deduplicateFoods(finalList).slice(0, 20);
     try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: results })); } catch {}
     return results;
   } catch {
@@ -401,83 +472,6 @@ export const incrementTemplateUse = async (templateId) => {
       // Fallback: manual increment
       const { data } = await sb.from("meal_templates").select("use_count").eq("id", templateId).single();
       if (data) await sb.from("meal_templates").update({ use_count: (data.use_count || 1) + 1 }).eq("id", templateId);
-    }
-  } catch {}
-};
-
-// ── User Recipes ──────────────────────────────────────────────────────────────
-
-export const getUserRecipes = async (userId) => {
-  if (!userId) return [];
-  try {
-    const { data } = await sb
-      .from("recipes")
-      .select("*")
-      .eq("user_id", userId)
-      .order("use_count", { ascending: false });
-    return data || [];
-  } catch {
-    return [];
-  }
-};
-
-export const saveUserRecipe = async (userId, recipe) => {
-  if (!userId) return null;
-  try {
-    const { data } = await sb.from("recipes").insert({
-      user_id: userId,
-      name: recipe.name,
-      category: recipe.category || null,
-      servings_count: recipe.servings_count || 1,
-      ingredients: recipe.ingredients || [],
-      calories_per_serving: Math.round(recipe.calories_per_serving || 0),
-      protein_per_serving: Math.round((recipe.protein_per_serving || 0) * 10) / 10,
-      carbs_per_serving: Math.round((recipe.carbs_per_serving || 0) * 10) / 10,
-      fat_per_serving: Math.round((recipe.fat_per_serving || 0) * 10) / 10,
-      fiber_per_serving: Math.round((recipe.fiber_per_serving || 0) * 10) / 10,
-    }).select().single();
-    return data;
-  } catch {
-    return null;
-  }
-};
-
-export const updateUserRecipe = async (userId, recipeId, recipe) => {
-  if (!userId || !recipeId) return null;
-  try {
-    const { data } = await sb.from("recipes").update({
-      name: recipe.name,
-      category: recipe.category || null,
-      servings_count: recipe.servings_count || 1,
-      ingredients: recipe.ingredients || [],
-      calories_per_serving: Math.round(recipe.calories_per_serving || 0),
-      protein_per_serving: Math.round((recipe.protein_per_serving || 0) * 10) / 10,
-      carbs_per_serving: Math.round((recipe.carbs_per_serving || 0) * 10) / 10,
-      fat_per_serving: Math.round((recipe.fat_per_serving || 0) * 10) / 10,
-      fiber_per_serving: Math.round((recipe.fiber_per_serving || 0) * 10) / 10,
-    }).eq("id", recipeId).eq("user_id", userId).select().single();
-    return data;
-  } catch {
-    return null;
-  }
-};
-
-export const deleteUserRecipe = async (userId, recipeId) => {
-  if (!userId || !recipeId) return;
-  try {
-    await sb.from("recipes").delete().eq("id", recipeId).eq("user_id", userId);
-  } catch {}
-};
-
-export const incrementRecipeUse = async (recipeId) => {
-  if (!recipeId) return;
-  try {
-    const { data } = await sb.from("recipes").select("use_count").eq("id", recipeId).single();
-    if (data) {
-      await sb.from("recipes").update({
-        use_count: (data.use_count || 0) + 1,
-        last_used: new Date().toISOString(),
-      }).eq("id", recipeId);
     }
   } catch {}
 };

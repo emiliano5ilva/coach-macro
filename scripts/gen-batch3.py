@@ -868,9 +868,9 @@ snack = [
 
 print(json.dumps(lunch, indent=2))
 import sys
-with open('/Users/emilianosilva/Documents/coach-macro/scripts/seed-batch3-b.json', 'w') as f:
+with open('/Users/emilianosilva/Developer/coach-macro/scripts/seed-batch3-b.json', 'w') as f:
     json.dump(lunch, f, indent=2)
-with open('/Users/emilianosilva/Documents/coach-macro/scripts/seed-batch3-c.json', 'w') as f:
+with open('/Users/emilianosilva/Developer/coach-macro/scripts/seed-batch3-c.json', 'w') as f:
     json.dump(dinner + snack, f, indent=2)
 print(f"Wrote batch-b: {len(lunch)} lunch recipes", file=sys.stderr)
 print(f"Wrote batch-c: {len(dinner)} dinner + {len(snack)} snack = {len(dinner)+len(snack)} recipes", file=sys.stderr)

@@ -296,8 +296,8 @@ function ConfirmPanel({ adaptation, onConfirm, onCancel }) {
 
 // ── Protocol progress card — shown in Fuel tab ────────────────────────────────
 export function MetabolicResetProgressCard({ progress, onComplete }) {
-  if (!progress) return null;
   const [expanded, setExpanded] = useState(false);
+  if (!progress) return null;
 
   const phaseColor = progress.phase === 1 ? T.fat : progress.phase === 2 ? "#3b82f6" : T.green;
   const weekLabel = progress.weekNum ? `WEEK ${progress.weekNum} OF ${progress.totalWeeks}` : "PHASE 3 ACTIVE";

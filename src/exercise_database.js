@@ -2,6 +2,9 @@
 // Every movement has alternatives for every equipment setup
 // So no user ever hits a dead end
 
+import { stripSupersetLabel, resolveAlias } from './data/exerciseNames.js';
+import { getCanonicalMuscleGroup, getCanonicalEquipment, getCanonicalExerciseData } from './data/canonicalExerciseData';
+
 export const EQUIPMENT_ALTERNATIVES = {
   // ── CHEST ──────────────────────────────────────────────────────────────────
   "Barbell Bench Press": {
@@ -794,10 +797,68 @@ export const EQUIPMENT_ALTERNATIVES = {
   }
 };
 
+// Equipment compatibility: which canonical equipment tags each setup allows.
+const EQUIP_COMPAT = {
+  "Bodyweight Only": ["bodyweight"],
+  "Dumbbells Only":  ["dumbbell","bodyweight"],
+  "Home Gym":        ["barbell","dumbbell","bodyweight"],
+  "Full Gym":        ["barbell","dumbbell","cable","machine","kettlebell","bands","bodyweight","other"],
+};
+
+function _canonRegions(name) {
+  const d = getCanonicalExerciseData(name);
+  return d && d.regions ? d.regions : [];
+}
+
+// Is this exercise doable with the given equipment setup?
+function isEquipmentCompatible(name, equipment) {
+  const key = EQUIP_KEY[equipment];
+  const pool = key ? EQUIPMENT_POOLS[key] : null;
+  // Pool membership = author-vetted compatible (e.g. bodyweight single-leg RDL).
+  if (pool && (pool.includes(name) || pool.includes(stripSupersetLabel(name)))) return true;
+  const allowed = EQUIP_COMPAT[equipment];
+  if (!allowed) return true;                 // unknown setup -> don't block
+  const eq = getCanonicalEquipment(name);
+  if (!eq) return true;                      // unknown exercise -> don't block
+  return allowed.includes(eq);
+}
+
+// Pick a same-group exercise from the setup's pool, preferring region overlap.
+function substituteFromPool(name, equipment) {
+  const key = EQUIP_KEY[equipment] || "full_gym";
+  const pool = EQUIPMENT_POOLS[key] || [];
+  if (!pool.length) return null;
+  const grp = getMuscleGroup(name);
+  const oReg = _canonRegions(name);
+  let best = null, bestScore = -1;
+  for (const p of pool) {
+    const pGrp = getMuscleGroup(p);
+    if (grp && pGrp && pGrp !== grp) continue;   // require same muscle group when both known
+    const pReg = _canonRegions(p);
+    const overlap = oReg.filter(r => pReg.includes(r)).length;
+    const score = overlap * 10 + (pGrp === grp ? 1 : 0);
+    if (score > bestScore) { bestScore = score; best = p; }
+  }
+  return best || pool.find(p => getMuscleGroup(p) === grp) || pool[0];
+}
+
 export function getEquipmentExercise(exerciseName, equipment) {
-  const alternatives = EQUIPMENT_ALTERNATIVES[exerciseName];
-  if(!alternatives) return exerciseName;
-  return alternatives[equipment] || alternatives["Full Gym"] || exerciseName;
+  // Resolver chain: direct → superset-stripped → alias-resolved → passthrough
+  const stripped = stripSupersetLabel(exerciseName);
+  const aliased  = resolveAlias(exerciseName);
+  const alternatives =
+    EQUIPMENT_ALTERNATIVES[exerciseName]
+    || EQUIPMENT_ALTERNATIVES[stripped]
+    || (aliased ? EQUIPMENT_ALTERNATIVES[aliased] : null);
+  let result = alternatives
+    ? (alternatives[equipment] || alternatives["Full Gym"] || exerciseName)
+    : exerciseName;
+  // Guard: if the result still isn't doable with this equipment, substitute by muscle group.
+  if (!isEquipmentCompatible(result, equipment)) {
+    const sub = substituteFromPool(result, equipment);
+    if (sub) result = sub;
+  }
+  return result;
 }
 
 export function applyEquipmentToWorkout(exercises, equipment) {
@@ -872,6 +933,19 @@ export const EXERCISE_MUSCLE_GROUP = {
   "Reverse Curl":"biceps","Single Leg Calf Raise":"calves","Dumbbell Upright Row":"shoulders",
 };
 
+// Tolerant wrapper: try direct, then superset-stripped, then alias-resolved.
+// Import and use this instead of direct EXERCISE_MUSCLE_GROUP[name] lookups.
+export function getMuscleGroup(name) {
+  if (!name) return null;
+  return (
+    EXERCISE_MUSCLE_GROUP[name]
+    || EXERCISE_MUSCLE_GROUP[stripSupersetLabel(name)]
+    || (resolveAlias(name) ? EXERCISE_MUSCLE_GROUP[resolveAlias(name)] : null)
+    || getCanonicalMuscleGroup(name)
+    || null
+  );
+}
+
 export const MUSCLE_GROUP_POOL = {
   chest:["Barbell Bench Press","Incline Dumbbell Press","Dumbbell Bench Press","Incline Barbell Press","Cable Fly","Dumbbell Fly","Push Up","Chest Press Machine","Pec Deck Machine","Cable Crossover","Chest Dip","Decline Barbell Press","Floor Press"],
   back:["Deadlift","Barbell Row","Pull Up","Lat Pulldown","Cable Row","T-Bar Row","Single Arm Dumbbell Row","Chest-Supported Row","Neutral Grip Pulldown","Face Pull","Seated Cable Row","Rack Pull","Trap Bar Deadlift","Dumbbell Deadlift","Inverted Row","Superman Hold"],
@@ -887,7 +961,7 @@ export const MUSCLE_GROUP_POOL = {
 };
 
 export function getSwapOptions(exerciseName, equipment="Full Gym", count=6) {
-  const group=EXERCISE_MUSCLE_GROUP[exerciseName];
+  const group=getMuscleGroup(exerciseName);
   if(!group)return[];
   const pool=MUSCLE_GROUP_POOL[group]||[];
   return pool
@@ -1482,12 +1556,24 @@ export const EQUIPMENT_POOLS = {
   ],
 };
 
+// Maps wPrefs.equipment (Title-Case) → EQUIPMENT_POOLS snake_case keys.
+// NOTE: wPrefs has 4 settings; EQUIPMENT_POOLS has 5 pools (resistance_bands has no
+// wPrefs equivalent, "Cables Only" / "Machines Only" from EQUIPMENT_ALTERNATIVES also
+// have no pool). resistance_bands is still reachable by passing the key directly.
+export const EQUIP_KEY = {
+  "Full Gym":       "full_gym",
+  "Home Gym":       "home_barbell",
+  "Dumbbells Only": "dumbbells_only",
+  "Bodyweight Only":"bodyweight_only",
+};
+
 export function getExercisesForEquipment(equipmentSetup) {
-  return EQUIPMENT_POOLS[equipmentSetup] || EQUIPMENT_POOLS.full_gym;
+  const key = EQUIP_KEY[equipmentSetup] || equipmentSetup || "full_gym";
+  return EQUIPMENT_POOLS[key] || EQUIPMENT_POOLS.full_gym;
 }
 
 export function getSwapOptionsForEquipment(exerciseName, equipmentSetup, count=6) {
-  const group = EXERCISE_MUSCLE_GROUP[exerciseName];
+  const group = getMuscleGroup(exerciseName);
   if (!group) return [];
   const available = new Set(getExercisesForEquipment(equipmentSetup));
   const pool = (MUSCLE_GROUP_POOL[group] || []).filter(

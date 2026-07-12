@@ -2486,8 +2486,8 @@ export const PROGRAM_LIBRARY = [
   // FAT LOSS & CONDITIONING
   { id:"circuit",    name:"Full Body Circuit",            category:"Fat Loss & Conditioning", days:3, weeks:8,  level:"Beginner",     bestFor:"Fat loss while maintaining muscle",         splitKey:null, isConditioning:true, equipment:["full","dumbbells","minimal"], sessionMins:45 },
   { id:"hiit",       name:"HIIT Program",                 category:"Fat Loss & Conditioning", days:3, weeks:6,  level:"Beginner",     bestFor:"Maximum calorie burn in minimum time",      splitKey:null, isConditioning:true, equipment:["full","home_bar","dumbbells","minimal"], sessionMins:35 },
-  { id:"metabolic",  name:"Metabolic Resistance",         category:"Fat Loss & Conditioning", days:4, weeks:8,  level:"Intermediate", bestFor:"Burn fat while keeping muscle — heavy enough to stimulate, fast enough to torch calories", splitKey:"Metabolic Resistance", equipment:["full","home_bar","dumbbells"], sessionMins:50 },
-  { id:"hiit_strength",name:"HIIT Strength Circuit",      category:"Fat Loss & Conditioning", days:3, weeks:6,  level:"Beginner",     bestFor:"Burn fat and build base fitness with 3 sessions per week",                           splitKey:"HIIT Strength",      equipment:["full","home_bar","dumbbells","minimal"], sessionMins:45 },
+  { id:"metabolic",  name:"Metabolic Resistance",         category:"Fat Loss & Conditioning", days:4, weeks:8,  level:"Intermediate", bestFor:"Burn fat while keeping muscle — heavy enough to stimulate, fast enough to torch calories", splitKey:"Metabolic Resistance", isConditioning:true, equipment:["full","home_bar","dumbbells"], sessionMins:50 },
+  { id:"hiit_strength",name:"HIIT Strength Circuit",      category:"Fat Loss & Conditioning", days:3, weeks:6,  level:"Beginner",     bestFor:"Burn fat and build base fitness with 3 sessions per week",                           splitKey:"HIIT Strength",      isConditioning:true, equipment:["full","home_bar","dumbbells","minimal"], sessionMins:45 },
   // RUNNING
   { id:"c25k",       name:"Couch to 5K",                  category:"Running",     days:3, weeks:8,  level:"Beginner",     bestFor:"Complete beginners — first 5K ever",               splitKey:null, isRun:true, equipment:["minimal"], sessionMins:30 },
   { id:"5k_sub25",   name:"Sub-25 5K",                    category:"Running",     days:4, weeks:8,  level:"Intermediate", bestFor:"Break 25 minutes for the 5K distance",            splitKey:null, isRun:true, equipment:["minimal"], sessionMins:45 },
@@ -2503,12 +2503,12 @@ export const PROGRAM_LIBRARY = [
   { id:"upper_lower_run",name:"Run-Biased Hybrid",        category:"Hybrid",      days:6, weeks:12, level:"Advanced",     bestFor:"Runners adding strength training",             splitKey:"Run Biased Hybrid", isHybrid:true, equipment:["full","home_bar"], sessionMins:65 },
   { id:"balanced_hybrid",name:"Balanced Hybrid",          category:"Hybrid",      days:5, weeks:12, level:"Intermediate", bestFor:"Equal strength and endurance development",     splitKey:"Balanced Hybrid", isHybrid:true, equipment:["full","home_bar"], sessionMins:65 },
   { id:"ppl_hyrox",     name:"Hyrox Hybrid",             category:"Hybrid",      days:5, weeks:12, level:"Advanced",     bestFor:"Strength athletes preparing for Hyrox",       splitKey:"Hyrox Hybrid", isHybrid:true, isHyrox:true, equipment:["full"], sessionMins:75 },
-  { id:"hybrid_foundation",name:"Hybrid Foundation",      category:"Hybrid",      days:4, weeks:8,  level:"Beginner",     bestFor:"Build strength and cardio simultaneously — the base every hybrid athlete needs",        splitKey:"Hybrid Foundation",  equipment:["full","home_bar"],              sessionMins:60 },
-  { id:"tactical_hybrid",name:"Tactical Hybrid",          category:"Hybrid",      days:5, weeks:12, level:"Advanced",     bestFor:"Military and operator-style — loaded carries, running, heavy lifting all in one week",   splitKey:"Tactical Hybrid",    equipment:["full"],                          sessionMins:75 },
+  { id:"hybrid_foundation",name:"Hybrid Foundation",      category:"Hybrid",      days:4, weeks:8,  level:"Beginner",     bestFor:"Build strength and cardio simultaneously — the base every hybrid athlete needs",        splitKey:"Hybrid Foundation",  isHybrid:true, equipment:["full","home_bar"],              sessionMins:60 },
+  { id:"tactical_hybrid",name:"Tactical Hybrid",          category:"Hybrid",      days:5, weeks:12, level:"Advanced",     bestFor:"Military and operator-style — loaded carries, running, heavy lifting all in one week",   splitKey:"Tactical Hybrid",    isHybrid:true, equipment:["full"],                          sessionMins:75 },
   // METCON
-  { id:"metcon_foundations",name:"MetCon Foundations",    category:"MetCon",      days:3, weeks:8,  level:"Beginner",     bestFor:"Learn metabolic conditioning — functional movements, short sessions, big results",       splitKey:"MetCon Foundations", equipment:["full","dumbbells","minimal"],    sessionMins:40 },
-  { id:"metcon_performance",name:"Performance MetCon",    category:"MetCon",      days:4, weeks:8,  level:"Intermediate", bestFor:"Benchmark WODs, barbell cycling, pull-ups — competitive MetCon fitness",                 splitKey:"Performance MetCon", equipment:["full"],                          sessionMins:60 },
-  { id:"metcon_elite",name:"Elite MetCon",                category:"MetCon",      days:5, weeks:12, level:"Advanced",     bestFor:"Competition prep — Olympic lifting, complex gymnastics, peak mixed-modal capacity",      splitKey:"Elite MetCon",       equipment:["full"],                          sessionMins:90 },
+  { id:"metcon_foundations",name:"MetCon Foundations",    category:"MetCon",      days:3, weeks:8,  level:"Beginner",     bestFor:"Learn metabolic conditioning — functional movements, short sessions, big results",       splitKey:"MetCon Foundations", isConditioning:true, equipment:["full","dumbbells","minimal"],    sessionMins:40 },
+  { id:"metcon_performance",name:"Performance MetCon",    category:"MetCon",      days:4, weeks:8,  level:"Intermediate", bestFor:"Benchmark WODs, barbell cycling, pull-ups — competitive MetCon fitness",                 splitKey:"Performance MetCon", isConditioning:true, equipment:["full"],                          sessionMins:60 },
+  { id:"metcon_elite",name:"Elite MetCon",                category:"MetCon",      days:5, weeks:12, level:"Advanced",     bestFor:"Competition prep — Olympic lifting, complex gymnastics, peak mixed-modal capacity",      splitKey:"Elite MetCon",       isConditioning:true, equipment:["full"],                          sessionMins:90 },
   // SPORT
   { id:"athletic_base",name:"Athletic Performance Base",  category:"Sport",       days:4, weeks:8,  level:"Intermediate", bestFor:"Sport-specific athleticism — speed, power, agility, and strength for any sport",        splitKey:"Athletic Performance",equipment:["full"],                         sessionMins:60 },
   // GLUTE FOCUS
@@ -2519,16 +2519,96 @@ export const PROGRAM_LIBRARY = [
   { id:"lower_5",  name:"Lower Body Only 5-Day",          category:"Glute Focus", days:5, weeks:10, level:"Advanced",     bestFor:"Maximum lower body volume and frequency",     splitKey:"Lower Body Only 5-Day", equipment:["full","home_bar"], sessionMins:70 },
 ];
 
-export function getWorkoutForDay(daysPerWeek, splitType, dayIndex, equipment, history, skillLevel) {
-  const days = daysPerWeek || 4;
+// ─── Unified split-day selection ────────────────────────────────────────────
+// Single source for "which split day is this session" — used by BOTH the title
+// path (dayFocus/WeekStrip) and the exercise path (getWorkoutForDay), so the two
+// can never drift apart (the LOWER-title/UPPER-exercises bug).
+const _SD_WDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+// Resolve a split with the SAME cross-bucket fallback getWorkoutForDay uses.
+function _resolveSplit(days, splitType) {
   const program = PROGRAMS_BY_DAYS[days];
-  if(!program) return null;
+  let split = program?.splits[splitType];
+  if (!split) {
+    for (const d of Object.keys(PROGRAMS_BY_DAYS)) {
+      const s = PROGRAMS_BY_DAYS[d].splits?.[splitType];
+      if (s) { split = s; break; }
+    }
+  }
+  if (!split) split = program?.splits[program?.recommended];
+  return split || null;
+}
 
-  const split = program.splits[splitType] || program.splits[program.recommended];
-  if(!split) return null;
+// Schedule-aware session index: count scheduled TRAINING days in [anchor, target),
+// anchor = programStartDate (midnight), target = today + dayOffset (midnight).
+// Advances per training SESSION (rest days never bump it), anchored on the program
+// start. Closed form, O(7): fullWeeks * trainingDaysPerWeek + partial-week remainder.
+// Parse a 'YYYY-MM-DD' (or Date) as LOCAL midnight — avoids the UTC shift of
+// new Date('YYYY-MM-DD'), which would move the weekday by a day in non-UTC zones.
+function _sdLocalMidnight(v) {
+  if (!v) return null;
+  let d;
+  if (v instanceof Date) d = new Date(v);
+  else {
+    const p = String(v).slice(0, 10).split('-');
+    d = p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2]) : new Date(v);
+  }
+  if (isNaN(d.getTime())) return null;
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
 
-  const dayKeys = split.days;
-  const dayKey = dayKeys[dayIndex % dayKeys.length];
+function _sessionIndex(schedule, programStartDate, dayOffset = 0) {
+  if (!schedule) return 0;
+  const anchor = _sdLocalMidnight(programStartDate) || _sdLocalMidnight(new Date());
+  if (!anchor) return 0;
+  const target = new Date(); target.setHours(0, 0, 0, 0);
+  target.setDate(target.getDate() + (dayOffset || 0));
+  const N = Math.round((target.getTime() - anchor.getTime()) / 86400000); // days anchor→target
+  if (N <= 0) return 0;
+  const perWeek = _SD_WDAYS.filter(wd => schedule[wd] === "training").length;
+  if (perWeek === 0) return 0;
+  let count = Math.floor(N / 7) * perWeek;            // whole weeks contribute exactly perWeek each
+  const startWd = (anchor.getDay() + 6) % 7;          // 0 = Mon, matches _SD_WDAYS
+  for (let k = 0; k < N % 7; k++) {                   // remainder: days [anchor+fullWeeks*7, target)
+    if (schedule[_SD_WDAYS[(startWd + k) % 7]] === "training") count++;
+  }
+  return count;
+}
+
+// Strip a trailing variant suffix to get the focus base. "Lower A" → "Lower";
+// "Full Body C" → "Full Body"; "Push" → "Push"; "Squat Day" → "Squat Day"
+// (no focus match → generic muscle targeting, today's behavior).
+export function baseName(dayKey) {
+  if (!dayKey) return dayKey;
+  return dayKey.replace(/\s+[A-C]$/, "") || dayKey;
+}
+
+// THE single day-selector. Indexes dayKeys.length (NOT daysPerWeek — handles the
+// cross-bucket case) and advances per training session, anchored on programStartDate.
+export function selectDayKey(splitType, daysPerWeek, schedule, programStartDate, dayOffset = 0) {
+  const split = _resolveSplit(daysPerWeek || 4, splitType);
+  if (!split) return null;
+  const dayKeys = split.days.filter(d => split.workouts[d]);
+  if (dayKeys.length === 0) return null;
+  const idx = _sessionIndex(schedule, programStartDate, dayOffset);
+  return dayKeys[((idx % dayKeys.length) + dayKeys.length) % dayKeys.length];
+}
+
+export function getWorkoutForDay(daysPerWeek, splitType, dayIndex, equipment, history, skillLevel, schedule, programStartDate, dayOffset = 0) {
+  const days = daysPerWeek || 4;
+  const split = _resolveSplit(days, splitType);
+  if (!split) return null;
+
+  // Filter out days that have no workout defined (e.g. "Rest" entries in day arrays).
+  // This prevents an empty prescription when the cycle includes a named rest day.
+  const dayKeys = split.days.filter(d => split.workouts[d]);
+  if (dayKeys.length === 0) return null;
+  // Unified selection (same source as the title) when schedule + anchor are available;
+  // otherwise fall back to the legacy positional index for older callers.
+  const dayKey = ((schedule && programStartDate)
+    ? selectDayKey(splitType, days, schedule, programStartDate, dayOffset)
+    : null) || dayKeys[((dayIndex % dayKeys.length) + dayKeys.length) % dayKeys.length];
   const intermediate = split.workouts[dayKey] || [];
 
   // Resolve skill level → override key

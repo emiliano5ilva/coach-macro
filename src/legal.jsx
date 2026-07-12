@@ -154,12 +154,11 @@ export function PrivacyPolicy() {
             <li>Personalized nutrition suggestions</li>
             <li>Restaurant meal recommendations</li>
             <li>Workout adaptation (Adapt Now)</li>
-            <li>Morning Brief coaching messages</li>
             <li>Meal planning and prep suggestions</li>
           </ul>
           <p className="legal-p">When you use AI features, relevant context about your fitness goals, current macros, training schedule, and food photographs (when using the photo logging feature) may be sent to Anthropic's API to generate personalized responses. We do not send your name, email, or other directly identifying information in AI prompts.</p>
           <p className="legal-p">Data sent to Anthropic's API is used only to generate your response and is not used to train AI models. Anthropic's commercial API does not train its models on data submitted through the API.</p>
-          <p className="legal-p">You can disable AI features in <strong>Settings → Preferences → AI Features</strong>. Disabling AI features will not affect core nutrition tracking or program access.</p>
+          <p className="legal-p">AI features are <strong>off by default</strong> — no data is sent to Anthropic until you enable them. You can turn them on or off anytime in <strong>Settings → Display &amp; Tracking → AI Features</strong>. Disabling AI features will not affect core nutrition tracking or program access.</p>
         </div>
 
         <div className="legal-section">
@@ -469,11 +468,11 @@ export function TermsOfService() {
 
         <div className="legal-section">
           <h2 className="legal-h2">6. Subscription and Cancellation</h2>
-          <p className="legal-p"><strong>Free Trial:</strong> New users receive a 7-day free trial. Users who sign up via a valid referral link receive a 14-day free trial. No charge occurs during the trial. You may cancel before the trial ends without being charged.</p>
+          <p className="legal-p"><strong>Free Trial:</strong> New users receive a 7-day free trial. No charge occurs during the trial. You may cancel before the trial ends without being charged.</p>
           <ul className="legal-ul">
             <li>Coach Macro offers a free trial period followed by a paid subscription</li>
             <li>Monthly plan: $12.99 / month</li>
-            <li>Annual plan: $49.99 / year (founding member price)</li>
+            <li>Annual plan: $49.99 / year</li>
             <li>Paid subscriptions are billed monthly or annually</li>
             <li>Subscriptions auto-renew unless cancelled before the renewal date</li>
             <li>Prices may change with 30 days notice</li>

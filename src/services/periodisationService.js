@@ -129,12 +129,3 @@ export async function getRecentAdjustments(userId) {
   return data || [];
 }
 
-export async function getProgramCurrentWeek(userId) {
-  if (!userId) return null;
-  const { data } = await sb
-    .from('profiles')
-    .select('program_current_week, program_total_weeks')
-    .eq('id', userId)
-    .maybeSingle();
-  return data || null;
-}

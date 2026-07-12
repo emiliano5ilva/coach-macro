@@ -109,11 +109,11 @@ const GROUPS = [
     items: [
       {
         q: 'Is there a free trial?',
-        a: 'Yes. Every new account gets a 14-day free trial with full access to every feature — no credit card required. You get to see the full system before deciding anything.',
+        a: 'Yes. Every new account gets a 7-day free trial with full access to every feature — no credit card required. You get to see the full system before deciding anything.',
       },
       {
         q: 'How much does it cost?',
-        a: 'Founding members get Coach Macro for $49.99 per year ($4.17/month) — locked for life. Monthly is $12.99. The annual plan saves 68% vs monthly. Both plans include everything — no feature tiers, no add-ons.',
+        a: 'Coach Macro is $49.99 per year ($4.17/month). Monthly is $12.99. The annual plan saves 68% vs monthly. Both plans include everything — no feature tiers, no add-ons.',
       },
       {
         q: 'Can I cancel anytime?',

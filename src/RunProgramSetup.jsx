@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Rolodex } from './components.jsx';
 import {
   vdotFromRaceTime,
   projectRaceTime, projectAllRaceTimes,
@@ -54,16 +55,16 @@ function fmtSecs(secs) {
 function TapCard({ label, sub, icon, selected, onClick }) {
   return (
     <div onClick={onClick} style={{
-      background: selected ? "rgba(var(--accent-rgb),0.08)" : "#0d0d0d",
-      border: `1.5px solid ${selected ? AC : "rgba(var(--accent-rgb),0.08)"}`,
+      background: selected ? "rgba(var(--cm-red-rgb),0.08)" : "rgba(var(--cm-ink-rgb),.04)",
+      border: `1.5px solid ${selected ? "var(--cm-red)" : "rgba(var(--cm-ink-rgb),.12)"}`,
       borderRadius:13, padding:"14px 18px", cursor:"pointer",
       display:"flex", alignItems:"center", gap:14, marginBottom:8,
       transition:"all 0.18s",
     }}>
       {icon && <div style={{ fontSize:22, flexShrink:0, width:28, textAlign:"center" }}>{icon}</div>}
       <div style={{ flex:1 }}>
-        <div style={{ fontSize:15, fontWeight:700, color: selected ? AC : "#f5f5f0" }}>{label}</div>
-        {sub && <div style={{ fontSize:12, color:"rgba(245,245,240,.55)", marginTop:3 }}>{sub}</div>}
+        <div style={{ fontSize:15, fontWeight:700, color: selected ? "var(--cm-red)" : "var(--cm-ink)" }}>{label}</div>
+        {sub && <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginTop:3 }}>{sub}</div>}
       </div>
       {selected && <div style={{ color:AC, fontSize:15, flexShrink:0 }}>✓</div>}
     </div>
@@ -75,15 +76,15 @@ function Eyebrow({ children }) {
 }
 
 function Heading({ children }) {
-  return <div style={{ ...COND, fontSize:30, textTransform:"uppercase", lineHeight:1.05, color:"#f5f5f0", marginBottom:8 }}>{children}</div>;
+  return <div style={{ ...COND, fontSize:30, textTransform:"uppercase", lineHeight:1.05, color:"var(--cm-ink)", marginBottom:8 }}>{children}</div>;
 }
 
 function ProjRow({ label, value, isCurrent }) {
   return (
-    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background: isCurrent ? "rgba(var(--accent-rgb),.07)" : "rgba(255,255,255,.03)", borderRadius:8, marginBottom:4, border: isCurrent ? "1px solid rgba(var(--accent-rgb),.22)" : "1px solid rgba(255,255,255,.05)" }}>
-      <span style={{ fontSize:13, color: isCurrent ? "#f5f5f0" : "rgba(245,245,240,.7)" }}>{label}</span>
+    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background: isCurrent ? "rgba(var(--cm-red-rgb),.07)" : "rgba(var(--cm-ink-rgb),.04)", borderRadius:8, marginBottom:4, border: isCurrent ? "1px solid rgba(var(--cm-red-rgb),.22)" : "1px solid rgba(var(--cm-ink-rgb),.08)" }}>
+      <span style={{ fontSize:13, color: isCurrent ? "var(--cm-ink)" : "rgba(var(--cm-ink-rgb),.7)" }}>{label}</span>
       <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-        <span style={{ ...MONO, fontSize:14, fontWeight: isCurrent ? 700 : 400, color:"#f5f5f0" }}>{value}</span>
+        <span style={{ ...MONO, fontSize:14, fontWeight: isCurrent ? 700 : 400, color:"var(--cm-ink)" }}>{value}</span>
         {isCurrent && <span style={{ ...MONO, fontSize:9, color:AC, letterSpacing:"0.1em" }}>← actual</span>}
       </div>
     </div>
@@ -94,10 +95,10 @@ function SummaryRow({ label, value, sub, accent }) {
   return (
     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:12 }}>
       <div>
-        <div style={{ fontSize:12, color:"rgba(245,245,240,.5)" }}>{label}</div>
-        {sub && <div style={{ fontSize:10, color:"rgba(245,245,240,.3)", marginTop:1 }}>{sub}</div>}
+        <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.5)" }}>{label}</div>
+        {sub && <div style={{ fontSize:10, color:"rgba(var(--cm-ink-rgb),.4)", marginTop:1 }}>{sub}</div>}
       </div>
-      <div style={{ ...MONO, fontSize: accent ? 20 : 15, fontWeight: accent ? 700 : 600, color: accent ? AC : "#f5f5f0" }}>{value}</div>
+      <div style={{ ...MONO, fontSize: accent ? 20 : 15, fontWeight: accent ? 700 : 600, color: accent ? "var(--cm-red)" : "var(--cm-ink)" }}>{value}</div>
     </div>
   );
 }
@@ -105,8 +106,8 @@ function SummaryRow({ label, value, sub, accent }) {
 function PaceRow({ label, value }) {
   return (
     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-      <span style={{ fontSize:13, color:"rgba(245,245,240,.7)" }}>{label}</span>
-      <span style={{ ...MONO, fontSize:15, color:"#f5f5f0", fontWeight:600 }}>{value}</span>
+      <span style={{ fontSize:13, color:"rgba(var(--cm-ink-rgb),.7)" }}>{label}</span>
+      <span style={{ ...MONO, fontSize:15, color:"var(--cm-ink)", fontWeight:600 }}>{value}</span>
     </div>
   );
 }
@@ -115,8 +116,8 @@ function CTABtn({ onClick, disabled, loading, children }) {
   return (
     <button onClick={onClick} disabled={disabled||loading} style={{
       width:"100%", padding:16,
-      background: (disabled||loading) ? "rgba(255,255,255,.08)" : AC,
-      color: (disabled||loading) ? "rgba(245,245,240,.35)" : "#fff",
+      background: (disabled||loading) ? "rgba(var(--cm-ink-rgb),.08)" : AC,
+      color: (disabled||loading) ? "rgba(var(--cm-ink-rgb),.35)" : "#fff",
       border:"none", borderRadius:14,
       cursor: (disabled||loading) ? "not-allowed" : "pointer",
       ...COND, fontSize:18, letterSpacing:"0.05em", textTransform:"uppercase",
@@ -127,22 +128,41 @@ function CTABtn({ onClick, disabled, loading, children }) {
   );
 }
 
+// Keyboard-free time entry via the Me-tab Rolodex wheel (ports the same component used in
+// ob_new.jsx). Replaces <input type="number">, whose soft keyboard was being dismissed by the
+// TrainSection re-render. The value contract is UNCHANGED: each wheel emits the same numeric
+// STRING into the same setter, so parseMMSS/parseHMS → identical total seconds → identical saved keys.
+const MM_ITEMS = Array.from({ length: 100 }, (_, i) => String(i));                 // "0".."99" (matches old max=99)
+const SS_ITEMS = Array.from({ length: 60 },  (_, i) => String(i).padStart(2, '0')); // "00".."59"
+const H_ITEMS  = Array.from({ length: 8 },   (_, i) => String(i));                 // "0".."7" (hyrox 1–~2.5h; run half/full up to ~7h)
+
+// One labelled wheel column. `unset` (empty string / null) → dimmed + red-tinted label & border so
+// it reads as "needs input", never a real 0:00. The wheel does NOT fire onChange on mount, so state
+// stays "" and the disabled-until-entered CTA gate holds (parseInt("") → NaN → disabled).
+function WheelField({ label, items, sel, onChange }) {
+  const unset = sel === "" || sel == null;
+  return (
+    <div style={{ flex:1, maxWidth:96, opacity: unset ? 0.4 : 1, transition:"opacity .15s" }}>
+      <div style={{ ...MONO, fontSize:9, marginBottom:4, textAlign:"center",
+        color: unset ? "rgba(var(--cm-red-rgb),.8)" : "rgba(var(--cm-ink-rgb),.5)" }}>{label}</div>
+      <div style={{ borderRadius:10, overflow:"hidden", background:"var(--cm-paper)",
+        border:`1px solid ${unset ? "rgba(var(--cm-red-rgb),.3)" : "rgba(var(--cm-ink-rgb),.15)"}` }}>
+        <Rolodex items={items} sel={String(sel ?? '')} onChange={onChange} itemH={40}
+          bgColor="var(--cm-paper)" selectedColor="var(--cm-ink)"
+          adjacentColor="rgba(var(--cm-ink-rgb),.35)" farColor="rgba(var(--cm-ink-rgb),.12)" />
+      </div>
+    </div>
+  );
+}
+
 function TimeInputMMSS({ min, onMin, sec, onSec, label }) {
   return (
     <div style={{ marginTop:14 }}>
-      {label && <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:8 }}>{label}</div>}
-      <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-        <div style={{ flex:1 }}>
-          <div style={{ ...MONO, fontSize:9, color:"rgba(245,245,240,.4)", marginBottom:4 }}>MM</div>
-          <input type="number" min={0} max={99} value={min} onChange={e=>onMin(e.target.value)} placeholder="28"
-            style={{ width:"100%", background:"rgba(255,255,255,.07)", border:"1px solid rgba(255,255,255,.15)", borderRadius:10, padding:"12px 8px", color:"#fff", fontSize:20, ...MONO, outline:"none", textAlign:"center", boxSizing:"border-box" }}/>
-        </div>
-        <div style={{ fontSize:22, color:"rgba(245,245,240,.3)", paddingTop:18 }}>:</div>
-        <div style={{ flex:1 }}>
-          <div style={{ ...MONO, fontSize:9, color:"rgba(245,245,240,.4)", marginBottom:4 }}>SS</div>
-          <input type="number" min={0} max={59} value={sec} onChange={e=>onSec(e.target.value)} placeholder="15"
-            style={{ width:"100%", background:"rgba(255,255,255,.07)", border:"1px solid rgba(255,255,255,.15)", borderRadius:10, padding:"12px 8px", color:"#fff", fontSize:20, ...MONO, outline:"none", textAlign:"center", boxSizing:"border-box" }}/>
-        </div>
+      {label && <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:8 }}>{label}</div>}
+      <div style={{ display:"flex", gap:8, alignItems:"flex-start", justifyContent:"center" }}>
+        <WheelField label="MM" items={MM_ITEMS} sel={min} onChange={onMin} />
+        <div style={{ fontSize:22, color:"rgba(var(--cm-ink-rgb),.3)", paddingTop:34 }}>:</div>
+        <WheelField label="SS" items={SS_ITEMS} sel={sec} onChange={onSec} />
       </div>
     </div>
   );
@@ -150,21 +170,12 @@ function TimeInputMMSS({ min, onMin, sec, onSec, label }) {
 
 function HMSInput({ hVal, mVal, sVal, onH, onM, onS }) {
   return (
-    <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-      {[
-        { val:hVal, set:onH, label:"H",  ph:"1" },
-        { val:mVal, set:onM, label:"MM", ph:"10" },
-        { val:sVal, set:onS, label:"SS", ph:"00" },
-      ].map(({ val, set, label, ph }, i) => (
-        <React.Fragment key={label}>
-          {i > 0 && <div style={{ fontSize:22, color:"rgba(245,245,240,.3)", paddingTop:18 }}>:</div>}
-          <div style={{ flex: i===0 ? 0.7 : 1 }}>
-            <div style={{ ...MONO, fontSize:9, color:"rgba(245,245,240,.4)", marginBottom:4 }}>{label}</div>
-            <input type="number" min={0} value={val} onChange={e=>set(e.target.value)} placeholder={ph}
-              style={{ width:"100%", background:"rgba(255,255,255,.07)", border:"1px solid rgba(255,255,255,.15)", borderRadius:10, padding:"12px 8px", color:"#fff", fontSize:18, ...MONO, outline:"none", textAlign:"center", boxSizing:"border-box" }}/>
-          </div>
-        </React.Fragment>
-      ))}
+    <div style={{ display:"flex", gap:8, alignItems:"flex-start", justifyContent:"center" }}>
+      <WheelField label="H"  items={H_ITEMS}  sel={hVal} onChange={onH} />
+      <div style={{ fontSize:22, color:"rgba(var(--cm-ink-rgb),.3)", paddingTop:34 }}>:</div>
+      <WheelField label="MM" items={MM_ITEMS} sel={mVal} onChange={onM} />
+      <div style={{ fontSize:22, color:"rgba(var(--cm-ink-rgb),.3)", paddingTop:34 }}>:</div>
+      <WheelField label="SS" items={SS_ITEMS} sel={sVal} onChange={onS} />
     </div>
   );
 }
@@ -175,9 +186,9 @@ function DistSelector({ value, onChange, options }) {
       {options.map(d => (
         <button key={d} onClick={()=>onChange(d)} style={{
           padding:"8px 14px", borderRadius:20,
-          border: `1.5px solid ${value===d ? AC : "rgba(255,255,255,.12)"}`,
-          background: value===d ? "rgba(var(--accent-rgb),.1)" : "rgba(255,255,255,.04)",
-          color: value===d ? AC : "rgba(245,245,240,.7)",
+          border: `1.5px solid ${value===d ? "var(--cm-red)" : "rgba(var(--cm-ink-rgb),.15)"}`,
+          background: value===d ? "rgba(var(--cm-red-rgb),.08)" : "rgba(var(--cm-ink-rgb),.04)",
+          color: value===d ? "var(--cm-red)" : "rgba(var(--cm-ink-rgb),.7)",
           fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s",
         }}>
           {DIST_LABELS[d]}
@@ -222,10 +233,24 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
   const [longRunDay, setLongRunDay] = useState(null);
   const [stationDay, setStationDay] = useState(null);
 
+  // Step 3 — run ability (Phase 2): current frequency + longest run. Routed to the engine-read
+  // wPrefs.currentRunsPerWeek/longestRunMi/current5KTime via the switch (deriveRunAbility) — same
+  // fields onboarding writes, so switch-created run/hybrid plans derive real ability (not intermediate).
+  const [runFreq, setRunFreq] = useState(null);
+  const [longestMi, setLongestMi] = useState(null);
+
   // Step 4 — Goal
   const [goalDist, setGoalDist] = useState(PROG_GOAL_DIST[program.id] || "5k");
+  // BUG 2: race is OPTIONAL. Default OFF for hybrid (run is supplementary) / ON for pure-run
+  // (the program itself is a race plan). OFF → race block hidden, no goalDistance/run_race_type stored.
+  const [raceGoal, setRaceGoal] = useState(!program.isHybrid);
   const [gMin, setGMin] = useState("");
   const [gSec, setGSec] = useState("");
+  // Running goal in H:MM:SS for half/full (MM:SS caps at 99min); empty default → CTA stays disabled +
+  // wheels show the unset treatment (matches 5k/10k MM:SS). Separate from hyrox goalH/M/S (1:00:00 default).
+  const [rgH, setRgH] = useState("");
+  const [rgM, setRgM] = useState("");
+  const [rgS, setRgS] = useState("");
   const [goalH, setGoalH] = useState("1");
   const [goalM, setGoalM] = useState("00");
   const [goalS, setGoalS] = useState("00");
@@ -268,14 +293,24 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
   }
 
   // ── Step 4: "What's realistic?" ─────────────────────────────────────────────
+  // Goal time is MM:SS for 5k/10k, H:MM:SS for half/full (a half/full goal exceeds the 99-min MM cap).
+  const _isLongGoal = goalDist === 'half' || goalDist === 'full';
+  const _runGoalSecs = () => _isLongGoal ? parseHMS(rgH, rgM, rgS) : parseMMSS(gMin, gSec);
+
   function computeRealistic() {
     if (!vdot) return;
     const weeksPer1VDOT = vdot < 35 ? 3.5 : vdot < 50 ? 5 : 8;
     const targetVdot = vdot + (12 / weeksPer1VDOT);
     const time = projectRaceTime(targetVdot, DIST_METERS[goalDist]);
     setRealisticSug({ time, vdot: targetVdot, weeks: 12 });
-    setGMin(String(Math.floor(time / 60)));
-    setGSec(String(time % 60).padStart(2, '0'));
+    if (_isLongGoal) {
+      setRgH(String(Math.floor(time / 3600)));
+      setRgM(String(Math.floor((time % 3600) / 60)).padStart(2, '0'));
+      setRgS(String(time % 60).padStart(2, '0'));
+    } else {
+      setGMin(String(Math.floor(time / 60)));
+      setGSec(String(time % 60).padStart(2, '0'));
+    }
   }
 
   // ── Step 4 → 5 ──────────────────────────────────────────────────────────────
@@ -291,13 +326,15 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
       setStep(5);
       return;
     }
-    const gs = parseMMSS(gMin, gSec);
-    if (gs < 30) { setGoalError("Enter a valid goal time"); return; }
-    const goalVdot = vdotFromRaceTime(DIST_METERS[goalDist], gs / 60);
-    const { realistic, neededWeeks } = isGoalRealistic(vdot, goalVdot, 24);
-    if (!realistic && neededWeeks > 24) {
-      setGoalError(`This goal requires ~${neededWeeks}+ weeks. Try an intermediate milestone.`);
-      return;
+    if (raceGoal) {
+      const gs = _runGoalSecs();
+      if (gs < 30) { setGoalError("Enter a valid goal time"); return; }
+      const goalVdot = vdotFromRaceTime(DIST_METERS[goalDist], gs / 60);
+      const { realistic, neededWeeks } = isGoalRealistic(vdot, goalVdot, 24);
+      if (!realistic && neededWeeks > 24) {
+        setGoalError(`This goal requires ~${neededWeeks}+ weeks. Try an intermediate milestone.`);
+        return;
+      }
     }
     setStep(5);
   }
@@ -320,24 +357,53 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
           longRunDay: longRunDay || null,
         });
       } else {
-        const gs = parseMMSS(gMin, gSec);
-        const goalVdot = vdotFromRaceTime(DIST_METERS[goalDist], gs / 60);
         const today = new Date().toISOString().split("T")[0];
-        if (user?.id) await saveRunProfile(user.id, {
-          currentVdot: vdot,
-          baselineType: actualDist,
-          baselineTime: baselineSecs,
-          baselineDate: today,
-          goalDistance: goalDist,
-          goalTime: gs,
-          goalDate: null,
-          raceDate: raceDate || null,
-          planWeeks: recommendPlanWeeks(vdot, goalVdot),
-          planStartDate: today,
-          paces: trainingPaces(vdot),
-          trainDays,
-          longRunDay: longRunDay || null,
-        });
+        if (user?.id) {
+          if (raceGoal) {
+            const gs = _runGoalSecs();
+            const goalVdot = vdotFromRaceTime(DIST_METERS[goalDist], gs / 60);
+            await saveRunProfile(user.id, {
+              currentVdot: vdot,
+              baselineType: actualDist,
+              baselineTime: baselineSecs,
+              baselineDate: today,
+              goalDistance: goalDist,
+              goalTime: gs,
+              goalDate: null,
+              raceDate: raceDate || null,
+              planWeeks: recommendPlanWeeks(vdot, goalVdot),
+              planStartDate: today,
+              paces: trainingPaces(vdot),
+              trainDays,
+              longRunDay: longRunDay || null,
+              raceGoal: true,
+              // Phase 2 run-ability → promoted to wPrefs.* by activateProgramMode (deriveRunAbility).
+              currentRunsPerWeek: runFreq,
+              longestRunMi: longestMi,
+              current5KTime: actualDist === '5k' ? baselineSecs : (proj?.fiveK ?? null),
+            });
+          } else {
+            // No-race / general fitness: store fitness baseline + paces only; OMIT goalDistance/goalTime/
+            // raceDate. buildRunEngineInputs builds a consistency plan via its run_race_type(null→'5k' zones)
+            // / runFocus('consistency') / planWeeks fallbacks — running preserved, just no race goal.
+            await saveRunProfile(user.id, {
+              currentVdot: vdot,
+              baselineType: actualDist,
+              baselineTime: baselineSecs,
+              baselineDate: today,
+              planWeeks: 12,
+              planStartDate: today,
+              paces: trainingPaces(vdot),
+              trainDays,
+              longRunDay: longRunDay || null,
+              raceGoal: false,
+              // Phase 2 run-ability → promoted to wPrefs.* by activateProgramMode (deriveRunAbility).
+              currentRunsPerWeek: runFreq,
+              longestRunMi: longestMi,
+              current5KTime: actualDist === '5k' ? baselineSecs : (proj?.fiveK ?? null),
+            });
+          }
+        }
       }
       onConfirm(program);
     } catch (e) {
@@ -350,9 +416,15 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
   }
 
   // ── Couch to Mile routing ───────────────────────────────────────────────────
-  function handleCantRun() {
+  async function handleCantRun() {
     const fallback = PROGRAM_LIBRARY.find(p => p.id === "couch_to_mile")
                   || PROGRAM_LIBRARY.find(p => p.id === "c25k");
+    // Phase 2: a can't-run-a-mile user IS a true beginner — write beginner ability so the switch
+    // derives 'beginner' (else nulls → currentRunsPerWeek defaults to 2 → intermediate). Bypasses
+    // the normal saveRunProfile path, so set it explicitly here.
+    if (user?.id) {
+      try { await saveRunProfile(user.id, { currentRunsPerWeek: 0, longestRunMi: 1 }); } catch {}
+    }
     showToast("We'll build your base first. Couch to 5K starts today.", "success");
     onConfirm(fallback || program);
   }
@@ -362,14 +434,14 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
     const goBack = step > 1 ? () => setStep(s => s - 1) : onCancel;
     const backLabel = step > 1 ? "← Back" : "✕ Cancel";
     return (
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"20px 20px 16px", borderBottom:"1px solid rgba(255,255,255,.07)", position:"sticky", top:0, background:"#000", zIndex:2 }}>
-        <button onClick={goBack} style={{ background:"none", border:"none", color:"rgba(245,245,240,.5)", cursor:"pointer", fontSize:13, fontFamily:"inherit" }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"20px 20px 16px", borderBottom:"1px solid rgba(var(--cm-ink-rgb),.10)", position:"sticky", top:0, background:"var(--cm-paper)", zIndex:2 }}>
+        <button onClick={goBack} style={{ background:"none", border:"none", color:"var(--cm-red)", cursor:"pointer", fontSize:13, fontFamily:"inherit" }}>
           {backLabel}
         </button>
-        <div style={{ ...COND, fontSize:16, letterSpacing:"0.04em", color:"#f5f5f0" }}>
+        <div style={{ ...COND, fontSize:16, letterSpacing:"0.04em", color:"var(--cm-ink)" }}>
           {program.name.toUpperCase()}
         </div>
-        <div style={{ ...MONO, fontSize:11, color:"rgba(245,245,240,.4)", letterSpacing:"0.1em" }}>
+        <div style={{ ...MONO, fontSize:11, color:"rgba(var(--cm-ink-rgb),.5)", letterSpacing:"0.1em" }}>
           {step} of {TOTAL_STEPS}
         </div>
       </div>
@@ -383,7 +455,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
       <div style={{ padding:"24px 20px 48px" }}>
         <Eyebrow>// Baseline</Eyebrow>
         <Heading>Where are you<br/><span style={{color:AC}}>starting from?</span></Heading>
-        <div style={{ fontSize:13, color:"rgba(245,245,240,.6)", marginBottom:24, lineHeight:1.6 }}>
+        <div style={{ fontSize:13, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:24, lineHeight:1.6 }}>
           Before we build your plan, we need to know your current fitness.
         </div>
 
@@ -393,7 +465,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
 
         {baselineChoice === "other" && (
           <div style={{ marginTop:8 }}>
-            <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:8 }}>Select your distance:</div>
+            <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:8 }}>Select your distance:</div>
             <DistSelector value={baselineDist} onChange={setBaselineDist} options={["5k","10k","half","full"]} />
           </div>
         )}
@@ -424,7 +496,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
       <div style={{ padding:"24px 20px 48px" }}>
         <Eyebrow>// Baseline</Eyebrow>
         <Heading>Your Hyrox<br/><span style={{color:AC}}>starting point.</span></Heading>
-        <div style={{ fontSize:13, color:"rgba(245,245,240,.6)", marginBottom:24, lineHeight:1.6 }}>
+        <div style={{ fontSize:13, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:24, lineHeight:1.6 }}>
           Have you done a Hyrox race before?
         </div>
 
@@ -433,7 +505,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
 
         {hyroxChoice === "yes" && (
           <div style={{ marginTop:16 }}>
-            <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:8 }}>Your Hyrox finish time:</div>
+            <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:8 }}>Your Hyrox finish time:</div>
             <HMSInput hVal={hxH} mVal={hxM} sVal={hxS} onH={setHxH} onM={setHxM} onS={setHxS} />
           </div>
         )}
@@ -471,8 +543,8 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
       <div style={{ padding:"24px 20px 48px" }}>
         <Eyebrow>// Training Schedule</Eyebrow>
         <Heading>Which days work<br/><span style={{color:AC}}>for training?</span></Heading>
-        <div style={{ fontSize:13, color:"rgba(245,245,240,.6)", marginBottom:20, lineHeight:1.5 }}>
-          This plan needs <span style={{color:"#f5f5f0", fontWeight:600}}>{minDays} sessions/week</span> — select at least that many days.
+        <div style={{ fontSize:13, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:20, lineHeight:1.5 }}>
+          This plan needs <span style={{color:"var(--cm-ink)", fontWeight:600}}>{minDays} sessions/week</span> — select at least that many days.
         </div>
 
         {/* 7-day grid */}
@@ -482,9 +554,9 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
             return (
               <button key={d} onClick={() => toggleDay(d)} style={{
                 padding:"11px 0", borderRadius:10,
-                border: `1.5px solid ${sel ? AC : "rgba(255,255,255,.22)"}`,
-                background: sel ? "rgba(var(--accent-rgb),.1)" : "rgba(255,255,255,.03)",
-                color: sel ? AC : "rgba(245,245,240,.6)",
+                border: `1.5px solid ${sel ? "var(--cm-red)" : "rgba(var(--cm-ink-rgb),.15)"}`,
+                background: sel ? "rgba(var(--cm-red-rgb),.08)" : "rgba(var(--cm-ink-rgb),.04)",
+                color: sel ? "var(--cm-red)" : "rgba(var(--cm-ink-rgb),.6)",
                 fontSize:10, fontWeight:700, cursor:"pointer",
                 fontFamily:"'DM Mono',monospace", transition:"all 0.15s",
                 textAlign:"center",
@@ -496,7 +568,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
         </div>
 
         {deficit > 0 && trainDays.length > 0 && (
-          <div style={{ ...MONO, fontSize:11, color:"rgba(245,245,240,.4)", marginBottom:16, marginTop:4 }}>
+          <div style={{ ...MONO, fontSize:11, color:"rgba(var(--cm-ink-rgb),.5)", marginBottom:16, marginTop:4 }}>
             {deficit} more day{deficit !== 1 ? "s" : ""} needed
           </div>
         )}
@@ -505,16 +577,16 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
         {/* Long run day selector */}
         {trainDays.length > 0 && (
           <div style={{ marginBottom: isHyrox ? 0 : 4 }}>
-            <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:10, fontWeight:600 }}>
+            <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:10, fontWeight:600 }}>
               Which day is your long run?
             </div>
             <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
               {trainDays.map(d => (
                 <button key={d} onClick={() => setLongRunDay(longRunDay === d ? null : d)} style={{
                   padding:"8px 14px", borderRadius:20,
-                  border: `1.5px solid ${longRunDay===d ? AC : "rgba(255,255,255,.2)"}`,
-                  background: longRunDay===d ? "rgba(var(--accent-rgb),.1)" : "rgba(255,255,255,.04)",
-                  color: longRunDay===d ? AC : "rgba(245,245,240,.65)",
+                  border: `1.5px solid ${longRunDay===d ? "var(--cm-red)" : "rgba(var(--cm-ink-rgb),.15)"}`,
+                  background: longRunDay===d ? "rgba(var(--cm-red-rgb),.08)" : "rgba(var(--cm-ink-rgb),.04)",
+                  color: longRunDay===d ? "var(--cm-red)" : "rgba(var(--cm-ink-rgb),.65)",
                   fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s",
                 }}>
                   {d}
@@ -527,16 +599,16 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
         {/* Station day selector (Hyrox only) */}
         {isHyrox && trainDays.length > 0 && (
           <div style={{ marginTop:20 }}>
-            <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:10, fontWeight:600 }}>
+            <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:10, fontWeight:600 }}>
               Which day for station work?
             </div>
             <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
               {trainDays.map(d => (
                 <button key={d} onClick={() => setStationDay(stationDay === d ? null : d)} style={{
                   padding:"8px 14px", borderRadius:20,
-                  border: `1.5px solid ${stationDay===d ? AC : "rgba(255,255,255,.2)"}`,
-                  background: stationDay===d ? "rgba(var(--accent-rgb),.1)" : "rgba(255,255,255,.04)",
-                  color: stationDay===d ? AC : "rgba(245,245,240,.65)",
+                  border: `1.5px solid ${stationDay===d ? "var(--cm-red)" : "rgba(var(--cm-ink-rgb),.15)"}`,
+                  background: stationDay===d ? "rgba(var(--cm-red-rgb),.08)" : "rgba(var(--cm-ink-rgb),.04)",
+                  color: stationDay===d ? "var(--cm-red)" : "rgba(var(--cm-ink-rgb),.65)",
                   fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s",
                 }}>
                   {d}
@@ -567,7 +639,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
       <div style={{ padding:"24px 20px 48px" }}>
         <Eyebrow>// Your Fitness</Eyebrow>
         <Heading>Based on your<br/><span style={{color:AC}}>{DIST_LABELS[actualDist]} time.</span></Heading>
-        <div style={{ fontSize:13, color:"rgba(245,245,240,.6)", marginBottom:16, lineHeight:1.5 }}>
+        <div style={{ fontSize:13, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:16, lineHeight:1.5 }}>
           Your current predicted race times:
         </div>
         <div style={{ marginBottom:20 }}>
@@ -583,10 +655,34 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
             );
           })}
         </div>
-        <div style={{ ...MONO, fontSize:11, color:"rgba(245,245,240,.4)", marginBottom:24, lineHeight:1.6 }}>
+        <div style={{ ...MONO, fontSize:11, color:"rgba(var(--cm-ink-rgb),.5)", marginBottom:24, lineHeight:1.6 }}>
           Daniels VDOT formula · Your fitness score: <span style={{color:AC}}>{vdot?.toFixed(1)}</span>
         </div>
-        <CTABtn onClick={() => setStep(4)}>Set Your Goal →</CTABtn>
+        {/* Phase 2: run ability inputs — anchor starting weekly volume (deriveRunAbility). */}
+        <div style={{ fontSize:13, fontWeight:700, color:"var(--cm-ink)", margin:"4px 0 8px" }}>How many days do you run now?</div>
+        {[
+          {v:0,l:"0 days",s:"I don't currently run"},
+          {v:1,l:"1 day",s:"Occasional"},
+          {v:2,l:"2 days",s:"A couple times a week"},
+          {v:3,l:"3 days",s:"Running regularly"},
+          {v:4,l:"4 days",s:"Frequent runner"},
+          {v:5,l:"5+ days",s:"Most days"},
+        ].map(o=>(
+          <TapCard key={o.v} icon="🏃" label={o.l} sub={o.s} selected={runFreq===o.v} onClick={()=>setRunFreq(o.v)} />
+        ))}
+        <div style={{ fontSize:13, fontWeight:700, color:"var(--cm-ink)", margin:"18px 0 8px" }}>Longest run you're comfortable with today?</div>
+        {[
+          {v:1, l:"Under 2 miles",s:"Just getting started"},
+          {v:2, l:"2–3 miles",   s:"Can run a 5K or close"},
+          {v:4, l:"4–5 miles",   s:"Comfortable with 5–8 km"},
+          {v:6, l:"6–7 miles",   s:"Running 10K distances"},
+          {v:8, l:"8–9 miles",   s:"Double-digit km is familiar"},
+          {v:10,l:"10–12 miles", s:"Half marathon territory"},
+          {v:13,l:"13+ miles",   s:"Half marathon or longer"},
+        ].map(o=>(
+          <TapCard key={o.v} icon="📏" label={o.l} sub={o.s} selected={longestMi===o.v} onClick={()=>setLongestMi(o.v)} />
+        ))}
+        <CTABtn onClick={() => setStep(4)} disabled={runFreq===null||longestMi===null}>Set Your Goal →</CTABtn>
       </div>
     );
   }
@@ -598,21 +694,21 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
       <div style={{ padding:"24px 20px 48px" }}>
         <Eyebrow>// Station Breakdown</Eyebrow>
         <Heading>Current station<br/><span style={{color:AC}}>targets.</span></Heading>
-        <div style={{ fontSize:13, color:"rgba(245,245,240,.6)", marginBottom:16 }}>
+        <div style={{ fontSize:13, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:16 }}>
           Based on {fmtSecs(currentHyroxSecs)} total · Run pace {hyroxData.currentKmPaceFormatted}
         </div>
 
-        <div style={{ background:"rgba(255,255,255,.03)", borderRadius:12, overflow:"hidden", border:"1px solid rgba(255,255,255,.08)", marginBottom:20 }}>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr auto auto", borderBottom:"1px solid rgba(255,255,255,.06)" }}>
-            <div style={{ ...MONO, fontSize:9, color:"rgba(245,245,240,.35)", padding:"10px 14px", letterSpacing:"0.1em", textTransform:"uppercase" }}>Station</div>
-            <div style={{ ...MONO, fontSize:9, color:"rgba(245,245,240,.35)", padding:"10px 12px", textAlign:"right", letterSpacing:"0.1em", textTransform:"uppercase" }}>Now</div>
+        <div style={{ background:"rgba(var(--cm-ink-rgb),.04)", borderRadius:12, overflow:"hidden", border:"1px solid rgba(var(--cm-ink-rgb),.08)", marginBottom:20 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr auto auto", borderBottom:"1px solid rgba(var(--cm-ink-rgb),.10)" }}>
+            <div style={{ ...MONO, fontSize:9, color:"rgba(var(--cm-ink-rgb),.4)", padding:"10px 14px", letterSpacing:"0.1em", textTransform:"uppercase" }}>Station</div>
+            <div style={{ ...MONO, fontSize:9, color:"rgba(var(--cm-ink-rgb),.4)", padding:"10px 12px", textAlign:"right", letterSpacing:"0.1em", textTransform:"uppercase" }}>Now</div>
             <div style={{ ...MONO, fontSize:9, color:AC, padding:"10px 14px", textAlign:"right", letterSpacing:"0.1em", textTransform:"uppercase" }}>Goal</div>
           </div>
           {Object.entries(hyroxData.stationTargets).map(([key, s], i) => (
-            <div key={key} style={{ display:"grid", gridTemplateColumns:"1fr auto auto", borderTop: i===0 ? "none" : "1px solid rgba(255,255,255,.04)", background: i%2===0 ? "rgba(255,255,255,.01)" : "transparent" }}>
-              <div style={{ fontSize:12, color:"rgba(245,245,240,.75)", padding:"10px 14px" }}>{STATION_LABELS[key] || key}</div>
-              <div style={{ ...MONO, fontSize:12, color:"rgba(245,245,240,.5)", padding:"10px 12px", textAlign:"right" }}>{fmtSecs(s.current)}</div>
-              <div style={{ ...MONO, fontSize:12, color:"#f5f5f0", fontWeight:700, padding:"10px 14px", textAlign:"right" }}>{fmtSecs(s.goal)}</div>
+            <div key={key} style={{ display:"grid", gridTemplateColumns:"1fr auto auto", borderTop: i===0 ? "none" : "1px solid rgba(var(--cm-ink-rgb),.06)", background: i%2===0 ? "rgba(var(--cm-ink-rgb),.02)" : "transparent" }}>
+              <div style={{ fontSize:12, color:"var(--cm-ink)", padding:"10px 14px" }}>{STATION_LABELS[key] || key}</div>
+              <div style={{ ...MONO, fontSize:12, color:"rgba(var(--cm-ink-rgb),.5)", padding:"10px 12px", textAlign:"right" }}>{fmtSecs(s.current)}</div>
+              <div style={{ ...MONO, fontSize:12, color:"var(--cm-ink)", fontWeight:700, padding:"10px 14px", textAlign:"right" }}>{fmtSecs(s.goal)}</div>
             </div>
           ))}
         </div>
@@ -628,41 +724,59 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
         <Eyebrow>// Goal</Eyebrow>
         <Heading>What are you<br/><span style={{color:AC}}>training for?</span></Heading>
 
-        <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:10, marginTop:8 }}>Goal distance:</div>
+        {/* BUG 2: race is optional — toggle gates the whole race block (distance + goal time + date). */}
+        <div style={{ display:"flex", gap:8, marginTop:10, marginBottom:4, alignItems:"center" }}>
+          <div style={{ fontSize:13, color:"var(--cm-ink)", fontWeight:600, flex:1 }}>Training for a race?</div>
+          {[{v:false,l:"No"},{v:true,l:"Yes"}].map(({v,l})=>(
+            <button key={l} onClick={()=>setRaceGoal(v)} style={{ padding:"8px 18px", borderRadius:20,
+              border:`1.5px solid ${raceGoal===v?"var(--cm-red)":"rgba(var(--cm-ink-rgb),.15)"}`,
+              background:raceGoal===v?"rgba(var(--cm-red-rgb),.08)":"rgba(var(--cm-ink-rgb),.04)",
+              color:raceGoal===v?"var(--cm-red)":"rgba(var(--cm-ink-rgb),.7)", fontSize:13, fontWeight:700,
+              cursor:"pointer", fontFamily:"inherit" }}>{l}</button>
+          ))}
+        </div>
+        {!raceGoal && <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.5)", marginTop:8 }}>
+          We'll build a consistency-focused run plan around your current fitness — no goal race.</div>}
+
+        {raceGoal && (<>
+        <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:10, marginTop:8 }}>Goal distance:</div>
         <DistSelector value={goalDist} onChange={d=>{setGoalDist(d); setRealisticSug(null);}} options={["5k","10k","half","full"]} />
 
         <div style={{ marginTop:16, marginBottom:8 }}>
-          <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:4 }}>Your goal time for {DIST_LABELS[goalDist]}:</div>
+          <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:4 }}>Your goal time for {DIST_LABELS[goalDist]}:</div>
         </div>
-        <TimeInputMMSS min={gMin} onMin={setGMin} sec={gSec} onSec={setGSec} />
+        {_isLongGoal
+          ? <HMSInput hVal={rgH} mVal={rgM} sVal={rgS} onH={setRgH} onM={setRgM} onS={setRgS} />
+          : <TimeInputMMSS min={gMin} onMin={setGMin} sec={gSec} onSec={setGSec} />}
 
-        <button onClick={computeRealistic} style={{ width:"100%", marginTop:16, padding:"12px 16px", background:"rgba(255,255,255,.04)", border:"1.5px solid rgba(255,255,255,.12)", borderRadius:12, color:"rgba(245,245,240,.75)", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+        <button onClick={computeRealistic} style={{ width:"100%", marginTop:16, padding:"12px 16px", background:"rgba(var(--cm-ink-rgb),.04)", border:"1.5px solid rgba(var(--cm-ink-rgb),.12)", borderRadius:12, color:"rgba(var(--cm-ink-rgb),.75)", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
           What's realistic for me?
         </button>
 
         {realisticSug && (
           <div style={{ background:"rgba(var(--accent-rgb),.06)", border:"1px solid rgba(var(--accent-rgb),.2)", borderRadius:12, padding:"14px 16px", marginTop:10 }}>
-            <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:6 }}>Based on your fitness, a realistic 12-week goal:</div>
+            <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:6 }}>Based on your fitness, a realistic 12-week goal:</div>
             <div style={{ ...MONO, fontSize:24, color:AC, fontWeight:700, marginBottom:2 }}>{fmtSecs(realisticSug.time)}</div>
-            <div style={{ fontSize:11, color:"rgba(245,245,240,.45)" }}>{DIST_LABELS[goalDist]} · already applied to the fields above</div>
+            <div style={{ fontSize:11, color:"rgba(var(--cm-ink-rgb),.45)" }}>{DIST_LABELS[goalDist]} · already applied to the fields above</div>
           </div>
         )}
 
         {/* Optional race date */}
         <div style={{ marginTop:20, marginBottom:4 }}>
-          <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:6 }}>Race date <span style={{ color:"rgba(245,245,240,.35)" }}>(optional)</span></div>
-          <div style={{ fontSize:11, color:"rgba(245,245,240,.4)", marginBottom:8 }}>If you have a race booked, we'll build your peak fitness around it.</div>
+          <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:6 }}>Race date <span style={{ color:"rgba(var(--cm-ink-rgb),.35)" }}>(optional)</span></div>
+          <div style={{ fontSize:11, color:"rgba(var(--cm-ink-rgb),.5)", marginBottom:8 }}>If you have a race booked, we'll build your peak fitness around it.</div>
           <input
             type="date"
             value={raceDate}
             onChange={e => setRaceDate(e.target.value)}
             min={new Date().toISOString().split('T')[0]}
-            style={{ width:"100%", background:"rgba(255,255,255,.07)", border:"1px solid rgba(255,255,255,.15)", borderRadius:10, padding:"12px 14px", color:"#fff", fontSize:15, ...MONO, outline:"none", boxSizing:"border-box", colorScheme:"dark" }}
+            style={{ width:"100%", background:"rgba(var(--cm-ink-rgb),.06)", border:"1px solid rgba(var(--cm-ink-rgb),.15)", borderRadius:10, padding:"12px 14px", color:"var(--cm-ink)", fontSize:15, ...MONO, outline:"none", boxSizing:"border-box", colorScheme:"light" }}
           />
         </div>
+        </>)}
 
         {goalError && <div style={{ color:"#F87171", fontSize:12, marginTop:10 }}>{goalError}</div>}
-        <CTABtn onClick={proceedToConfirm} disabled={!(parseInt(gMin)||parseInt(gSec))}>See My Plan →</CTABtn>
+        <CTABtn onClick={proceedToConfirm} disabled={raceGoal && !(_runGoalSecs() > 0)}>See My Plan →</CTABtn>
       </div>
     );
   }
@@ -672,10 +786,10 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
       <div style={{ padding:"24px 20px 48px" }}>
         <Eyebrow>// Goal</Eyebrow>
         <Heading>Your target<br/><span style={{color:AC}}>finish time.</span></Heading>
-        <div style={{ fontSize:13, color:"rgba(245,245,240,.6)", marginBottom:20 }}>
-          Current: <span style={{...MONO, color:"#f5f5f0"}}>{fmtSecs(currentHyroxSecs)}</span>
+        <div style={{ fontSize:13, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:20 }}>
+          Current: <span style={{...MONO, color:"var(--cm-ink)"}}>{fmtSecs(currentHyroxSecs)}</span>
         </div>
-        <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:8 }}>Goal finish time:</div>
+        <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:8 }}>Goal finish time:</div>
         <HMSInput hVal={goalH} mVal={goalM} sVal={goalS} onH={setGoalH} onM={setGoalM} onS={setGoalS} />
         {goalError && <div style={{ color:"#F87171", fontSize:12, marginTop:10 }}>{goalError}</div>}
         <CTABtn onClick={proceedToConfirm}>See My Plan →</CTABtn>
@@ -685,7 +799,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
 
   // ── Step 5: Plan Confirmation ────────────────────────────────────────────────
   function Step5Running() {
-    const gs = parseMMSS(gMin, gSec);
+    const gs = _runGoalSecs();
     const goalVdot = gs > 0 && vdot ? vdotFromRaceTime(DIST_METERS[goalDist], gs / 60) : vdot;
     const weeks = (vdot && goalVdot) ? recommendPlanWeeks(vdot, goalVdot) : 12;
     const paces = vdot ? trainingPaces(vdot) : null;
@@ -695,9 +809,11 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
         <Eyebrow>// Your Plan</Eyebrow>
         <Heading>Your plan<br/><span style={{color:AC}}>is ready.</span></Heading>
 
-        <div style={{ background:"rgba(255,255,255,.04)", border:"1px solid rgba(255,255,255,.1)", borderRadius:16, padding:"20px", marginTop:20, marginBottom:20 }}>
+        <div style={{ background:"rgba(var(--cm-ink-rgb),.04)", border:"1px solid rgba(var(--cm-ink-rgb),.10)", borderRadius:16, padding:"20px", marginTop:20, marginBottom:20 }}>
           <SummaryRow label="Current" value={fmtSecs(baselineSecs)} sub={DIST_LABELS[actualDist]} />
-          <SummaryRow label="Goal" value={fmtSecs(gs)} sub={DIST_LABELS[goalDist]} accent />
+          {raceGoal
+            ? <SummaryRow label="Goal" value={fmtSecs(gs)} sub={DIST_LABELS[goalDist]} accent />
+            : <SummaryRow label="Focus" value="General fitness" sub="Consistency-based run plan" accent />}
           <SummaryRow label="Plan length" value={`${weeks} weeks`} />
           {trainDays.length > 0 && (
             <SummaryRow label="Training days" value={trainDays.join(" · ")} />
@@ -705,16 +821,16 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
 
           {paces && (
             <>
-              <div style={{ height:1, background:"rgba(255,255,255,.08)", margin:"14px 0" }}/>
-              <div style={{ ...MONO, fontSize:10, color:"rgba(245,245,240,.4)", letterSpacing:"0.12em", textTransform:"uppercase", marginBottom:10 }}>Your training paces</div>
+              <div style={{ height:1, background:"rgba(var(--cm-ink-rgb),.10)", margin:"14px 0" }}/>
+              <div style={{ ...MONO, fontSize:10, color:"rgba(var(--cm-ink-rgb),.45)", letterSpacing:"0.12em", textTransform:"uppercase", marginBottom:10 }}>Your training paces</div>
               <PaceRow label="Easy" value={formatPace(paces.easy)} />
               <PaceRow label="Tempo" value={formatPace(paces.tempo)} />
               <PaceRow label="Intervals" value={formatPace(paces.interval)} />
             </>
           )}
 
-          <div style={{ height:1, background:"rgba(255,255,255,.08)", margin:"14px 0" }}/>
-          <div style={{ fontSize:12, color:"rgba(245,245,240,.55)", lineHeight:1.6, fontStyle:"italic" }}>
+          <div style={{ height:1, background:"rgba(var(--cm-ink-rgb),.10)", margin:"14px 0" }}/>
+          <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.55)", lineHeight:1.6, fontStyle:"italic" }}>
             "Every session shows your personal paces — not generic effort levels."
           </div>
         </div>
@@ -731,7 +847,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
         <Eyebrow>// Your Plan</Eyebrow>
         <Heading>Your Hyrox<br/><span style={{color:AC}}>plan is ready.</span></Heading>
 
-        <div style={{ background:"rgba(255,255,255,.04)", border:"1px solid rgba(255,255,255,.1)", borderRadius:16, padding:"20px", marginTop:20, marginBottom:20 }}>
+        <div style={{ background:"rgba(var(--cm-ink-rgb),.04)", border:"1px solid rgba(var(--cm-ink-rgb),.10)", borderRadius:16, padding:"20px", marginTop:20, marginBottom:20 }}>
           <SummaryRow label="Current time" value={fmtSecs(currentHyroxSecs)} />
           <SummaryRow label="Goal time" value={fmtSecs(gs)} accent />
           <SummaryRow label="Plan length" value={`${data.planWeeks} weeks`} />
@@ -740,8 +856,8 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
             <SummaryRow label="Training days" value={trainDays.join(" · ")} />
           )}
 
-          <div style={{ height:1, background:"rgba(255,255,255,.08)", margin:"14px 0" }}/>
-          <div style={{ fontSize:12, color:"rgba(245,245,240,.55)", lineHeight:1.6, fontStyle:"italic" }}>
+          <div style={{ height:1, background:"rgba(var(--cm-ink-rgb),.10)", margin:"14px 0" }}/>
+          <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.55)", lineHeight:1.6, fontStyle:"italic" }}>
             "Every session shows your personal pace and station targets."
           </div>
         </div>
@@ -769,7 +885,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
   }
 
   return (
-    <div style={{ position:"fixed", inset:0, background:"#000000", zIndex:500, overflowY:"auto", display:"flex", flexDirection:"column" }}>
+    <div style={{ position:"fixed", inset:0, background:"var(--cm-paper)", zIndex:500, overflowY:"auto", display:"flex", flexDirection:"column" }}>
       <Header />
       <div style={{ flex:1 }}>
         {renderStep()}

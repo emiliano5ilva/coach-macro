@@ -69,12 +69,128 @@ export const FOCUS_MUSCLES = {
   "Rest":          "Recovery day — no training, prioritize sleep and protein",
 };
 
+// ─── FOCUS → MUSCLE GROUPS MAP ───────────────────────────────────────────────
+// Design-intent muscles per training day label, sourced from FOCUS_MUSCLES +
+// MUSCLE_COVERAGE. Each entry: ordered groups, each group = { group, label, muscles }.
+// group → CSS token key (--mg-{group}-fill/text).
+// label → group-level pill text ('groups' variant).
+// muscles → exact sub-muscle pill texts ('exact' variant, Title Case).
+// Absent keys (Rest, Run, Cardio, Hyrox, Long Run) → MusclePills renders nothing.
+const _push = [
+  { group:'chest',     label:'Chest',     muscles:['Upper Chest','Mid Chest','Lower Chest'] },
+  { group:'shoulders', label:'Shoulders', muscles:['Front Delt','Side Delt'] },
+  { group:'arms',      label:'Triceps',   muscles:['Triceps (Long)','Triceps (Lateral)','Triceps (Medial)'] },
+];
+const _pull = [
+  { group:'back',      label:'Back',      muscles:['Lats','Mid Traps','Rhomboids'] },
+  { group:'arms',      label:'Biceps',    muscles:['Biceps (Long)','Biceps (Short)','Brachialis'] },
+  { group:'shoulders', label:'Rear Delts',muscles:['Rear Delt'] },
+];
+const _legs = [
+  { group:'legs', label:'Quads',      muscles:['Quads'] },
+  { group:'legs', label:'Hamstrings', muscles:['Hamstrings'] },
+  { group:'legs', label:'Glutes',     muscles:['Glutes'] },
+  { group:'legs', label:'Calves',     muscles:['Gastrocnemius','Soleus'] },
+];
+const _upper = [
+  { group:'chest',     label:'Chest',     muscles:['Upper Chest','Mid Chest','Lower Chest'] },
+  { group:'shoulders', label:'Shoulders', muscles:['Front Delt','Side Delt','Rear Delt'] },
+  { group:'back',      label:'Back',      muscles:['Lats','Traps'] },
+  { group:'arms',      label:'Arms',      muscles:['Biceps','Triceps'] },
+];
+const _lower = [
+  { group:'legs', label:'Quads',      muscles:['Quads'] },
+  { group:'legs', label:'Hamstrings', muscles:['Hamstrings'] },
+  { group:'legs', label:'Glutes',     muscles:['Glutes'] },
+  { group:'legs', label:'Calves',     muscles:['Gastrocnemius','Soleus'] },
+];
+const _full = [
+  { group:'legs',  label:'Legs',  muscles:['Quads','Hamstrings','Glutes'] },
+  { group:'back',  label:'Back',  muscles:['Lats','Traps'] },
+  { group:'chest', label:'Chest', muscles:['Chest'] },
+  { group:'core',  label:'Core',  muscles:['Core'] },
+];
+const _chest = [
+  { group:'chest', label:'Chest',   muscles:['Upper Chest','Mid Chest','Lower Chest'] },
+  { group:'arms',  label:'Triceps', muscles:['Triceps'] },
+];
+const _back = [
+  { group:'back', label:'Back',   muscles:['Lats','Traps','Rhomboids'] },
+  { group:'arms', label:'Biceps', muscles:['Biceps'] },
+];
+const _shoulders = [
+  { group:'shoulders', label:'Shoulders', muscles:['Front Delt','Side Delt','Rear Delt','Rotator Cuff'] },
+];
+const _arms = [
+  { group:'arms', label:'Biceps',  muscles:['Biceps (Long)','Biceps (Short)','Brachialis'] },
+  { group:'arms', label:'Triceps', muscles:['Triceps (Long)','Triceps (Lateral)','Triceps (Medial)'] },
+];
+const _chestBack = [
+  { group:'chest', label:'Chest', muscles:['Upper Chest','Mid Chest','Lower Chest'] },
+  { group:'back',  label:'Back',  muscles:['Lats','Mid Traps','Rear Delt'] },
+];
+const _shouldersArms = [
+  { group:'shoulders', label:'Shoulders', muscles:['Front Delt','Side Delt','Rear Delt'] },
+  { group:'arms',      label:'Biceps',    muscles:['Biceps (Long)','Biceps (Short)','Brachialis'] },
+  { group:'arms',      label:'Triceps',   muscles:['Triceps (Long)','Triceps (Lateral)','Triceps (Medial)'] },
+];
+const _arnoldA = [
+  { group:'chest',     label:'Chest',     muscles:['Upper Chest','Mid Chest','Lower Chest'] },
+  { group:'shoulders', label:'Shoulders', muscles:['Front Delt','Side Delt'] },
+  { group:'arms',      label:'Triceps',   muscles:['Triceps (Long)','Triceps (Lateral)','Triceps (Medial)'] },
+];
+const _arnoldB = [
+  { group:'back',      label:'Back',      muscles:['Lats','Mid Traps','Rhomboids'] },
+  { group:'arms',      label:'Biceps',    muscles:['Biceps (Long)','Biceps (Short)','Brachialis'] },
+  { group:'shoulders', label:'Rear Delts',muscles:['Rear Delt'] },
+];
+const _chestTriceps = [
+  { group:'chest', label:'Chest',   muscles:['Upper Chest','Mid Chest','Lower Chest'] },
+  { group:'arms',  label:'Triceps', muscles:['Triceps (Long)','Triceps (Lateral)','Triceps (Medial)'] },
+];
+const _backBiceps = [
+  { group:'back', label:'Back',   muscles:['Lats','Traps','Rhomboids'] },
+  { group:'arms', label:'Biceps', muscles:['Biceps (Long)','Biceps (Short)','Brachialis'] },
+];
+const _shoulderArmsCombo = [
+  { group:'shoulders', label:'Shoulders', muscles:['Front Delt','Side Delt','Rear Delt'] },
+  { group:'arms',      label:'Biceps',    muscles:['Biceps (Long)','Biceps (Short)'] },
+  { group:'arms',      label:'Triceps',   muscles:['Triceps (Long)','Triceps (Lateral)','Triceps (Medial)'] },
+];
+
+export const FOCUS_TO_MUSCLES = {
+  // ── PPL (3-day + 6-day A/B variants) ──
+  "Push":   _push,  "Push A": _push,  "Push B": _push,
+  "Pull":   _pull,  "Pull A": _pull,  "Pull B": _pull,
+  "Legs":   _legs,  "Legs A": _legs,  "Legs B": _legs,
+  // ── Upper / Lower ──
+  "Upper":  _upper, "Lower":  _lower,
+  // ── Full Body ──
+  "Full Body": _full,
+  // ── Bro Split individual days ──
+  "Chest":     _chest,
+  "Back":      _back,
+  "Shoulders": _shoulders,
+  "Arms":      _arms,
+  // ── Arnold Split (SPLIT_CYCLES keys) ──
+  "Chest & Back":    _chestBack,
+  "Shoulders & Arms":_shouldersArms,
+  // ── FOCUS_MUSCLES combo labels ──
+  "Chest+Triceps":  _chestTriceps,
+  "Back+Biceps":    _backBiceps,
+  "Shoulders+Arms": _shoulderArmsCombo,
+  "Arnold A":       _arnoldA,
+  "Arnold B":       _arnoldB,
+  // Rest / cardio / run → absent → MusclePills renders nothing
+};
+
 export const SPLIT_CYCLES = {
   "Push/Pull/Legs":  ["Push","Pull","Legs"],
   "Upper/Lower":     ["Upper","Lower"],
   "Full Body":       ["Full Body"],
   "Bro Split":       ["Chest","Back","Shoulders","Arms","Legs"],
   "Arnold Split":    ["Chest & Back","Shoulders & Arms","Legs"],
+  "Platz Volume":    ["Chest","Back","Legs","Shoulders + Arms"],
 };
 
 export const DAY_CFG = {
@@ -189,10 +305,149 @@ export function hapMed()       { try{navigator.vibrate?.(15);}catch{} }
 export function hapHeavy()     { try{navigator.vibrate?.([10,30,10]);}catch{} }
 export function hapSuccess()   { try{navigator.vibrate?.([8,40,8]);}catch{} }
 export function hapPR()        { try{navigator.vibrate?.([10,30,10,30,10]);}catch{} }
+
+// ─── Scroll-reveal primitives (Train + Fuel share these) ─────────────────────
+
+// Walk up the DOM to find the nearest element that actually scrolls (overflow auto/scroll).
+// Passing this as IntersectionObserver root ensures the observer fires relative to what
+// the user sees, not the browser viewport. Without the correct root, overflow-y:auto
+// containers show every child as "intersecting" because all are within the viewport rect.
+function findScrollParent(el) {
+  let node = el?.parentElement;
+  while (node && node !== document.documentElement) {
+    const oy = window.getComputedStyle(node).overflowY;
+    // Guard: overflow-y:auto/scroll in CSS is necessary but not sufficient.
+    // .app-screen has overflow-y:auto but min-height:100% with no fixed height —
+    // the window scrolls instead. Only treat a node as the real scroll parent if
+    // its content actually overflows it (scrollHeight > clientHeight).
+    if ((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight) return node;
+    node = node.parentElement;
+  }
+  return null; // null → viewport (window is the real scroller)
+}
+
+export function PaperCard({ children, style = {}, className = '', animate = false, reveal = false, revealDelay = 0 }) {
+  const ref = useRef(null);
+  // Read once at mount — matchMedia is live on device; false if user has Reduce Motion OFF (normal case)
+  const prefersReduced = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  // 'pending-below' = below viewport (initial), 'pending-above' = above viewport, 'revealed' = in view.
+  // Reduced-motion or no reveal prop → always 'revealed' (fully visible, no animation).
+  const [revealState, setRevealState] = useState(!reveal || prefersReduced ? 'revealed' : 'pending-below');
+
+  useEffect(() => {
+    if (!reveal || prefersReduced || !ref.current) return;
+    const el = ref.current;
+    // Use the real scroll container as root so off-screen cards stay pending.
+    const root = findScrollParent(el);
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        const ratio = entry.intersectionRatio;
+        if (ratio >= 0.12) {
+          // Clearly entering — reveal.
+          setRevealState('revealed');
+        } else if (ratio <= 0.02) {
+          // Clearly exiting — set pending with direction awareness.
+          // The 0.02–0.12 deadzone prevents flicker for cards sitting at the boundary.
+          const rb = entry.rootBounds;
+          if (rb && entry.boundingClientRect.top >= rb.bottom - 1) {
+            setRevealState('pending-below');
+          } else {
+            setRevealState('pending-above');
+          }
+        }
+        // ratio between 0.02 and 0.12: do nothing — card is in the deadzone.
+      },
+      { root, threshold: [0, 0.02, 0.12], rootMargin: '0px 0px -8% 0px' }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []); // deps intentionally empty — root/reveal don't change after mount
+
+  const revealClass = reveal ? ` cm-reveal-base cm-${revealState}` : '';
+  const delayStyle = reveal && revealDelay > 0 ? { transitionDelay: `${revealDelay}ms` } : {};
+
+  return (
+    <div
+      ref={ref}
+      className={`cm-paper-card${animate ? ' cm-card-enter' : ''}${revealClass}${className ? ' '+className : ''}`}
+      style={{ ...delayStyle, ...style }}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function Pill({ label, bg, color = 'var(--cm-ink,#0A0A0A)', style: sx = {} }) {
+  return (
+    <span className="cm-pill" style={{ background: bg, color, ...sx }}>
+      {label}
+    </span>
+  );
+}
+
+// Token lookup for the 6 muscle groups
+const _MG_VARS = {
+  chest:     { fill:'var(--mg-chest-fill)',     text:'var(--mg-chest-text)' },
+  shoulders: { fill:'var(--mg-shoulders-fill)', text:'var(--mg-shoulders-text)' },
+  back:      { fill:'var(--mg-back-fill)',       text:'var(--mg-back-text)' },
+  arms:      { fill:'var(--mg-arms-fill)',       text:'var(--mg-arms-text)' },
+  legs:      { fill:'var(--mg-legs-fill)',       text:'var(--mg-legs-text)' },
+  core:      { fill:'var(--mg-core-fill)',       text:'var(--mg-core-text)' },
+};
+const _MG_PILL_STYLE = {
+  display:'inline-flex', alignItems:'center',
+  fontFamily:"'Barlow',sans-serif", fontWeight:600,
+  fontSize:'10.5px', borderRadius:'999px', padding:'3px 9px',
+  lineHeight:1.2, whiteSpace:'nowrap',
+};
+const _MG_OVERFLOW_STYLE = {
+  ..._MG_PILL_STYLE,
+  background:'rgba(var(--cm-ink-rgb,.6),.06)',
+  color:'rgba(var(--cm-ink-rgb),.5)',
+};
+
+// <MusclePills focus="Push" variant="groups"|"exact" max={N} />
+// variant='groups' → one pill per group entry (label = group.label).
+// variant='exact'  → one pill per sub-muscle (label = muscle name), colored by parent group.
+// max → shows first N pills + "+N more" overflow pill. Omit for no limit.
+// Renders nothing for unknown focus labels (Rest, Run, Cardio, Hyrox, etc.).
+export function MusclePills({ focus, variant = 'groups', max }) {
+  const groups = FOCUS_TO_MUSCLES[focus];
+  if (!groups || groups.length === 0) return null;
+
+  const pills = variant === 'groups'
+    ? groups.map(g => ({ label: g.label, group: g.group }))
+    : groups.flatMap(g => g.muscles.map(m => ({ label: m, group: g.group })));
+
+  const visible  = max != null ? pills.slice(0, max) : pills;
+  const overflow = max != null ? pills.length - visible.length : 0;
+
+  return (
+    <div style={{ display:'flex', flexWrap:'wrap', gap:5, alignItems:'center' }}>
+      {visible.map((p, i) => {
+        const tok = _MG_VARS[p.group] || {};
+        return (
+          <span key={i} style={{ ..._MG_PILL_STYLE, background: tok.fill, color: tok.text }}>
+            {p.label}
+          </span>
+        );
+      })}
+      {overflow > 0 && (
+        <span style={_MG_OVERFLOW_STYLE}>+{overflow}</span>
+      )}
+    </div>
+  );
+}
+
 export function pad2(n)        { return String(Math.max(0,Math.floor(n))).padStart(2,"0"); }
-export function autoFocus(sch,splitType) {
+export function autoFocus(sch,splitType,longRunDay) {
   const cycles=SPLIT_CYCLES[splitType]||["Full Body"]; const f={}; let i=0;
-  WDAYS.forEach(d=>{ if(sch[d]==="training")f[d]=cycles[i++%cycles.length]; else if(["cardio","run","hyrox"].includes(sch[d]))f[d]=(DAY_CFG[sch[d]]||DAY_CFG.rest).label; else f[d]="Rest"; });
+  WDAYS.forEach(d=>{
+    if(sch[d]==="training")f[d]=cycles[i++%cycles.length];
+    else if(["cardio","run","hyrox"].includes(sch[d])){
+      f[d]=(longRunDay&&d===longRunDay&&(sch[d]==='run'||sch[d]==='cardio'))?"Long Run":(DAY_CFG[sch[d]]||DAY_CFG.rest).label;
+    }else f[d]="Rest";
+  });
   return f;
 }
 
@@ -273,7 +528,7 @@ export const GLOBAL_CSS = `
     --condensed: 'Barlow Condensed', sans-serif;
     --body: 'Barlow', sans-serif;
   }
-  *{margin:0;padding:0;box-sizing:border-box}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body,#root{height:100%}
   button,a,[role=button]{min-height:44px;min-width:44px}
   @media(prefers-reduced-motion:reduce){*{animation-duration:0.01ms!important;transition-duration:0.01ms!important}}
@@ -341,9 +596,9 @@ export const GLOBAL_CSS = `
   .toggle.on{background:var(--red)}
   .toggle-knob{position:absolute;top:2px;left:2px;width:22px;height:22px;background:var(--white);border-radius:50%;transition:left 0.2s;box-shadow:0 2px 4px rgba(0,0,0,0.3)}
   .toggle.on .toggle-knob{left:20px}
-  .app-screen{position:relative;min-height:100%;overflow-y:auto;overflow-x:hidden;padding-top:max(54px,calc(env(safe-area-inset-top) + 48px));padding-bottom:100px;background:#000000;scrollbar-width:none;touch-action:pan-y}
+  .app-screen{position:relative;min-height:100%;overflow-y:auto;overflow-x:hidden;padding-top:max(54px,calc(env(safe-area-inset-top) + 48px));padding-bottom:100px;background:var(--bg);scrollbar-width:none;touch-action:pan-y}
   .app-screen::-webkit-scrollbar{display:none}
-  .app-tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(0,0,0,0.85);backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);border-top:1px solid rgba(var(--accent-rgb),0.08);display:flex;padding:8px 8px max(22px,env(safe-area-inset-bottom))}
+  .app-tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--tab-bar-bg,rgba(0,0,0,0.85));backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);border-top:1px solid var(--card-border);display:flex;padding:8px 8px max(22px,env(safe-area-inset-bottom))}
   .ob-page{min-height:100vh;background:#000000;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .ob-inner{width:100%;max-width:480px;margin:0 auto;padding:max(env(safe-area-inset-top,0px),20px) 20px 60px}
   .rolodex-scroll::-webkit-scrollbar{display:none}
@@ -365,7 +620,6 @@ export const GLOBAL_CSS = `
 
 export const NEW_ONBOARDING  = false;
 export const GOCLUB_REDESIGN = true;
-export const SHOW_DEBUG      = true;  // flip false to hide overlay
 export const REDESIGN_CSS = `
   .goclub {
     --cm-bg:         #ffffff;
@@ -373,18 +627,39 @@ export const REDESIGN_CSS = `
     --cm-text:       #111111;
     --cm-text-dim:   rgba(17,17,17,0.65);
     --cm-muted:      rgba(17,17,17,0.42);
-    --cm-accent:     #FF3B30;
-    --cm-accent-rgb: 255,59,48;
     --cm-border:     rgba(17,17,17,0.10);
     --cm-nav-track:  rgba(255,255,255,0.05);
+
+    /* --cm-red/paper/ink/accent are set dynamically by applyTheme() on :root — not here */
+
+    /* ── Muscle-group pill tokens — light (paper surface, active theme) ── */
+    --mg-chest-fill:     #FEF3C7; --mg-chest-text:     #92400E;
+    --mg-shoulders-fill: #EDE9FE; --mg-shoulders-text: #5B21B6;
+    --mg-back-fill:      #CCFBF1; --mg-back-text:      #115E59;
+    --mg-arms-fill:      #FFE4E6; --mg-arms-text:      #9F1239;
+    --mg-legs-fill:      #DCFCE7; --mg-legs-text:      #166534;
+    --mg-core-fill:      #E2E8F0; --mg-core-text:      #334155;
+
     font-family: 'Archivo', sans-serif;
   }
 
-  /* Per-tab nav track colour */
-  .goclub.tab-today                              { --cm-nav-track: #F4F4F6; }
+  /* Muscle-group pill tokens — dark overrides (future .cm-dark theme, not yet active) */
+  .goclub.cm-dark {
+    --mg-chest-fill:     rgba(251,191,36,.16);  --mg-chest-text:     #FCD34D;
+    --mg-shoulders-fill: rgba(167,139,250,.18); --mg-shoulders-text: #C4B5FD;
+    --mg-back-fill:      rgba(45,212,191,.16);  --mg-back-text:      #5EEAD4;
+    --mg-arms-fill:      rgba(251,113,133,.18); --mg-arms-text:      #FDA4AF;
+    --mg-legs-fill:      rgba(74,222,128,.16);  --mg-legs-text:      #86EFAC;
+    --mg-core-fill:      rgba(148,163,184,.2);  --mg-core-text:      #CBD5E1;
+  }
+
+  /* Per-tab nav track colour + --cm-screen-bg (the screen bg behind the floating bar — used as the
+     notched-+ border so the notch tracks each screen). NOTE: progress screen is still var(--bg)
+     (dark; redesign pending) — its notch reads red interim until the Progress redesign aligns it. */
+  .goclub.tab-today                              { --cm-nav-track: #F4F4F6; --cm-screen-bg: var(--cm-accent); }
   .goclub.tab-train,.goclub.tab-fuel,
   .goclub.tab-me,.goclub.tab-progress,
-  .goclub.tab-plan                               { --cm-nav-track: rgba(255,255,255,0.05); }
+  .goclub.tab-plan                               { --cm-nav-track: rgba(255,255,255,0.05); --cm-screen-bg: var(--cm-red); }
 
   /* Nav bar */
   .goclub .app-tab-bar {
@@ -415,12 +690,129 @@ export const REDESIGN_CSS = `
   /* Emphasized center Plan tab (3-tab onboarding state) */
   .goclub .app-tab--plan { background: var(--cm-accent); color: #ffffff; padding: 10px 20px; flex: 1.4; }
 
+  /* ── Sub-step 1: sliding stadium pill (5-tab GoClub only) ──
+     One soft-red pill (.tab-slider) slides+resizes to the active tab; the static per-tab
+     .active background is overridden off here. Horizontal, content-sized tabs (v5 locked sizes). */
+  /* OUTER WRAPPING PILL — one floating stadium container holding all 5 tabs, inset from screen
+     edges. NOTE: do NOT set position here — base .app-tab-bar is position:fixed (pins to bottom) and
+     fixed already establishes the containing block for the absolute .tab-slider. Setting
+     position:relative would override fixed and unpin the bar. left/right/bottom only INSET it.
+     Specificity .goclub .app-tab-bar--slide (0,2,0) beats .goclub .app-tab-bar so padding wins. */
+  /* BUMPED PILL: the visible off-white pill (+ center hump) is an inline SVG (.tab-bar-svg) behind
+     the icons — a border-radius rect can't make the hump. The bar itself is a transparent flex
+     layout container; SVG carries the fill + drop-shadow. NO overflow:hidden (hump rises above). */
+  .goclub .app-tab-bar--slide      { left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); padding: 7px 9px; gap: 6px; align-items: center; justify-content: space-between; background: transparent; }
+  .tab-bar-svg                     { position: absolute; left: 0; bottom: 0; z-index: 0; pointer-events: none; filter: drop-shadow(0 12px 26px rgba(120,8,4,0.24)) drop-shadow(0 3px 8px rgba(0,0,0,0.10)); }
+  /* Active highlight = horizontal STADIUM pill, FIXED 54×46 (icons-only → translateX-only, never resizes). */
+  .tab-slider                      { position: absolute; left: 0; top: 9px; width: 54px; height: 46px; border-radius: 23px; background: var(--cm-accent); z-index: 0; pointer-events: none; }
+  /* Center action = LIGHT red + glyph above the inline Today icon — reads as part of the bar (icon
+     family), NOT a raised FAB. No circle/background/shadow; the accent glyph is the action cue. */
+  /* Square flex-centered box so the glyph's optical center == box center → rotate (+→×) spins IN
+     PLACE. transform-origin center; open state composes translateX(-50%) rotate(135deg) (inline). */
+  .tab-fab                         { position: absolute; top: -38px; left: 50%; transform: translateX(-50%); transform-origin: center center; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; color: var(--cm-accent); font-size: 32px; font-weight: 700; line-height: 1; z-index: 3; cursor: pointer; transition: transform 0.2s ease; }
+  /* Center slot reserves a touch more width so the + above Today doesn't crowd neighbours. */
+  .goclub .app-tab-bar--slide .app-tab--center { flex: 0 0 60px; width: 60px; position: relative; }
+  /* First-run coachmark hint above the + glyph. */
+  .tab-center-hint                 { position: absolute; top: -46px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: rgba(10,10,10,0.85); color: #fff; font-family: 'Archivo', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.02em; padding: 4px 8px; border-radius: 8px; pointer-events: none; z-index: 4; }
+  /* Icons-only fixed 50px tabs (no label resize) — mid-grey inactive on light, white active. */
+  .goclub .app-tab-bar--slide .app-tab        { flex: 0 0 50px; width: 50px; height: 50px; border-radius: 25px; padding: 0; justify-content: center; z-index: 1; color: #A8A29B; }
+  .goclub .app-tab-bar--slide .app-tab.active { background: transparent; color: #ffffff; }
+  /* Icons-only: labels stay hidden even when active (no expand-on-active → no resize). */
+  .goclub .app-tab-bar--slide .tab-label-txt  { display: none; }
+  /* Quick-log panel (Sub-step 3) — row of action chips rising above the bar when + is tapped. */
+  .quick-log-row { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); z-index: 101; display: flex; justify-content: center; gap: 10px; pointer-events: none; }
+  .quick-log-btn { pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 4px; background: #F4F1EC; border: none; border-radius: 18px; padding: 12px 14px; min-width: 64px; box-shadow: 0 8px 20px rgba(120,8,4,0.22); cursor: pointer; font-family: 'Archivo', sans-serif; font-size: 11px; font-weight: 700; color: var(--cm-ink, #0A0A0A); animation: quicklog-rise 0.22s ease both; }
+  @keyframes quicklog-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
   /* Muted text */
   .cm-muted          { color: rgba(17,17,17,0.42); }
   .goclub .cm-muted  { color: rgba(255,255,255,0.40); }
 
   /* Phase 3 — Today red field */
   .goclub.tab-today .app-screen { background: var(--cm-accent) !important; }
+
+  /* Train tab — full-bleed red field, matches Today's treatment */
+  .goclub.tab-train .app-screen { background: var(--cm-red) !important; }
+
+  /* Fuel tab — red field, matches Train */
+  .goclub.tab-fuel .app-screen { background: var(--cm-red) !important; }
+
+  /* Me tab — red canvas, same treatment */
+  .goclub.tab-me .app-screen { background: var(--cm-red) !important; }
+
+  /* ── Reusable primitives (Train + Fuel can share these) ── */
+
+  /* Floating paper card — all-corner rounded, soft shadow, lifts off red */
+  .cm-paper-card {
+    background: var(--cm-paper);
+    border-radius: 28px;
+    box-shadow:
+      0 8px 40px rgba(0,0,0,0.22),
+      0 2px 8px  rgba(0,0,0,0.10);
+    will-change: transform;
+  }
+
+  /* Pill label — bold uppercase, tokenized color via inline style */
+  .cm-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    white-space: nowrap;
+  }
+
+  /* Paper-card section eyebrow */
+  .cm-card-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(var(--cm-ink-rgb,10,10,10),0.38);
+    margin-bottom: 14px;
+  }
+
+  /* 60fps card slide-in for paper cards on scroll-reveal surfaces */
+  @keyframes cm-card-in {
+    from { transform: translateY(40px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .cm-card-enter { animation: cm-card-in 0.44s cubic-bezier(.2,.7,.3,1) forwards; }
+
+  /* Scroll-reveal — bidirectional, direction-aware */
+  /* Persistent base class: always present when reveal=true; transition lives HERE so
+     both the enter (reveal) and the exit (re-hide) animate. */
+  .cm-reveal-base {
+    will-change: opacity, transform;
+    transition: opacity 0.32s cubic-bezier(.22,.61,.36,1), transform 0.32s cubic-bezier(.22,.61,.36,1);
+  }
+  /* Off-screen below (initial state + after exiting bottom) → will RISE up */
+  .cm-pending-below {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  /* Off-screen above (after exiting top) → will DESCEND down */
+  .cm-pending-above {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  /* In-viewport */
+  .cm-revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cm-card-enter { animation: none; }
+    .cm-reveal-base { transition: none; will-change: auto; }
+    .cm-pending-below,
+    .cm-pending-above { transform: none; opacity: 1; }
+  }
 
   /* Bar grow (transform-origin:bottom set inline) */
   @keyframes cm-bar-up {
@@ -480,6 +872,24 @@ export const REDESIGN_CSS = `
     .goclub-card-enter        { animation: none; }
     @keyframes cm-bar-up      { from {} to {} }
   }
+
+  @keyframes cm-resume-bounce {
+    0%, 80%, 100% { transform: translateY(0) scale(1); }
+    85%            { transform: translateY(-7px) scale(1.03); }
+    89%            { transform: translateY(0) scale(1); }
+    93%            { transform: translateY(-3px) scale(1.015); }
+    97%            { transform: translateY(0) scale(1); }
+  }
+  .cm-resume-card {
+    animation: toast-in 0.22s ease forwards, cm-resume-bounce 3.6s ease-in-out 0.5s infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cm-resume-card { animation: none; }
+  }
+
+  @keyframes prog-fade { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:translateY(0); } }
+  .prog-cycle-name { animation: prog-fade 0.28s ease; }
+  @media (prefers-reduced-motion: reduce) { .prog-cycle-name { animation: none; } }
 
   /* Plan tab — full-screen onboarding; give app-screen a definite height so flex children fill it */
   .goclub.tab-plan .app-screen {
@@ -591,31 +1001,105 @@ export function UnitToggle({opts,val,onChange}) {
   );
 }
 
-export function Rolodex({items,sel,onChange,itemH=56}) {
+export function Rolodex({items,sel,onChange,itemH=56,bgColor,selectedColor,adjacentColor,farColor,onTick,scale}) {
+  const _bg=bgColor||T.bg;
+  const _sel=selectedColor||T.white;
+  const _adj=adjacentColor||"rgba(245,245,240,0.25)";
+  const _far=farColor||"rgba(245,245,240,0.08)";
+  const _tick=onTick||hap;
   const ref=useRef(null),timer=useRef(null),inited=useRef(false);
   const [li,setLi]=useState(Math.max(0,items.indexOf(String(sel))));
-  useEffect(()=>{ if(!ref.current||inited.current)return; ref.current.scrollTop=li*itemH; inited.current=true; },[]);
+  const lastLiRef=useRef(li);
+  useEffect(()=>{
+    if(!ref.current||inited.current)return;
+    inited.current=true;
+    const el=ref.current;
+    el.style.scrollSnapType='none';
+    el.scrollTop=li*itemH;
+    requestAnimationFrame(()=>{ if(ref.current) ref.current.style.scrollSnapType='y mandatory'; });
+  },[]);
   const onScr=()=>{
     if(!ref.current)return;
-    const ni=Math.round(ref.current.scrollTop/itemH); setLi(Math.max(0,Math.min(items.length-1,ni)));
+    const ni=Math.max(0,Math.min(items.length-1,Math.round(ref.current.scrollTop/itemH)));
+    setLi(ni);
+    if(ni!==lastLiRef.current){lastLiRef.current=ni;_tick();}
     clearTimeout(timer.current);
-    timer.current=setTimeout(()=>{ if(!ref.current)return; const fi=Math.round(ref.current.scrollTop/itemH); const cl=Math.max(0,Math.min(items.length-1,fi)); if(items[cl]!==String(sel)){hap();onChange(items[cl]);} },70);
+    timer.current=setTimeout(()=>{ if(!ref.current)return; const fi=Math.max(0,Math.min(items.length-1,Math.round(ref.current.scrollTop/itemH))); if(items[fi]!==String(sel)){onChange(items[fi]);} },70);
   };
   return (
     <div style={{position:"relative",height:itemH*3,overflow:"hidden",flex:1,minWidth:52}}>
-      <div ref={ref} onScroll={onScr} className="rolodex-scroll" style={{height:"100%",overflowY:"scroll",scrollSnapType:"y mandatory",scrollbarWidth:"none"}}>
+      <div ref={ref} onScroll={onScr} className="rolodex-scroll" style={{height:"100%",overflowY:"scroll",scrollSnapType:"y mandatory",scrollbarWidth:"none",overscrollBehavior:"contain",WebkitOverflowScrolling:"touch"}}>
         <div style={{height:itemH}}/>
         {items.map((item,i)=>{ const d=Math.abs(i-li); return(
-          <div key={i} onClick={()=>{onChange(item);ref.current?.scrollTo({top:i*itemH,behavior:"smooth"});hap();}}
+          <div key={i} onClick={()=>{onChange(item);ref.current?.scrollTo({top:i*itemH,behavior:"smooth"});_tick();}}
             style={{height:itemH,display:"flex",alignItems:"center",justifyContent:"center",scrollSnapAlign:"center",
-              fontSize:i===li?22:d===1?17:13,fontWeight:i===li?800:400,
-              color:i===li?T.white:d===1?"rgba(245,245,240,0.25)":"rgba(245,245,240,0.08)",transition:"all 0.08s",fontVariantNumeric:"tabular-nums",cursor:"pointer",fontFamily:"'DM Mono',monospace"}}>
+              ...(scale?{scrollSnapStop:"always"}:{}),
+              fontSize:scale?20:(i===li?22:d===1?17:13),fontWeight:i===li?800:(scale?500:400),
+              color:scale?_sel:(i===li?_sel:d===1?_adj:_far),
+              ...(scale?{opacity:i===li?1:d===1?0.5:0.15,transform:i===li?"scale(1)":d===1?"scale(0.78)":"scale(0.58)"}:{}),
+              transition:scale?"transform 0.12s, opacity 0.12s":"all 0.08s",
+              fontVariantNumeric:"tabular-nums",cursor:"pointer",fontFamily:"'DM Mono',monospace"}}>
             {item}
           </div>
         );})}<div style={{height:itemH}}/>
       </div>
-      <div style={{position:"absolute",inset:0,background:`linear-gradient(${T.bg} 12%,transparent 36%,transparent 64%,${T.bg} 88%)`,pointerEvents:"none",zIndex:2}}/>
-      <div style={{position:"absolute",top:itemH,left:4,right:4,height:itemH,borderTop:`1px solid rgba(var(--accent-rgb),0.35)`,borderBottom:`1px solid rgba(var(--accent-rgb),0.35)`,pointerEvents:"none",zIndex:1}}/>
+      <div style={{position:"absolute",inset:0,background:`linear-gradient(${_bg} 12%,transparent 36%,transparent 64%,${_bg} 88%)`,pointerEvents:"none",zIndex:2}}/>
+      {scale
+        ?<div style={{position:"absolute",top:itemH,left:0,right:0,height:itemH,background:"rgba(var(--accent-rgb),0.08)",borderRadius:8,pointerEvents:"none",zIndex:1}}/>
+        :<div style={{position:"absolute",top:itemH,left:4,right:4,height:itemH,borderTop:`1px solid rgba(var(--accent-rgb),0.35)`,borderBottom:`1px solid rgba(var(--accent-rgb),0.35)`,pointerEvents:"none",zIndex:1}}/>
+      }
+    </div>
+  );
+}
+
+export function StackPicker({items,sel,onChange,onTick,itemH=56,bgColor,selectedColor}) {
+  const _bg=bgColor||T.bg;
+  const _sel=selectedColor||T.white;
+  const _tick=onTick||hap;
+  const ref=useRef(null),timer=useRef(null),inited=useRef(false);
+  const [li,setLi]=useState(Math.max(0,items.indexOf(String(sel))));
+  const lastLiRef=useRef(li);
+  useEffect(()=>{
+    if(!ref.current||inited.current)return;
+    inited.current=true;
+    const el=ref.current;
+    el.style.scrollSnapType='none';
+    el.scrollTop=li*itemH;
+    requestAnimationFrame(()=>{ if(ref.current) ref.current.style.scrollSnapType='y mandatory'; });
+  },[]);
+  const onScr=()=>{
+    if(!ref.current)return;
+    const ni=Math.max(0,Math.min(items.length-1,Math.round(ref.current.scrollTop/itemH)));
+    setLi(ni);
+    if(ni!==lastLiRef.current){lastLiRef.current=ni;_tick();}
+    clearTimeout(timer.current);
+    timer.current=setTimeout(()=>{ if(!ref.current)return; const fi=Math.max(0,Math.min(items.length-1,Math.round(ref.current.scrollTop/itemH))); if(items[fi]!==String(sel)){onChange(items[fi]);} },70);
+  };
+  const winH=itemH*4;
+  return(
+    <div style={{position:"relative",height:winH,overflow:"hidden"}}>
+      {/* Top highlight strip — marks the selection row (flush at top) */}
+      <div style={{position:"absolute",top:0,left:0,right:0,height:itemH,background:"rgba(var(--accent-rgb),0.08)",borderRadius:8,pointerEvents:"none",zIndex:1}}/>
+      <div ref={ref} onScroll={onScr} className="rolodex-scroll" style={{position:"relative",zIndex:2,height:"100%",overflowY:"scroll",scrollSnapType:"y mandatory",scrollbarWidth:"none",overscrollBehavior:"contain",WebkitOverflowScrolling:"touch"}}>
+        {items.map((item,i)=>{
+          const d=i-li; // positive = below selection, negative = above (scrolled off top)
+          const op=d<0?0:d===0?1:d===1?0.7:d===2?0.45:d===3?0.25:0.1;
+          const scl=d<=0?"scale(1)":d===1?"scale(0.85)":d===2?"scale(0.72)":d===3?"scale(0.60)":"scale(0.50)";
+          return(
+            <div key={i} onClick={()=>{onChange(item);ref.current?.scrollTo({top:i*itemH,behavior:"smooth"});_tick();}}
+              style={{height:itemH,display:"flex",alignItems:"center",scrollSnapAlign:"start",scrollSnapStop:"always",
+                fontSize:20,fontWeight:d===0?800:500,color:_sel,opacity:op,
+                transform:scl,transformOrigin:"left center",
+                transition:"transform 0.12s, opacity 0.12s",
+                fontVariantNumeric:"tabular-nums",cursor:"pointer",fontFamily:"'DM Mono',monospace",
+                userSelect:"none",WebkitUserSelect:"none"}}>
+              {item.toUpperCase()}
+            </div>
+          );
+        })}
+        <div style={{height:itemH*3}}/>{/* bottom spacer — lets last item reach the top row */}
+      </div>
+      {/* Items fade naturally via opacity tiers — no painted fade band needed */}
     </div>
   );
 }
@@ -708,7 +1192,6 @@ export class ErrorBoundary extends React.Component {
     console.error("[ErrorBoundary] CAUGHT:",error?.message);
     console.error("[ErrorBoundary] STACK:",error?.stack);
     console.error("[ErrorBoundary] COMPONENT:",info?.componentStack);
-    window.__debugPush?.(`EB: ${error?.message} | ${String(info?.componentStack||'').slice(0,120)}`);
   }
   render(){
     if(this.state.hasError){
@@ -829,63 +1312,51 @@ export function CardSkeleton({height=120}) {
 }
 
 // ─── LOGO ─────────────────────────────────────────────────────────────────────
-export function Logo({size=32, text=true, textColor="#fff"}) {
-  // Icon: 3 ascending bars — perfect golden ratio proportions
-  // Heights: 40%, 65%, 100% of total height
-  // Width: each bar = 28% of icon width, gap = 8%
-  // Corners: 3px radius — premium, not harsh
-  const h = size;
-  const bw = h * 0.28;       // bar width
-  const gap = h * 0.09;      // gap between bars
-  const r = h * 0.1;         // corner radius
-  const iw = bw*3 + gap*2;   // total icon width
+// ── Coach Macro whistle mark ──────────────────────────────────────────────────
+// Body (3 paths) + motion lines (3 paths), viewBox 512. Source: Claude Design whistle set.
+// The old 3-bar chart mark is retired; this whistle is the single brand mark app-wide.
+const WHISTLE_BODY = [
+  "M121.3 231.3 144.8 233.8 167.6 243.7 364.2 369.4 366.6 373.1 366.6 419.3 364.8 424.3 353.1 434.1 343.8 434.7 278.5 392.8 260 386.7 248.9 387.3 240.9 390.4 224.3 406.4 207 418.1 193.4 423.6 175 427.3 150.9 426.1 134.3 421.2 117.6 413.2 100.4 401.5 77.6 378 65.2 356.5 56.6 325.6 56.6 298.5 64 272.6 75.1 254.8 94.2 238.7 106.5 233.8Z",
+  "M184.2 158.6 216.9 161.1 232.3 166 250.1 174.6 353.7 238.7 453.5 303.5 456.6 308.4 456 350.9 454.2 355.2 382 410.7 379 411.3 377.7 368.8 375.9 364.5 253.2 283.7 253.8 280.7 260 275.7 318.6 235.7 317.9 231.3 258.2 194.4 248.9 198.7 244.6 221.5 209.5 226.4 189.7 243.1 152.1 224 130.6 219.6 112.1 220.3 101.6 222.7 77.6 235 94.8 207.9 120.7 183.3 150.3 166.6 167.6 161.1ZM444.9 327.5 387.6 370 388.2 387.9 445.5 344.8Z",
+  "M260.6 209.2 298.8 233.8 258.8 262.2 249.5 268.3 246.4 268.3 208.9 243.7 216.9 237.5 255.7 232.6 258.2 228.9Z",
+];
+const WHISTLE_LINES = [
+  "M161.9 88.8L167.7 128.9A9.6 9.6 0 0 0 186.8 126.1L181 86A9.6 9.6 0 0 0 161.9 88.8Z",
+  "M224.8 95.4L207.9 130.8A9.8 9.8 0 0 0 225.6 139.2L242.4 103.9A9.8 9.8 0 0 0 224.8 95.4Z",
+  "M145.2 135.4L119.9 103A9.9 9.9 0 0 0 104.2 115.2L129.6 147.7A9.9 9.9 0 0 0 145.2 135.4Z",
+];
 
-  // Bar heights — ascending left to right
-  const h1 = h * 0.42;   // protein bar — shortest
-  const h2 = h * 0.68;   // carbs bar — mid
-  const h3 = h * 1.00;   // fat/energy bar — tallest
+// Whistle mark. variant="lockup" → red rounded square + white whistle, FIXED brand colors
+// (#FF3B30 / #FFF) for pre-auth / brand surfaces that must not theme. variant="glyph" → whistle
+// only, fill=currentColor, transparent bg → a light inline accent that inherits/themes with the UI.
+// Body and motion lines are kept as separate <g> (whistle-body / whistle-lines) for later animation.
+export function WhistleMark({ size = 32, variant = "glyph", style }) {
+  const glyph = variant === "glyph";
+  return (
+    <svg width={size} height={size} viewBox="0 0 512 512" fillRule="evenodd"
+      fill={glyph ? "currentColor" : undefined} aria-hidden="true"
+      style={{ display: "block", flexShrink: 0, ...style }}>
+      {/* Brand tokens: --cm-logo-bg #FF3B30 (iOS system red) / --cm-logo-fg #FFFFFF (white whistle). */}
+      {!glyph && <rect width="512" height="512" rx="112" fill="#FF3B30" />}
+      <g className="whistle-body" fill={glyph ? undefined : "#FFFFFF"}>
+        {WHISTLE_BODY.map((d, i) => <path key={i} d={d} />)}
+      </g>
+      <g className="whistle-lines" fill={glyph ? undefined : "#FFFFFF"}>
+        {WHISTLE_LINES.map((d, i) => <path key={i} className="whistle-line" d={d} />)}
+      </g>
+    </svg>
+  );
+}
 
-  // Y positions (bars sit on bottom baseline)
-  const y1 = h - h1;
-  const y2 = h - h2;
-  const y3 = h - h3;
-
-  // Colors
-  const c1 = "var(--accent)";   // red — primary
-  const c2 = "#60a5fa";   // blue — carbs
-  const c3 = "#f59e0b";   // amber — fat/energy
-
+// Brand lockup: whistle mark + optional "COACH / MACRO" wordmark. Same signature as before so every
+// call-site keeps working; `variant` picks the mark treatment (default lockup — the brand default).
+export function Logo({size=32, text=true, textColor="#fff", variant="lockup"}) {
   const fontSize = size * 0.52;
   const letterSpacing = size * 0.06;
 
   return (
     <div style={{display:"flex",alignItems:"center",gap:size*0.28,flexShrink:0,userSelect:"none"}}>
-      {/* Icon */}
-      <svg width={iw} height={h} viewBox={`0 0 ${iw} ${h}`} style={{display:"block",flexShrink:0}}>
-        {/* Glow layers for premium depth */}
-        <defs>
-          <filter id="logo-glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="1.5" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-
-        {/* Bar 1 — Blue — protein */}
-        <rect x={0} y={y1} width={bw} height={h1} rx={r} ry={r} fill={c1} filter="url(#logo-glow)"/>
-        {/* Top cap — slightly lighter for 3D premium feel */}
-        <rect x={0} y={y1} width={bw} height={r*2} rx={r} ry={r} fill="rgba(255,255,255,0.18)"/>
-
-        {/* Bar 2 — Green — carbs */}
-        <rect x={bw+gap} y={y2} width={bw} height={h2} rx={r} ry={r} fill={c2} filter="url(#logo-glow)"/>
-        <rect x={bw+gap} y={y2} width={bw} height={r*2} rx={r} ry={r} fill="rgba(255,255,255,0.15)"/>
-
-        {/* Bar 3 — Gold — energy */}
-        <rect x={(bw+gap)*2} y={y3} width={bw} height={h3} rx={r} ry={r} fill={c3} filter="url(#logo-glow)"/>
-        <rect x={(bw+gap)*2} y={y3} width={bw} height={r*2} rx={r} ry={r} fill="rgba(255,255,255,0.12)"/>
-
-        {/* Connecting baseline — ultra thin, unifies the mark */}
-        <rect x={0} y={h-1.5} width={iw} height={1.5} rx={0.75} fill="rgba(255,255,255,0.12)"/>
-      </svg>
+      <WhistleMark size={size} variant={variant} />
 
       {/* Wordmark */}
       {text&&(
@@ -1274,11 +1745,6 @@ export function getTier(count) {
   return 0;
 }
 
-export function getReferralBadge(count) {
-  if(count>=5)return 'VERIFIED';
-  if(count>=1)return 'VIP';
-  return null;
-}
 
 export function Badge({type}) {
   const TIERS={

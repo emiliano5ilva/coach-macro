@@ -1,8 +1,8 @@
 export const TIERS = {
-  trial:   { label: 'Free Trial',  adaptLimit: 10 },
-  monthly: { label: 'Pro Monthly', adaptLimit: 10 },
-  annual:  { label: 'Pro Annual',  adaptLimit: 10 },
-  expired: { label: 'Expired',     adaptLimit: 0  },
+  trial:   { label: 'Free Trial', adaptLimit: 40 },
+  monthly: { label: 'Monthly',    adaptLimit: 40 },
+  annual:  { label: 'Annual',     adaptLimit: 40 },
+  expired: { label: 'Expired',    adaptLimit: 0  },
 };
 
 export function hasActiveAccess(profile) {
@@ -38,7 +38,7 @@ export function isExpired(profile) {
 }
 
 export function getAdaptLimit(profile) {
-  const tier = profile?.subscription_tier || 'expired';
+  const tier = profile?.subscription_tier || 'trial';
   return TIERS[tier]?.adaptLimit ?? 0;
 }
 
@@ -50,7 +50,7 @@ export function getSubscriptionLabel(profile) {
     if (days <= 0) return 'Trial expired';
     return `Free trial · ${days} day${days === 1 ? '' : 's'} left`;
   }
-  if (tier === 'monthly') return 'Pro · Monthly';
-  if (tier === 'annual') return 'Pro · Annual';
+  if (tier === 'monthly') return 'Monthly plan';
+  if (tier === 'annual') return 'Annual plan';
   return 'Expired';
 }

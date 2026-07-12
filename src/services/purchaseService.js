@@ -10,6 +10,18 @@ async function setTier(userId, tier) {
   }).eq('id', userId);
 }
 
+// DEV-ONLY visible unlock — lets us test the post-paywall flow on a dev/sim
+// build where no RevenueCat offering exists (so a real IAP can never complete).
+// MODE-gated exactly like NativeApp's dev-skip: `vite build` (production) folds
+// this to `return false` and terser strips it, so it can NEVER grant entitlement
+// in an App Store build. `build:sim` (--mode development) runs it. Writes the same
+// paid-tier fields handleDevSkip does, so loadProfile sees is_pro on reload.
+export async function devUnlockEntitlement(userId) {
+  if (import.meta.env.MODE === 'production') return false;
+  await setTier(userId, 'annual');
+  return true;
+}
+
 async function creditReferralOnPayment(userId) {
   try {
     await fetch('/api/referral-payment', {

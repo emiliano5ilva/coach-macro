@@ -1,3 +1,6 @@
+import { stripSupersetLabel, resolveAlias } from './exerciseNames.js';
+import { getCanonicalExerciseData } from './canonicalExerciseData';
+
 const MUSCLE_COLORS = {
   'Sternal Pec':         '#e8341c',
   'Clavicular Pec':      '#e8341c',
@@ -652,15 +655,29 @@ export function getMuscleColor(muscle) {
   return MUSCLE_COLORS[muscle] || 'rgba(245,245,240,0.4)';
 }
 
-export function getExerciseData(exerciseName) {
-  if (!exerciseName) return null;
+function _cascade(n) {
+  if (!n) return null;
   return (
-    EXERCISE_MUSCLE_MAP[exerciseName]
-    || EXERCISE_MUSCLE_MAP[exerciseName.replace(/-/g,' ')]
-    || EXERCISE_MUSCLE_MAP[exerciseName.replace(/ /g,'-')]
-    || EXERCISE_MUSCLE_MAP[exerciseName.toLowerCase()]
-    || EXERCISE_MUSCLE_MAP[exerciseName.toLowerCase().replace(/-/g,' ')]
-    || EXERCISE_MUSCLE_MAP[exerciseName.toLowerCase().replace(/ /g,'-')]
+    EXERCISE_MUSCLE_MAP[n]
+    || EXERCISE_MUSCLE_MAP[n.replace(/-/g,' ')]
+    || EXERCISE_MUSCLE_MAP[n.replace(/ /g,'-')]
+    || EXERCISE_MUSCLE_MAP[n.toLowerCase()]
+    || EXERCISE_MUSCLE_MAP[n.toLowerCase().replace(/-/g,' ')]
+    || EXERCISE_MUSCLE_MAP[n.toLowerCase().replace(/ /g,'-')]
     || null
   );
+}
+
+export function getExerciseData(exerciseName) {
+  if (!exerciseName) return null;
+  const stripped = stripSupersetLabel(exerciseName);
+  const alias = resolveAlias(exerciseName);
+  const curated =
+    _cascade(exerciseName)
+    || (stripped !== exerciseName ? _cascade(stripped) : null)
+    || (alias ? _cascade(alias) : null);
+  if (curated) return curated;
+  const canon = getCanonicalExerciseData(exerciseName);
+  if (canon) return { primary: canon.primary, secondary: canon.secondary, note: null };
+  return null;
 }
