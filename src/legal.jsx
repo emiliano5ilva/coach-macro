@@ -105,7 +105,7 @@ export function PrivacyPolicy() {
           <ul className="legal-ul">
             <li>To provide and personalize the Coach Macro service</li>
             <li>To calculate your nutritional targets and workout recommendations</li>
-            <li>To sync with connected fitness devices and apps (Strava, Apple Health)</li>
+            <li>To sync with connected fitness devices and apps (Apple Health)</li>
             <li>To send you account-related emails and service updates</li>
             <li>To personalize and improve the quality of the recommendations we show you (this does not involve training AI models on your data)</li>
           </ul>
@@ -136,7 +136,6 @@ export function PrivacyPolicy() {
             <li><strong>RevenueCat</strong> (subscription management) — manages in-app purchases and subscription status</li>
             <li><strong>Resend</strong> (email delivery) — sends transactional emails</li>
             <li><strong>Apple Health</strong> (optional integration) — reads sleep, heart rate, HRV, and steps when user grants permission</li>
-            <li><strong>Strava</strong> (activity data sync — only if you choose to connect your Strava account). We receive workout activity data including runs, rides, and training sessions. Strava's privacy policy applies to data processed by Strava: strava.com/legal/privacy</li>
             <li><strong>Vercel</strong> — application hosting, web infrastructure, and content delivery network</li>
             <li><strong>Sentry</strong> (error monitoring and performance tracing) — receives error and diagnostic data, including stack traces, request URLs, and device context, to help us diagnose crashes and bugs. US-based.</li>
             <li><strong>ExerciseDB via RapidAPI</strong> — provides exercise demonstration data</li>
@@ -707,7 +706,6 @@ export function HealthDataNotice() {
             <li><strong>Supabase:</strong> our secure database provider for storage</li>
             <li><strong>Anthropic:</strong> our AI provider processes prompts that may include health context</li>
             <li><strong>Fitness integrations</strong> you explicitly connect (Apple Health)</li>
-            <li><strong>Strava</strong> (if connected) — workout activity data imported with your permission. You can disconnect Strava at any time from the Connected Apps section in the ME tab.</li>
           </ul>
           <div className="legal-highlight">
             <p><strong>We never sell health data. We never share health data with advertisers.</strong></p>

@@ -100,7 +100,7 @@ const GROUPS = [
       },
       {
         q: 'Can I connect my wearable or smartwatch?',
-        a: 'Apple Health, Strava, Garmin, Whoop, and Polar integrations are in active development. For now, the app uses manual session logging and its own METs-based energy model. Wearable sync will make the system even more precise when available.',
+        a: 'Apple Health connects today. More wearable integrations are in active development. For now, the app uses manual session logging and its own METs-based energy model. Wearable sync will make the system even more precise when available.',
       },
     ],
   },
@@ -134,7 +134,7 @@ const GROUPS = [
       },
       {
         q: 'What health data does Coach Macro collect?',
-        a: 'We collect training logs, body weight, macro targets, and food entries you provide directly. If you connect Apple Health or Strava, we read activity data to calibrate your program. Nothing is shared outside the app.',
+        a: 'We collect training logs, body weight, macro targets, and food entries you provide directly. If you connect Apple Health, we read activity data to calibrate your program. Nothing is shared outside the app.',
       },
       {
         q: 'Can I delete my account and all my data?',

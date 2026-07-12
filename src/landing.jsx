@@ -488,7 +488,7 @@ const CSS = `
   .lp-ladder tr.cm th, .lp-ladder tr.cm td { background: var(--bg-card); border-top: 1.5px solid var(--red); box-shadow: inset 0 0 30px var(--red-glow); }
   .lp-ladder tr.cm .lp-ladder-name, .lp-ladder tr.cm .lp-ladder-price { color: var(--red); }
 
-  /* ── "Works with" trust strip (Apple Health + Strava — live integrations) ── */
+  /* ── "Works with" trust strip (Apple Health — live integration) ── */
   .lp-works { padding: 72px 48px; border-top: 1px solid var(--white-border); text-align: center; }
   .lp-works-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--red-text); margin-bottom: 22px; }
   .lp-works-row { display: inline-flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
@@ -1210,19 +1210,17 @@ function FeatureDumpSection() {
   );
 }
 
-// ── "WORKS WITH" trust strip — Apple Health + Strava (both live integrations). ──
+// ── "WORKS WITH" trust strip — Apple Health (live integration). ──
 // ⚠️ COMPLIANCE: official brand assets required BEFORE DEPLOY. Do NOT recreate the Apple
 // Health icon (Apple trademark) — drop in Apple's downloadable "Works with Apple Health"
-// badge per Apple's marketing guidelines. Same for Strava's mark per the Strava Brand
-// Guidelines. The wording below ("Works with Apple Health" / "Compatible with Strava") is
-// each vendor's APPROVED phrasing; only the icon artwork must be their own asset.
+// badge per Apple's marketing guidelines. The wording below ("Works with Apple Health") is
+// Apple's APPROVED phrasing; only the icon artwork must be their own asset.
 function WorksWithSection() {
   return (
     <section className="lp-works">
       <div className="lp-works-eyebrow">Works with</div>
       <div className="lp-works-row fade-up">
         <div className="lp-works-badge">Works with <strong>Apple&nbsp;Health</strong></div>
-        <div className="lp-works-badge">Compatible with <strong>Strava</strong></div>
       </div>
     </section>
   );
@@ -1353,7 +1351,6 @@ function PricingSection({ onStart }) {
             <ul className="lp-price-list">
               <li>Everything in Monthly</li>
               <li>Two-thirds off the month-to-month price</li>
-              <li>Locked-in founding rate</li>
               <li>Cancel anytime</li>
             </ul>
             <button className="lp-price-btn" data-tilt onClick={onStart}>Start Your 7-Day Free Trial <span className="arrow">→</span></button>
@@ -1397,7 +1394,7 @@ function FaqSection() {
     {q:'How accurate is the metabolic rate calculation?',a:"Instead of dropping you into a one-size-fits-all formula, it builds your metabolic profile from your body stats, your training history, your activity, and your biometrics — and keeps refining it as it learns your patterns. The point isn't a magic number; it's a target that's actually tuned to you, and gets sharper the longer you use it."},
     {q:'What does "training day adjustment" actually mean?',a:"On a training day, your carbohydrate targets increase proportionally to session volume and intensity. After you log a completed workout, your remaining calorie and carb budgets update in real time. Rest days have a reduced carb and calorie target. It's automatic — you don't touch a setting."},
     {q:'Does it work for runners and endurance athletes, or just lifters?',a:"Both — and that's the whole idea. Running, hybrid, and Hyrox get the same depth as lifting: real pace zones from your own fitness, mileage that ramps safely, and recovery that keeps a hard run off tired legs. Endurance isn't an afterthought bolted onto a lifting app."},
-    {q:'Can I connect my wearable or smartwatch?',a:"Apple Health and Strava connect today — your sleep, heart-rate variability, steps, and activities flow straight in, and your workouts sync back out. Garmin, Whoop, and more are on the way. Until then, a quick manual log works everywhere, with the app's own energy calculation behind it."},
+    {q:'Can I connect my wearable or smartwatch?',a:"Apple Health connects today — your sleep, heart-rate variability, steps, and activities flow straight in. More integrations are on the way. Until then, a quick manual log works everywhere, with the app's own energy calculation behind it."},
     {q:'What happens after the 7-day trial?',a:"You choose a plan or you stop. No charge, no dark patterns. If you want to continue, you select monthly or annual. If not, your account downgrades to read-only — your data stays, you just can't log new entries."},
     {q:'Is my data private?',a:"Your data is never sold. Never shared with third parties. We use it only to run your personalized model. You can export or delete everything at any time from within the app."},
   ];
