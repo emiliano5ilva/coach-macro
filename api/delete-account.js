@@ -5,8 +5,12 @@ import { withLogging } from './middleware/logger.js';
 // client bundle. The user being deleted is derived from their OWN bearer token
 // (getUser below) — the client never supplies a user id — so a caller can only
 // ever delete their own account, never someone else's.
+// URL hardcoded to match the other server functions (logger.js/claude.js) — the
+// project URL is public (not a secret), and `SUPABASE_URL` is NOT configured on
+// Vercel, so reading it from env crashed this function at module load (500 on every
+// request → delete-account never actually worked). Only the service key comes from env.
 const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL,
+  'https://oxxihlwqukbakmnnavuy.supabase.co',
   process.env.SUPABASE_SERVICE_KEY
 );
 
