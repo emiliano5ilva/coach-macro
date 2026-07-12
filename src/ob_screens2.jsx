@@ -8838,10 +8838,17 @@ Rules:
       }
     }).catch(()=>{});
 
-    // App tour — show once after onboarding
-    sb.from('feature_unlocks').select('tour_completed').eq('user_id',user.id).eq('feature_key','app_tour').maybeSingle()
-      .then(({data})=>{if(!data?.tour_completed)setShowAppTour(true);}).catch(()=>{});
   },[user?.id]);
+
+  // App tour — fires ONCE, only when the user first reaches the full 5-tab app
+  // (plan_built flips true after the SECOND onboarding; 3→5 tab transition). Not
+  // before. The DB `tour_completed` flag + the session ref guarantee exactly once.
+  const appTourFiredRef=useRef(false);
+  useEffect(()=>{
+    if(!user?.id||!planBuilt||appTourFiredRef.current)return;
+    sb.from('feature_unlocks').select('tour_completed').eq('user_id',user.id).eq('feature_key','app_tour').maybeSingle()
+      .then(({data})=>{if(!data?.tour_completed){appTourFiredRef.current=true;setShowAppTour(true);}}).catch(()=>{});
+  },[planBuilt,user?.id]);
 
   // ── Coach Macro Score ──────────────────────────────────────────────────────
   const coachScore = useMemo(()=>{
@@ -9057,7 +9064,7 @@ Rules:
   // ── LAYOUT ─────────────────────────────────────────────────────────────────
   const NAV_ITEMS = [
     {id:"today",    label:"TODAY",    icon:"today",    tour:"today-tab"},
-    {id:"train",    label:"TRAIN",    icon:"train"},
+    {id:"train",    label:"TRAIN",    icon:"train",    tour:"train-tab"},
     {id:"fuel",     label:"FUEL",     icon:"fuel",     tour:"fuel-tab"},
     {id:"progress", label:"PROGRESS", icon:"progress", tour:"progress-tab"},
     {id:"me",       label:"ME",       icon:"me",       tour:"me-tab"},
@@ -9078,7 +9085,7 @@ Rules:
   // 5-tab: full expanded nav after second onboarding completes
   // Order: Today CENTERED (index 2). Reorder only — handleTabPress(id) + section conditionals unchanged.
   const GOCLUB_NAV_5 = [
-    {id:"train",    label:"TRAIN",    icon:"train"},
+    {id:"train",    label:"TRAIN",    icon:"train",    tour:"train-tab"},
     {id:"fuel",     label:"FUEL",     icon:"fuel",     tour:"fuel-tab"},
     {id:"today",    label:"TODAY",    icon:"today",    tour:"today-tab"},
     {id:"progress", label:"PROGRESS", icon:"progress", tour:"progress-tab"},
@@ -11533,12 +11540,6 @@ Rules:
           onComplete={()=>{setShowAppTour(false);markAppTourComplete(user?.id).catch(()=>{});}}
           onSkip={()=>{setShowAppTour(false);markAppTourComplete(user?.id).catch(()=>{});}}
         />
-      )}
-
-      {/* DEV-ONLY: replay the app tour without resetting the DB flag. MODE-gated →
-          terser strips this from production builds (compile-time constant). */}
-      {import.meta.env.MODE!=="production"&&!showAppTour&&!showFeatureTour&&(
-        <button onClick={()=>setShowAppTour(true)} style={{position:"fixed",left:12,bottom:120,zIndex:9990,background:"rgba(0,0,0,0.62)",color:"#fff",border:"1px solid rgba(255,255,255,0.22)",borderRadius:8,fontFamily:"monospace",fontSize:10,fontWeight:700,letterSpacing:"0.08em",padding:"6px 10px",cursor:"pointer"}}>↻ TOUR</button>
       )}
 
       {/* Feature-specific mini tours */}

@@ -85,9 +85,9 @@ export const APP_TOUR_STEPS = [
     description: 'Your workout and meals are always ready on Today. This is your daily home base.',
   },
   {
-    targetSelector: '[data-tour="start-session"]',
+    targetSelector: '[data-tour="train-tab"]',
     headline: 'TAP TO TRAIN',
-    description: 'Your workout is pre-built and ready. Tap Start Session and we guide you through every set.',
+    description: "Your workout's pre-built and waiting. This is your Train tab — tap in and we guide you through every set.",
   },
   {
     targetSelector: '[data-tour="fuel-tab"]',

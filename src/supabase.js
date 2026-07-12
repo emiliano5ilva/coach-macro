@@ -52,10 +52,6 @@ export const sb = createClient(
   }
 );
 
-export function signInWithGoogle() {
-  return sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin } });
-}
-
-export function signInWithApple() {
-  return sb.auth.signInWithOAuth({ provider: "apple", options: { redirectTo: window.location.origin } });
-}
+// Social OAuth (signInWithGoogle/signInWithApple) removed for v1 — email/password only.
+// The web-redirect OAuth flow doesn't complete in the Capacitor WKWebView; native
+// Sign in with Apple + Google are a post-launch add (see PROJECT_STATE).
