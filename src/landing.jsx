@@ -346,6 +346,28 @@ const CSS = `
     .lp-solution-split-phone { justify-content: center; }
     .lp-solution-split-text .lp-solution-lead { max-width: 620px; }
   }
+
+  /* ── THE KITCHEN — recipe/nutrition depth (reuses .lp-solution-split + .lp-sphone) ── */
+  .lp-kitchen { padding: 140px 48px; border-top: 1px solid var(--white-border); }
+  .lp-kitchen-inner { max-width: 1080px; margin: 0 auto; }
+  .lp-kitchen-head { max-width: 720px; margin: 0 auto; text-align: center; }
+  .lp-kitchen-head .lp-section-title { text-align: center; }
+  .lp-kitchen-lead { font-family: var(--body); font-size: 18px; line-height: 1.6; color: var(--white); }
+  .lp-kitchen-lead .lp-hook { color: var(--red-text); font-weight: 600; }
+  .lp-kitchen-head .lp-kitchen-lead { max-width: 620px; margin: -44px auto 0; }
+  .lp-kitchen-split { margin-top: 76px; }
+  .lp-solution-split.reverse { flex-direction: row-reverse; }
+  .lp-kitchen-mid { max-width: 640px; margin: 84px auto 0; text-align: center; }
+  .lp-kitchen-mid .lp-kitchen-lead { max-width: 600px; margin: 0 auto; }
+  .lp-kitchen-close { max-width: 680px; margin: 84px auto 0; text-align: center; }
+  .lp-kitchen-close .lp-kitchen-lead { font-size: 20px; max-width: 620px; margin: 0 auto; }
+  @media (max-width: 820px) {
+    .lp-kitchen { padding: 100px 20px; }
+    .lp-solution-split.reverse { flex-direction: column; }
+    .lp-kitchen-split { margin-top: 56px; }
+    .lp-kitchen-mid, .lp-kitchen-close { margin-top: 60px; }
+  }
+
   .lp-sync { display: grid; grid-template-columns: 1fr auto 1fr; gap: 28px; align-items: stretch; margin-top: 56px; }
   .lp-sync-col { background: var(--bg-card); border: 1px solid var(--red-border); border-radius: 20px; padding: 32px; box-shadow: 0 20px 60px rgba(0,0,0,0.35); }
   .lp-sync-arrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--red-text); margin-bottom: 12px; }
@@ -910,6 +932,63 @@ function RealScreen({ src, alt }) {
       </picture>
       <div className="lp-sphone-notch"/>
     </div>
+  );
+}
+
+// ── THE KITCHEN — recipe/nutrition depth: meal plan + recipe library + grocery list ──
+function KitchenSection() {
+  return (
+    <section className="lp-kitchen" id="kitchen">
+      <div className="lp-kitchen-inner">
+        <div className="lp-kitchen-head">
+          <div className="lp-section-eyebrow">The Kitchen</div>
+          <h2 className="lp-section-title fade-up">Hundreds of recipes.<br/>Zero <span className="accent">guesswork.</span></h2>
+          <p className="lp-kitchen-lead fade-up">Most fitness apps hand you a number and wish you luck. Coach Macro hands you the whole plan.</p>
+        </div>
+
+        {/* Meal plan — text left, phone right */}
+        <div className="lp-solution-split lp-kitchen-split fade-up">
+          <div className="lp-solution-split-text">
+            <p className="lp-solution-lead"><strong>A real meal plan, built for your macros.</strong> Every day mapped out — breakfast to dinner — with meals that actually hit your targets. No more staring at a calorie goal wondering what to eat.</p>
+          </div>
+          <div className="lp-solution-split-phone">
+            <div className="lp-sphone">
+              <picture>
+                <source srcSet="/screens/kitchen-mealplan.webp" type="image/webp" />
+                <img className="lp-sphone-shot" src="/screens/kitchen-mealplan.jpg" alt="Coach Macro weekly meal plan — every day mapped out with meals and their macros" width="800" height="1731" loading="lazy" decoding="async" />
+              </picture>
+              <div className="lp-sphone-notch"/>
+            </div>
+          </div>
+        </div>
+
+        {/* Recipe library — centered statement (no screenshot) */}
+        <div className="lp-kitchen-mid fade-up">
+          <p className="lp-kitchen-lead"><strong>Hundreds of recipes, ready to cook.</strong> A full library of curated recipes with complete macros and step-by-step cooking guides. Real food, real instructions, real numbers.</p>
+        </div>
+
+        {/* Grocery list — phone left, text right */}
+        <div className="lp-solution-split reverse lp-kitchen-split fade-up">
+          <div className="lp-solution-split-text">
+            <p className="lp-solution-lead"><strong>Your grocery list, done for you.</strong> Your whole week's shopping, organized and ready — pulled straight from your meal plan. Walk into the store knowing exactly what to grab.</p>
+          </div>
+          <div className="lp-solution-split-phone">
+            <div className="lp-sphone">
+              <picture>
+                <source srcSet="/screens/kitchen-grocery.webp" type="image/webp" />
+                <img className="lp-sphone-shot" src="/screens/kitchen-grocery.jpg" alt="Coach Macro grocery list — your whole week's shopping organized by aisle" width="800" height="1731" loading="lazy" decoding="async" />
+              </picture>
+              <div className="lp-sphone-notch"/>
+            </div>
+          </div>
+        </div>
+
+        {/* Close */}
+        <div className="lp-kitchen-close fade-up">
+          <p className="lp-kitchen-lead">Nutrition that doesn't stop at <span className="lp-hook">"eat 180g of protein."</span> It tells you what to eat, how to make it, and what to buy.</p>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -1630,6 +1709,7 @@ export function LandingPage({ onSignUp }) {
       <SolutionSection/>
       <HowSection/>
       <TrustSection/>
+      <KitchenSection/>
       <ScreensSection/>
       <FeatureDumpSection/>
       <WorksWithSection/>
