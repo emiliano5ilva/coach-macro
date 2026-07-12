@@ -247,11 +247,17 @@ _Consolidated 2026-07-06. THIS is the single source of truth for "what must be r
    the corrected privacy policy never reached prod). **Upgraded to Vercel Pro** (limit ~100) → the limit is lifted; deploys should
    now succeed (confirm on next push). **Production branch is `main`**, not `goclub-redesign` (which only makes previews). Legal fix
    staged on **`legal-hotfix-main`** (`0a54c82`, pushed), PR-ready → merge to `main` + deploy now that the pipeline's clear.
-3. **🔴 main/web BACKDOOR PORT — pending review + deploy (unblocked by the Pro upgrade).** `main:NativeApp.jsx` still carries the
-   SAME dev-skip auth/payment backdoor (12 hits), and coach-macro.com is served from `main` → the website is live-exposed (5-tap →
-   dev-skip → bundled creds + payment bypass). The `goclub-redesign` fix does NOT reach `main` (file diverged ~100 lines). **Ported
-   to branch `security-backdoor-main` (off `main`) — PR-ready, diff under review; do NOT merge until reviewed.** Merge + deploy to
-   web prod once reviewed (Vercel Pro now clears the pipeline). Rotate the testuser password applies to web too.
+3. **✅ main/web BACKDOOR PORT — CLOSED & VERIFIED against the live production bundle** (2026-07-11). `main` was fixed by commit
+   `bd67625` "security: remove dev-skip auth/payment backdoor (web/main port)" — dev-skip is now the same **compile-time MODE constant**
+   as goclub (`showDevSkip = import.meta.env.MODE!=="production"` → terser strips the UI + handlers from prod; creds from
+   `VITE_DEV_EMAIL/PASSWORD` env, never hardcoded; **no runtime enable path** — no 5-tap, no `localStorage.devmode`; dev-account payment
+   bypasses removed so trial/paywall enforce for all). **DEFINITIVE VERIFICATION:** fetched the live coach-macro.com JS bundle (all
+   chunks) and grepped `DEV SKIP / VITE_DEV_EMAIL / handleDevSkip / testuser@coachm.dev / CoachTest123 / localStorage.devmode /
+   VITE_AUTO_DEVMODE` → **0 hits.** Both builds clean (goclub MODE-gated + 0 runtime artifacts; main live bundle 0). Stale
+   `security-backdoor-main` branch deleted (content is on `main` via `bd67625`). _(Corrects an earlier "still open" mis-call that came
+   from a coarse `grep -c` matching the gated dev code + a comment, and a `merge-base --is-ancestor` check that missed the squashed
+   fix commit.)_ **Residual — NOT a code blocker:** rotate the `testuser@coachm.dev` Supabase password (low severity now — dev account
+   has no special powers — but it shipped in old public bundles + git history, so best-practice rotate; owner/Supabase-dashboard action).
 4. **✅ RapidAPI (ExerciseDB) key ROTATION — DONE & VERIFIED** (2026-07-07). The leak **vector** was CLOSED (server proxy + env-dump
    killed, verified in the live bundle — see DONE above), and the compromised key VALUE (had shipped publicly in prior `main`/web bundles
    as `VITE_RAPIDAPI_KEY` + remains in git history) has now been **rotated**: new ExerciseDB key regenerated in RapidAPI → `RAPIDAPI_KEY`

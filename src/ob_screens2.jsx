@@ -11535,6 +11535,12 @@ Rules:
         />
       )}
 
+      {/* DEV-ONLY: replay the app tour without resetting the DB flag. MODE-gated →
+          terser strips this from production builds (compile-time constant). */}
+      {import.meta.env.MODE!=="production"&&!showAppTour&&!showFeatureTour&&(
+        <button onClick={()=>setShowAppTour(true)} style={{position:"fixed",left:12,bottom:120,zIndex:9990,background:"rgba(0,0,0,0.62)",color:"#fff",border:"1px solid rgba(255,255,255,0.22)",borderRadius:8,fontFamily:"monospace",fontSize:10,fontWeight:700,letterSpacing:"0.08em",padding:"6px 10px",cursor:"pointer"}}>↻ TOUR</button>
+      )}
+
       {/* Feature-specific mini tours */}
       {showFeatureTour&&(
         <SpotlightTour

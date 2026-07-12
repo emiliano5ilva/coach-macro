@@ -2522,6 +2522,9 @@ Reply with ONLY a valid JSON object, no markdown:
                     {mealSlots.map((slot,si)=>{
                       const isSkipped=(skippedSlots||[]).includes(slot);
                       const isLocked=(lockedSlots||[]).includes(slot);
+                      // Hard meal-lock: a meal is BLOCKED until the meal before it is confirmed (locked) or skipped.
+                      const _prevSlot=si>0?mealSlots[si-1]:null;
+                      const isBlocked=_prevSlot!=null&&!((lockedSlots||[]).includes(_prevSlot)||(skippedSlots||[]).includes(_prevSlot));
                       const slotItems=log.filter(e=>getEntrySlot(e)===slot);
                       const slotCals=slotItems.reduce((s,e)=>s+(e.calories||0),0);
                       const target=slotTargets[slot]||0;
@@ -2538,19 +2541,24 @@ Reply with ONLY a valid JSON object, no markdown:
                       // Only show planned when slot is empty, not skipped, not locked, and plan has a meal for this slot.
                       // If mealFreq differs from plan meal count, slot integers may not align — plannedBySlot[slot]
                       // returns undefined for non-matching slots and the card is simply absent (graceful skip).
-                      const candidate=slotItems.length===0&&!isSkipped&&!isLocked?(plannedBySlot[slot]||null):null;
+                      const candidate=slotItems.length===0&&!isSkipped&&!isLocked&&!isBlocked?(plannedBySlot[slot]||null):null;
                       const plannedMeal=candidate&&!dismissedPlanned.includes(candidate._recipeId||candidate.name)?candidate:null;
                       return(
-                        <div key={slot} style={{padding:"12px 0",borderBottom:si<mealSlots.length-1?"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)":"none",opacity:isSkipped?0.4:1}}>
+                        <div key={slot} style={{padding:"12px 0",borderBottom:si<mealSlots.length-1?"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)":"none",opacity:isSkipped?0.4:isBlocked?0.55:1}}>
                           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:!isSkipped?7:0}}>
                             {/* Lock icon on locked slots */}
-                            {isLocked&&<svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={11} width={18} height={11} rx={2} ry={2}/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
-                            <span style={{fontFamily:"'Archivo',sans-serif",fontSize:14,fontWeight:700,color:isSkipped?"rgba(var(--cm-ink-rgb,10,10,10),0.4)":isLocked?"#22c55e":"var(--cm-ink,#0A0A0A)",letterSpacing:"0.02em",textTransform:"uppercase"}}>{getSlotLabel(slot)}</span>
+                            {(isLocked||isBlocked)&&<svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke={isLocked?"#22c55e":"rgba(var(--cm-ink-rgb,10,10,10),0.35)"} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={11} width={18} height={11} rx={2} ry={2}/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
+                            <span style={{fontFamily:"'Archivo',sans-serif",fontSize:14,fontWeight:700,color:isSkipped||isBlocked?"rgba(var(--cm-ink-rgb,10,10,10),0.4)":isLocked?"#22c55e":"var(--cm-ink,#0A0A0A)",letterSpacing:"0.02em",textTransform:"uppercase"}}>{getSlotLabel(slot)}</span>
                             <div style={{flex:1}}/>
                             {isSkipped?(
                               <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:600,color:"rgba(var(--cm-red-rgb,255,59,48),0.3)",letterSpacing:"0.04em"}}>SKIPPED</span>
+                            ):isBlocked?(
+                              <span style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.04em",textTransform:"uppercase",whiteSpace:"nowrap"}}>Complete {getSlotLabel(_prevSlot)} first</span>
                             ):isLocked?(
-                              <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:600,color:"#22c55e",letterSpacing:"0.04em"}}>LOCKED</span>
+                              <span style={{display:"inline-flex",alignItems:"center",gap:10}}>
+                                <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,color:"#22c55e",letterSpacing:"0.04em"}}>✓ DONE</span>
+                                <button onClick={()=>onLockSlots&&onLockSlots((lockedSlots||[]).filter(s=>s!==slot))} style={{background:"none",border:"none",fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:600,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.04em",textTransform:"uppercase",cursor:"pointer",padding:0,textDecoration:"underline"}}>Reopen</button>
+                              </span>
                             ):(
                               <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:600,color:slotOver?"#C81E1E":"rgba(var(--cm-red-rgb,255,59,48),0.5)",letterSpacing:"0.04em",whiteSpace:"nowrap"}}>
                                 {slotCals} / {target} kcal
@@ -2563,26 +2571,19 @@ Reply with ONLY a valid JSON object, no markdown:
                                 )}
                               </span>
                             )}
-                            {/* "+" hidden on locked + skipped slots; shows lock gate for earlier unlocked slots */}
-                            {!isSkipped&&!isLocked&&(
+                            {/* "+" hidden on locked, skipped, and hard-blocked slots */}
+                            {!isSkipped&&!isLocked&&!isBlocked&&(
                               <motion.button
                                 onPointerDown={GOCLUB_REDESIGN?()=>_hL():undefined}
                                 whileTap={GOCLUB_REDESIGN?{scale:0.88}:undefined}
                                 transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
                                 onClick={()=>{
-                                  const pendingIdx=mealSlots.indexOf(slot)>=0?mealSlots.indexOf(slot):0;
-                                  // Check if any earlier slot has items and is not yet locked
-                                  const slotToLock=mealSlots.find(s=>s<slot&&log.some(e=>getEntrySlot(e)===s)&&!(lockedSlots||[]).includes(s));
-                                  if(slotToLock){
-                                    setLockGate({slotToLock,pendingIdx});
-                                  }else{
-                                    pendingLogSlotRef.current=pendingIdx;
-                                    setFuelScreen('log');
-                                  }
+                                  pendingLogSlotRef.current=mealSlots.indexOf(slot)>=0?mealSlots.indexOf(slot):0;
+                                  setFuelScreen('log');
                                 }}
                                 style={{width:34,height:34,background:"rgba(var(--cm-red-rgb,255,59,48),0.12)",border:"1.5px solid var(--cm-red,#FF3B30)",color:"var(--cm-red,#FF3B30)",borderRadius:999,fontSize:18,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,lineHeight:1,touchAction:GOCLUB_REDESIGN?"manipulation":undefined}}>+</motion.button>
                             )}
-                            {mealSlots.length>1&&!isSkipped&&!isLocked&&(
+                            {mealSlots.length>1&&!isSkipped&&!isLocked&&!isBlocked&&(
                               <button onClick={()=>removeSlot(si)} style={{background:"none",border:"none",color:"rgba(var(--cm-red-rgb,255,59,48),0.2)",cursor:"pointer",fontSize:12,padding:"0 2px",lineHeight:1}}>×</button>
                             )}
                           </div>
@@ -2657,6 +2658,10 @@ Reply with ONLY a valid JSON object, no markdown:
                               </div>
                             </SwipeRow>
                           ))}
+                          {/* Complete Meal — explicit confirm; seals this meal read-only + unlocks the next */}
+                          {!isSkipped&&!isLocked&&!isBlocked&&slotItems.length>0&&(
+                            <motion.button whileTap={{scale:0.97}} onPointerDown={GOCLUB_REDESIGN?()=>_hL():undefined} onClick={()=>setLockGate({slotToLock:slot,confirmOnly:true})} style={{width:"100%",marginTop:10,padding:"11px",background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.35)",borderRadius:10,fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:12,color:"#16a34a",letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation"}}>✓ Complete {getSlotLabel(slot)}</motion.button>
+                          )}
                           {/* ── PLANNED card — part B: confirm / swap / skip ── */}
                           {plannedMeal&&(
                             <div style={{marginTop:4,padding:"10px 12px",border:"1.5px dashed rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:10,background:"rgba(var(--cm-red-rgb,255,59,48),0.04)"}}>
@@ -2990,19 +2995,22 @@ Reply with ONLY a valid JSON object, no markdown:
                     {mealSlots.map((slot,i)=>{
                       const kcal=slotCals[slot]||0;
                       const sel=logSlotConfirmed&&activeSlotIdx===i;
-                      // Reuse the existing lock guard: an earlier meal has items but isn't locked yet.
-                      const lockTarget=mealSlots.find(s=>s<slot&&log.some(e=>getEntrySlot(e)===s)&&!(lockedSlots||[]).includes(s));
-                      const shouldLock=!!lockTarget;
+                      // Hard meal-lock: block a meal until the one before it is confirmed/skipped; a confirmed meal is sealed.
+                      const _prev=i>0?mealSlots[i-1]:null;
+                      const isConfirmed=(lockedSlots||[]).includes(slot);
+                      const isBlk=_prev!=null&&!((lockedSlots||[]).includes(_prev)||(skippedSlots||[]).includes(_prev));
+                      const disabled=isBlk||isConfirmed;
                       return(
-                        <button key={slot} onClick={()=>{
-                          if(shouldLock){setLockGate({slotToLock:lockTarget,pendingIdx:i});return;}
+                        <button key={slot} disabled={disabled} onClick={()=>{
+                          if(disabled)return;
                           setActiveSlotIdx(i);setLogSlotConfirmed(true);
-                        }} style={{flex:"1 1 0",minWidth:100,background:sel?"rgba(var(--cm-red-rgb,255,59,48),0.1)":"var(--cm-paper,#FFFFFF)",border:sel?"1.5px solid var(--cm-red,#FF3B30)":"1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)",borderRadius:16,padding:"15px 10px",textAlign:"center",cursor:"pointer",transition:"all 0.15s",fontFamily:"inherit",opacity:shouldLock?0.45:1,boxShadow:"0 2px 10px rgba(0,0,0,.05)"}}>
+                        }} style={{flex:"1 1 0",minWidth:100,background:sel?"rgba(var(--cm-red-rgb,255,59,48),0.1)":"var(--cm-paper,#FFFFFF)",border:sel?"1.5px solid var(--cm-red,#FF3B30)":"1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)",borderRadius:16,padding:"15px 10px",textAlign:"center",cursor:disabled?"default":"pointer",transition:"all 0.15s",fontFamily:"inherit",opacity:disabled?0.45:1,boxShadow:"0 2px 10px rgba(0,0,0,.05)"}}>
                           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5,marginBottom:4}}>
-                            {shouldLock&&<svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={11} width={18} height={11} rx={2} ry={2}/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
+                            {isBlk&&<svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="rgba(var(--cm-ink-rgb,10,10,10),0.4)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={11} width={18} height={11} rx={2} ry={2}/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
+                            {isConfirmed&&<svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>}
                             <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,color:"var(--cm-ink)",fontWeight:700,letterSpacing:"0.04em",textTransform:"uppercase"}}>{getSlotLabel(slot)}</div>
                           </div>
-                          <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:600,color:kcal>0?"rgba(var(--cm-ink-rgb,10,10,10),0.6)":"rgba(var(--cm-ink-rgb,10,10,10),0.3)"}}>{kcal>0?`${kcal} kcal`:shouldLock?"Locked":"Empty"}</div>
+                          <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:600,color:kcal>0?"rgba(var(--cm-ink-rgb,10,10,10),0.6)":"rgba(var(--cm-ink-rgb,10,10,10),0.3)"}}>{isConfirmed?"Done":isBlk?"Locked":kcal>0?`${kcal} kcal`:"Empty"}</div>
                         </button>
                       );
                     })}
@@ -4167,6 +4175,7 @@ Reply with ONLY a valid JSON object, no markdown:
               <div style={{display:"flex",gap:10}}>
                 <button
                   onClick={()=>{
+                    if(lockGate.confirmOnly){if(onLockSlots)onLockSlots([...(lockedSlots||[]),lockGate.slotToLock]);setLockGate(null);return;}
                     const newLocked=[...(lockedSlots||[]),lockGate.slotToLock];
                     if(onLockSlots)onLockSlots(newLocked);
                     if(lockGate.pendingEntry){
