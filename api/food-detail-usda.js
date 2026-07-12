@@ -60,6 +60,8 @@ export default withLogging(async function handler(req, res) {
         }
       }
       if (!label) continue; // never fake a count when USDA doesn't name the unit
+      // Drop USDA's non-unit sentinels — useless as a dropdown choice.
+      if (/^(quantity (not specified|unknown)|not specified|undetermined)/i.test(label)) continue;
 
       const g = Math.round(grams * 10) / 10;
       const key = `${label.toLowerCase()}|${g}`;
