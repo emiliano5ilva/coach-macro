@@ -212,17 +212,33 @@ Return ONLY valid JSON, no markdown fences, no explanation:
   "items": [
     {
       "name": "Specific food name (e.g. 'White rice' not 'Carbs')",
-      "portion": "estimated portion with unit (e.g. '1 cup', '4 oz', '150g')",
+      "portion": "amount VISIBLE in the photo, with unit (e.g. '1 cup', '4 oz', '1 party-size bag ~10.5 oz')",
       "calories": 0,
       "protein": 0,
       "carbs": 0,
       "fat": 0,
+      "serving": {
+        "label": "ONE standard single serving, with unit (e.g. '1 oz', '1 cup', '1 cookie')",
+        "grams": 0,
+        "calories": 0,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 0
+      },
+      "estimated_servings": 0,
       "notes": "any uncertainty or assumption"
     }
   ],
   "totals": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 },
   "suggestions": "optional one-line meal context"
 }
+
+Serving basis (IMPORTANT — this is what the user logs against):
+- The top-level "portion" + "calories/protein/carbs/fat" describe the WHOLE amount visible in the photo.
+- ALSO fill "serving": ONE standard single serving of that food, with its own macros — read the package's nutrition-label serving if it is visible, otherwise use a typical serving (chips 1 oz/28g, cereal 1 cup, cookies 1 cookie, nuts 1 oz, soda 12 fl oz). "grams" = weight of one serving in grams (for count-based foods give the typical grams of one; use 0 ONLY if genuinely unknowable).
+- "estimated_servings" = how many standard servings the visible amount is (≈ whole-photo calories ÷ one-serving calories). For a single whole food (one egg, one apple, one chicken breast) the serving IS the item, so estimated_servings ≈ 1.
+- Keep the per-serving macros internally consistent (serving.calories × estimated_servings ≈ top-level calories).
+- Example: party-size bag of Doritos → portion "1 party-size bag (~10.5 oz)", calories ~1610; serving {label:"1 oz", grams:28, calories:150, protein:2, carbs:18, fat:8}; estimated_servings 10.
 
 If no food is clearly visible return exactly: {"error":"No food detected"}
 
