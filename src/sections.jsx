@@ -7976,7 +7976,7 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
 
   // ── Dynamic values ──────────────────────────────────────────────────────
   // Trial is always 7 days (single source of truth) — no 14-day path exists.
-  const eyebrow   = "// your free week is up";
+  const eyebrow   = "your free week is up";
   const firstName = profile?.first_name || profile?.name?.split(" ")[0] || null;
 
   // ── Purchase handlers ───────────────────────────────────────────────────
@@ -8056,9 +8056,12 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
   }
 
   // ── Shared style tokens ─────────────────────────────────────────────────
-  const mono      = { fontFamily: 'var(--mono)' };
-  const condensed = { fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900 };
-  const body      = { fontFamily: 'var(--body, var(--condensed))' };
+  // Brand type: Archivo for text (italic 900 display headline = app "GO PRO" style),
+  // DM Mono for numbers + eyebrows/labels. (Was off-brand Barlow via --condensed/--body.)
+  const mono      = { fontFamily: "'DM Mono', monospace" };
+  const condensed = { fontFamily: "'Archivo', sans-serif", fontStyle: 'italic', fontWeight: 900 };
+  const body      = { fontFamily: "'Archivo', sans-serif" };
+  const priceNum  = { fontFamily: "'DM Mono', monospace" };
 
   return (
     <div style={{ minHeight: '100vh', background: '#000', position: 'relative' }}>
@@ -8097,7 +8100,7 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
         {/* 5 ── WHAT YOU KEEP */}
         <div style={{ marginBottom: 24 }}>
           <div style={{ ...mono, fontSize: 10.5, color: 'var(--accent)', letterSpacing: 1.8, textTransform: 'uppercase', marginBottom: 14 }}>
-            // what your coach keeps doing
+            what your coach keeps doing
           </div>
           {[
             "A plan that rewrites itself around every workout and every night of sleep",
@@ -8155,16 +8158,13 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
             <>
               {/* Price row */}
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 10 }}>
-                <span style={{ ...condensed, fontStyle: 'italic', fontSize: 24, color: 'rgba(255,255,255,0.5)', textDecoration: 'line-through', textDecorationColor: 'var(--accent)', lineHeight: 1 }}>$69.99</span>
-                <span style={{ ...condensed, fontSize: 58, color: 'var(--accent)', lineHeight: 1 }}>$49.99</span>
+                <span style={{ ...priceNum, fontSize: 24, color: 'rgba(255,255,255,0.5)', textDecoration: 'line-through', textDecorationColor: 'var(--accent)', lineHeight: 1 }}>$69.99</span>
+                <span style={{ ...priceNum, fontSize: 58, color: 'var(--accent)', lineHeight: 1 }}>$49.99</span>
                 <span style={{ ...body, fontSize: 18, color: '#fff', paddingBottom: 6 }}>/yr</span>
               </div>
 
               {/* Reframe */}
-              <div style={{ ...body, fontSize: 14, color: '#fff', marginBottom: 6 }}>Less than $1 a week after your trial</div>
-
-              {/* Competitor */}
-              <div style={{ ...body, fontSize: 12.5, color: '#fff' }}>MacroFactor charges $71.99 for less.</div>
+              <div style={{ ...body, fontSize: 14, color: '#fff' }}>Less than $1 a week after your trial</div>
             </>
           )}
 
@@ -8172,7 +8172,7 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
             <>
               {/* Price row */}
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, marginBottom: 10, marginTop: 4 }}>
-                <span style={{ ...condensed, fontSize: 58, color: 'var(--accent)', lineHeight: 1 }}>$12.99</span>
+                <span style={{ ...priceNum, fontSize: 58, color: 'var(--accent)', lineHeight: 1 }}>$12.99</span>
                 <span style={{ ...body, fontSize: 18, color: '#fff', paddingBottom: 6 }}>/mo</span>
               </div>
               <div style={{ ...body, fontSize: 14, color: '#fff' }}>Billed monthly. Cancel anytime.</div>
