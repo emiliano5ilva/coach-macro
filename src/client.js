@@ -6,6 +6,9 @@ import { ensureAIConsent, AIConsentDeclined } from "./services/aiConsent.js";
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 export async function streamAI(prompt, max = 900, feature = "default", onChunk, onComplete) {
+  // AI consent gate — matches ai()/aiWithVision(): NO user data reaches Anthropic
+  // until the user has explicitly enabled AI. Covers adapt-now, meal-prep, restaurant-AI.
+  if (!(await ensureAIConsent())) throw new AIConsentDeclined();
   const { data: { session } } = await sb.auth.getSession();
   if (!session?.access_token) throw new Error("Not authenticated");
   const headers = {

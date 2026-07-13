@@ -52,8 +52,6 @@
 			</dict>
 		</dict>
 	</dict>
-	<key>NSCalendarUsageDescription</key>
-	<string>Coach Macro reads your calendar to detect travel, high-stress weeks, and busy days so it can automatically adjust your training schedule and nutrition targets around your real life.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Coach Macro uses your camera to scan barcodes on food packaging so you can quickly log meals without typing.</string>
 	<key>NSHealthShareUsageDescription</key>
@@ -66,12 +64,8 @@
 	<array>
 		<string>location</string>
 	</array>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Coach Macro uses your microphone to let you log meals and workouts by speaking, so you can track hands-free.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Coach Macro lets you attach progress photos to your check-ins to visually track your body composition over time.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Coach Macro uses speech recognition to convert your voice into food and workout entries so logging is fast and effortless.</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>Coach Macro sends rest-timer alerts between sets, your daily morning brief, and reminders to hit your nutrition targets.</string>
 	<key>UILaunchStoryboardName</key>

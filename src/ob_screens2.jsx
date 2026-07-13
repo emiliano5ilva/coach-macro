@@ -368,7 +368,7 @@ export function TDEEReveal({tdee,animTDEE,d,chatReply,setCR,next}) {
     {q:"Got it — set my goal →",isNext:true},
     {q:"How was this calculated?",r:`We used ${d.bodyFat?"Katch-McArdle (370 + 21.6 × lean body mass)":"Mifflin-St Jeor"} as your base BMR, then built a custom multiplier from your job, steps, training frequency, intensity, and lifestyle. 16 variables total — far more precise than a standard TDEE calculator.`},
     {q:"What's my biggest factor?",r:`Your biggest driver is ${d.job==="physical"?"your physical job — labor adds 400–600 kcal/day above desk workers":d.freq==="7+"?"your training frequency — daily training creates massive cumulative burn":d.steps==="15k+"?"your step count — 15k+ daily steps is elite NEAT":"your overall combination of job activity, steps, and training"}.`},
-    {q:"This seems off",r:"Connect Apple Health or Garmin after setup — we'll update your numbers from real data. Your first number is maintenance. Set your goal next to get your actual daily target."},
+    {q:"This seems off",r:"Connect Apple Health after setup — we'll update your numbers from real data. Your first number is maintenance. Set your goal next to get your actual daily target."},
   ];
   return (
     <div style={{animation:"fadeIn 0.3s ease"}}>
@@ -7008,7 +7008,7 @@ const ProgressSection = React.memo(function ProgressSection({
                 ):(
                   <div style={{margin:"0 16px 14px",padding:"20px 16px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16}}>
                     <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--cm-ink)",textTransform:"uppercase",marginBottom:8}}>NO RUNS YET.</div>
-                    <div style={{fontSize:13,color:"var(--text-dim)",lineHeight:1.5}}>Log a run from the Train tab or sync Strava to see your running stats here.</div>
+                    <div style={{fontSize:13,color:"var(--text-dim)",lineHeight:1.5}}>Log a run from the Train tab to see your running stats here.</div>
                   </div>
                 )}
               </>
@@ -9220,8 +9220,10 @@ Rules:
           );
         })()}
 
-        {/* ── CALENDAR CONNECT PROMPT (first-time, native only) ── */}
-        {typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()&&!calendarConnected&&!showCalendarPrompt&&localStorage.getItem("cal_prompt_dismissed")!=="1"&&workoutLogsRaw.length>=3&&(
+        {/* ── CALENDAR CONNECT PROMPT — v2 feature (no calendar plugin in v1); do NOT render.
+             Gated off with `false` to keep the component wired for v2 without shipping a dead
+             "Connect Calendar" button (Apple rejects permissions/UI with no working feature). ── */}
+        {false&&typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()&&!calendarConnected&&!showCalendarPrompt&&localStorage.getItem("cal_prompt_dismissed")!=="1"&&workoutLogsRaw.length>=3&&(
           <CalendarConnectPrompt
             onConnect={handleConnectCalendar}
             onDismiss={()=>{setShowCalendarPrompt(false);localStorage.setItem("cal_prompt_dismissed","1");}}
@@ -9345,7 +9347,7 @@ Rules:
                     {[1,0.85,0.7,0.55].map((w,i)=><div key={i} className="skeleton" style={{height:12,width:`${w*100}%`,borderRadius:3,animationDelay:`${i*80}ms`}}/>)}
                   </div>
                   :morningBriefError
-                    ?<div style={{fontSize:12,color:"rgba(245,245,240,0.5)",fontStyle:"italic",lineHeight:1.5}}>{morningBriefError}</div>
+                    ?<div style={{fontSize:12,color:"rgba(245,245,240,0.5)",fontStyle:"italic",lineHeight:1.5}}>Couldn't load your brief right now.</div>
                     :morningBrief&&(()=>{
                       const b=morningBrief;
                       return(
@@ -10615,12 +10617,8 @@ Rules:
                   </div>
                 ) : morningBriefError ? (
                   <div>
-                    <div style={{fontFamily:AF,fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",fontStyle:"italic",marginBottom:6}}>
+                    <div style={{fontFamily:AF,fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",fontStyle:"italic",marginBottom:8}}>
                       Couldn't load brief.
-                    </div>
-                    {/* Temp debug — shows exact error on device; remove after fix confirmed */}
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"var(--cm-red,#FF3B30)",lineHeight:1.5,marginBottom:8,wordBreak:"break-all"}}>
-                      {morningBriefError}
                     </div>
                     <button onClick={()=>{setMorningBriefError(null);setMorningBriefLoading(false);setBriefTrigger(t=>t+1);}} style={{fontFamily:AF,fontSize:11,fontWeight:700,color:"var(--cm-red,#FF3B30)",background:"none",border:"none",padding:0,cursor:"pointer",letterSpacing:"0.06em",textTransform:"uppercase"}}>
                       RETRY →
