@@ -16,7 +16,7 @@ import { getErrorMessage } from "./utils/errors.js";
 import { ErrorMessage } from "./utils/errors.jsx";
 import { sb } from "./supabase.js";
 import { track, EVENTS, setAnalyticsEnabled } from "./services/analytics.js";
-import { initDeepLinks, isRecoveryInProgress, clearRecovery } from "./services/deepLinks.js";
+import { initDeepLinks, isRecoveryInProgress, clearRecovery, getFpTrail, clearFpTrail } from "./services/deepLinks.js";
 import { initPushNotifications, scheduleTrialExpiryNotification } from "./services/notifications.js";
 import { FuelOnboarding, TrainOnboarding } from "./onboarding.jsx";
 import { PromoScreen, Paywall, UpgradeScreen, ExpiredPaywall } from "./sections.jsx";
@@ -832,6 +832,21 @@ export default function NativeApp() {
       window.removeEventListener("cm:deeplink",onDeepLink);
       window.removeEventListener("cm:reset-password-error",onResetErr);
     };
+  },[]);
+
+  // ── DEV-ONLY forgot-password deep-link debug overlay ──────────────────────────
+  // WKWebView JS console is hard to capture on-device, so surface the redacted reset-flow
+  // trail visibly. Compile-time gated on MODE → terser-strips the whole block from prod.
+  useEffect(()=>{
+    if(import.meta.env.MODE==="production")return;
+    const box=document.createElement("div");
+    box.style.cssText="position:fixed;left:6px;right:6px;bottom:6px;z-index:99999;max-height:46vh;overflow:auto;background:rgba(0,0,0,0.9);color:#39FF6A;font:10px/1.4 ui-monospace,Menlo,monospace;padding:9px 11px;border:1px solid #2a2;border-radius:8px;white-space:pre-wrap;-webkit-user-select:text;";
+    const render=()=>{const t=getFpTrail();box.textContent="── FP DEEP-LINK DEBUG (dev) · tap to clear ──\n"+(t.length?t.join("\n"):"(no deep-link events yet — tap the reset email link)");};
+    box.addEventListener("click",()=>clearFpTrail());
+    const onLog=()=>render();
+    window.addEventListener("cm:fp-log",onLog);
+    render();document.body.appendChild(box);
+    return()=>{window.removeEventListener("cm:fp-log",onLog);try{box.remove();}catch{}};
   },[]);
 
   useEffect(()=>{
