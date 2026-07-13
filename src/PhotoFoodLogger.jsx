@@ -4,7 +4,11 @@ import { sb } from "./client.js";
 import { showToast } from "./utils/toast.js";
 import { ensureAIConsent } from "./services/aiConsent.js";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "";
+// NOTE: photo-log historically read VITE_API_BASE, but only VITE_API_BASE_URL is
+// actually set (that's what client.js uses). Unset → API_BASE="" → a RELATIVE
+// /api/food-photo that can't resolve in the native WebView → "network error".
+// Fall back to VITE_API_BASE_URL so the call reaches the deployed proxy.
+const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_BASE_URL || "";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -34,8 +38,10 @@ async function uploadPhoto(userId, base64) {
       upsert: false,
     });
     if (error) return null;
-    const { data } = sb.storage.from("food-photos").getPublicUrl(path);
-    return data?.publicUrl || null;
+    // The food-photos bucket is PRIVATE — return the storage PATH (not a public URL).
+    // `photo_url` in food_logs.entries now holds this path; the food log signs it
+    // on display via createSignedUrl (owner-scoped), so photos stay owner-only.
+    return path;
   } catch {
     return null;
   }
@@ -409,32 +415,78 @@ const SCALE_LABELS = { 0.5: "½×", 1: "1×", 1.5: "1½×", 2: "2×" };
 
 function ConfirmScreen({ analysis, previewDataUrl, onLog, onRetake, onClose }) {
   const [items, setItems] = useState(() =>
-    (analysis.items || []).map(item => ({
-      ...item,
-      aiName: item.name,
-      scale: 1,
-      _removed: false,
-    }))
+    (analysis.items || []).map(item => {
+      // Real single-serving basis from the AI (label + per-serving macros). Guard:
+      // only treat as valid if per-serving calories are present & positive.
+      const svg = item.serving && Number(item.serving.calories) > 0
+        ? {
+            label:    item.serving.label || "1 serving",
+            grams:    Number(item.serving.grams) || 0,
+            calories: Number(item.serving.calories) || 0,
+            protein:  Number(item.serving.protein)  || 0,
+            carbs:    Number(item.serving.carbs)    || 0,
+            fat:      Number(item.serving.fat)      || 0,
+          }
+        : null;
+      const est = Number(item.estimated_servings) > 0 ? Number(item.estimated_servings) : null;
+      return {
+        ...item,
+        aiName: item.name,
+        serving: svg,
+        estServings: est,
+        servings: svg ? 1 : null,   // DEFAULT to ONE real serving — not the whole container
+        scale: 1,                   // fallback multiplier for items with no serving data
+        customUnit: "serving",
+        customVal: "",
+        _removed: false,
+      };
+    })
   );
   const [editingIdx, setEditingIdx] = useState(null);
   const [editName, setEditName] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState({ name: "", portion: "", calories: "", protein: "", carbs: "", fat: "" });
 
-  // item.calories/protein/etc. are always the original 1x values — just multiply by scale
-  function scaledValues(item, scale) {
+  const r1 = (n) => Math.round((Number(n) || 0) * 10) / 10;
+
+  // Macros for the amount the user actually chose. Serving-anchored items compute
+  // from the real single-serving basis × chosen servings; items without serving
+  // data fall back to the AI's as-seen macros × a multiplier.
+  function itemMacros(item) {
+    if (item.serving && item.servings != null) {
+      const n = item.servings;
+      return {
+        calories: Math.round(item.serving.calories * n),
+        protein:  r1(item.serving.protein * n),
+        carbs:    r1(item.serving.carbs   * n),
+        fat:      r1(item.serving.fat     * n),
+      };
+    }
+    const s = item.scale;
     return {
-      calories: Math.round(item.calories * scale),
-      protein:  Math.round(item.protein  * scale * 10) / 10,
-      carbs:    Math.round(item.carbs    * scale * 10) / 10,
-      fat:      Math.round(item.fat      * scale * 10) / 10,
+      calories: Math.round(item.calories * s),
+      protein:  r1(item.protein * s),
+      carbs:    r1(item.carbs   * s),
+      fat:      r1(item.fat     * s),
     };
   }
+
+  // Human label of the chosen amount (for the logged entry's portion field)
+  function amountLabel(item) {
+    if (item.serving && item.servings != null) {
+      if (item.customVal && item.customUnit !== "serving") return `${item.customVal} ${item.customUnit}`;
+      const n = r1(item.servings);
+      return `${n} serving${n === 1 ? "" : "s"} (${item.serving.label})`;
+    }
+    return item.scale === 1 ? item.portion : `${item.portion} × ${item.scale}`;
+  }
+
+  const amtChanged = (item) => item.serving ? item.servings !== 1 : item.scale !== 1;
 
   const activeItems = items.filter(i => !i._removed);
 
   const totals = activeItems.reduce((acc, item) => {
-    const v = scaledValues(item, item.scale);
+    const v = itemMacros(item);
     return {
       calories: acc.calories + v.calories,
       protein:  acc.protein  + v.protein,
@@ -445,6 +497,28 @@ function ConfirmScreen({ analysis, previewDataUrl, onLog, onRetake, onClose }) {
 
   function setScale(idx, scale) {
     setItems(prev => prev.map((item, i) => i === idx ? { ...item, scale } : item));
+  }
+
+  // Serving-anchored: pick a whole-serving quick amount (clears any custom entry)
+  function setServings(idx, servings) {
+    setItems(prev => prev.map((item, i) => i === idx ? { ...item, servings, customVal: "", customUnit: "serving" } : item));
+  }
+
+  // Serving-anchored custom amount: value + unit (serving | g | oz) → canonical servings
+  function setCustom(idx, rawVal, unit) {
+    setItems(prev => prev.map((item, i) => {
+      if (i !== idx) return item;
+      const val = parseFloat(rawVal);
+      let servings = item.servings;
+      if (!isNaN(val) && val >= 0) {
+        if (unit === "serving") servings = val;
+        else if (item.serving?.grams > 0) {
+          const grams = unit === "oz" ? val * 28.3495 : val;
+          servings = grams / item.serving.grams;
+        }
+      }
+      return { ...item, customVal: rawVal, customUnit: unit, servings };
+    }));
   }
 
   function removeItem(idx) {
@@ -480,7 +554,12 @@ function ConfirmScreen({ analysis, previewDataUrl, onLog, onRetake, onClose }) {
       fat:      parseFloat(f.fat)      || 0,
       source: "manual",
       verified: false,
+      serving: null,
+      estServings: null,
+      servings: null,
       scale: 1,
+      customUnit: "serving",
+      customVal: "",
       _removed: false,
     };
     setItems(prev => [...prev, newItem]);
@@ -490,15 +569,15 @@ function ConfirmScreen({ analysis, previewDataUrl, onLog, onRetake, onClose }) {
 
   function handleLog() {
     const corrections = items
-      .filter(item => !item._removed && (item.name !== item.aiName || item.scale !== 1))
+      .filter(item => !item._removed && (item.name !== item.aiName || amtChanged(item)))
       .map(item => ({
         ai_identified: item.aiName,
         user_corrected_to: item.name !== item.aiName ? item.name : null,
-        portion_adjustment: item.scale !== 1 ? item.scale : null,
+        portion_adjustment: amtChanged(item) ? (item.serving ? item.servings : item.scale) : null,
       }));
 
     const loggableItems = activeItems.map(item => {
-      const v = scaledValues(item, item.scale);
+      const v = itemMacros(item);
       return {
         id: Date.now() + Math.random(),
         food: item.name,
@@ -507,30 +586,37 @@ function ConfirmScreen({ analysis, previewDataUrl, onLog, onRetake, onClose }) {
         carbs:    v.carbs,
         fat:      v.fat,
         method: "photo",
-        portion: item.portion,
+        portion: amountLabel(item),
       };
     });
 
     onLog(loggableItems, totals, corrections);
   }
 
-  const confidenceColor = { high: "#4ade80", medium: "#fbbf24", low: T.mu }[analysis.confidence] || T.mu;
+  // Brand tokens — adapt to the user's chosen theme via --cm-* (was hardcoded dark `T`).
+  const ui = {
+    red: "var(--cm-red,#FF3B30)", paper: "var(--cm-paper,#FFFFFF)", ink: "var(--cm-ink,#0A0A0A)",
+    af: "'Archivo',sans-serif", mono: "'DM Mono',monospace",
+    prot: "var(--cm-red,#FF3B30)", carb: "#3B82F6", fat: "#F59E0B",
+  };
+  const mut = (a) => `rgba(var(--cm-ink-rgb,10,10,10),${a})`;   // muted ink on paper cards
+  const conf = { high: "#16a34a", medium: "#d97706", low: "rgba(255,255,255,0.75)" }[analysis.confidence] || "rgba(255,255,255,0.75)";
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: T.bg, zIndex: 500, overflowY: "auto" }}>
-      {/* Header */}
+    <div style={{ position: "fixed", inset: 0, background: ui.red, zIndex: 500, overflowY: "auto" }}>
+      {/* Header — white on the themed canvas */}
       <div style={{ padding: "52px 20px 0", display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 20 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 26, fontWeight: 900, fontFamily: "'Barlow Condensed',sans-serif", lineHeight: 1.1 }}>HERE'S WHAT I SEE</div>
+          <div style={{ fontFamily: ui.af, fontStyle: "italic", fontWeight: 900, fontSize: 30, lineHeight: 1.05, color: "#fff", textTransform: "uppercase", letterSpacing: "-0.01em" }}>Here's what I see</div>
           {analysis.confidence && (
-            <div style={{ fontSize: 11, color: confidenceColor, fontWeight: 700, marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}>
-              <div style={{ width: 6, height: 6, borderRadius: "50%", background: confidenceColor }} />
+            <div style={{ fontFamily: ui.mono, fontSize: 10.5, color: "#fff", fontWeight: 500, marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 999, padding: "3px 11px", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: conf }} />
               {analysis.confidence.toUpperCase()} CONFIDENCE
             </div>
           )}
         </div>
         {previewDataUrl && (
-          <img src={previewDataUrl} alt="" style={{ width: 64, height: 64, borderRadius: 12, objectFit: "cover", border: `1.5px solid ${T.bd}`, flexShrink: 0 }} />
+          <img src={previewDataUrl} alt="" style={{ width: 64, height: 64, borderRadius: 14, objectFit: "cover", border: "2px solid rgba(255,255,255,0.35)", flexShrink: 0 }} />
         )}
       </div>
 
@@ -538,18 +624,18 @@ function ConfirmScreen({ analysis, previewDataUrl, onLog, onRetake, onClose }) {
         {/* Items list */}
         {items.map((item, i) => {
           if (item._removed) return (
-            <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", opacity: 0.4 }}>
-              <div style={{ fontSize: 13, textDecoration: "line-through", color: T.mu }}>{item.name}</div>
-              <button onClick={() => undoRemove(i)} style={{ background: "none", border: "none", color: T.brand, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Undo</button>
+            <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 4px" }}>
+              <div style={{ fontFamily: ui.af, fontSize: 13, textDecoration: "line-through", color: "rgba(255,255,255,0.55)" }}>{item.name}</div>
+              <button onClick={() => undoRemove(i)} style={{ background: "none", border: "none", color: "#fff", fontFamily: ui.af, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Undo</button>
             </div>
           );
 
-          const v = scaledValues(item, item.scale);
+          const v = itemMacros(item);
           const isEditing = editingIdx === i;
 
           return (
-            <div key={i} style={{ background: T.s1, border: `1px solid ${T.bd}`, borderRadius: 14, padding: "12px 14px", marginBottom: 10 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+            <div key={i} style={{ background: ui.paper, border: `1px solid ${mut(0.08)}`, borderRadius: 16, padding: "14px", marginBottom: 10, boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                 <div style={{ flex: 1, marginRight: 8 }}>
                   {isEditing ? (
                     <input
@@ -558,50 +644,87 @@ function ConfirmScreen({ analysis, previewDataUrl, onLog, onRetake, onClose }) {
                       onChange={e => setEditName(e.target.value)}
                       onBlur={() => commitEditName(i)}
                       onKeyDown={e => { if (e.key === "Enter") commitEditName(i); if (e.key === "Escape") setEditingIdx(null); }}
-                      style={{ width: "100%", background: T.s2, border: `1px solid ${T.brand}`, borderRadius: 8, padding: "4px 8px", color: "#fff", fontSize: 14, fontWeight: 700, fontFamily: "inherit", boxSizing: "border-box" }}
+                      style={{ width: "100%", background: mut(0.04), border: `1px solid ${ui.red}`, borderRadius: 8, padding: "5px 9px", color: ui.ink, fontSize: 15, fontWeight: 700, fontFamily: ui.af, boxSizing: "border-box" }}
                     />
                   ) : (
                     <button onClick={() => startEditName(i, item.name)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", width: "100%" }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{item.name}</div>
+                      <div style={{ fontFamily: ui.af, fontSize: 15, fontWeight: 700, color: ui.ink }}>{item.name}</div>
                     </button>
                   )}
-                  <div style={{ fontSize: 11, color: T.mu, marginTop: 1 }}>{item.portion}</div>
+                  <div style={{ fontFamily: ui.mono, fontSize: 11, color: mut(0.5), marginTop: 2 }}>{item.portion}</div>
 
                   {/* Source badge */}
-                  <div style={{ marginTop: 4 }}>
+                  <div style={{ marginTop: 6 }}>
                     {item.source === "usda" ? (
-                      <span style={{ fontSize: 9, fontWeight: 700, color: "#4ade80", background: "rgba(74,222,128,.12)", border: "1px solid rgba(74,222,128,.25)", borderRadius: 4, padding: "1px 6px", letterSpacing: "0.06em" }}>✓ DATABASE VERIFIED</span>
+                      <span style={{ fontFamily: ui.mono, fontSize: 9, fontWeight: 500, color: "#16a34a", background: "rgba(22,163,74,0.1)", border: "1px solid rgba(22,163,74,0.25)", borderRadius: 5, padding: "2px 7px", letterSpacing: "0.06em" }}>✓ DATABASE VERIFIED</span>
                     ) : item.source === "manual" ? (
-                      <span style={{ fontSize: 9, fontWeight: 700, color: T.mu, background: T.s2, borderRadius: 4, padding: "1px 6px", letterSpacing: "0.06em" }}>MANUAL ENTRY</span>
+                      <span style={{ fontFamily: ui.mono, fontSize: 9, fontWeight: 500, color: mut(0.5), background: mut(0.06), borderRadius: 5, padding: "2px 7px", letterSpacing: "0.06em" }}>MANUAL ENTRY</span>
                     ) : (
-                      <span style={{ fontSize: 9, fontWeight: 700, color: "#fbbf24", background: "rgba(251,191,36,.1)", border: "1px solid rgba(251,191,36,.2)", borderRadius: 4, padding: "1px 6px", letterSpacing: "0.06em" }}>◎ AI ESTIMATE</span>
+                      <span style={{ fontFamily: ui.mono, fontSize: 9, fontWeight: 500, color: "#d97706", background: "rgba(217,119,6,0.1)", border: "1px solid rgba(217,119,6,0.22)", borderRadius: 5, padding: "2px 7px", letterSpacing: "0.06em" }}>◎ AI ESTIMATE</span>
                     )}
                   </div>
                 </div>
-                <button onClick={() => removeItem(i)} style={{ background: "none", border: "none", color: T.mu, cursor: "pointer", fontSize: 18, padding: "0 0 0 8px", lineHeight: 1 }}>×</button>
+                <button onClick={() => removeItem(i)} style={{ background: "none", border: "none", color: mut(0.4), cursor: "pointer", fontSize: 20, padding: "0 0 0 8px", lineHeight: 1 }}>×</button>
               </div>
 
-              {/* Portion scale chips */}
-              <div style={{ display: "flex", gap: 5, marginBottom: 10 }}>
-                {SCALE_OPTS.map(s => (
-                  <button key={s} onClick={() => setScale(i, s)} style={{ padding: "4px 10px", borderRadius: 20, border: `1.5px solid ${item.scale === s ? T.brand : T.bd}`, background: item.scale === s ? `${T.brand}18` : "none", color: item.scale === s ? T.brand : T.mu, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                    {SCALE_LABELS[s]}
-                  </button>
-                ))}
-              </div>
+              {/* Amount selector — "how much did you eat?", anchored to a real serving */}
+              {item.serving ? (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontFamily: ui.mono, fontSize: 9, color: mut(0.45), letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 7 }}>
+                    How much did you eat? · 1 serving = {item.serving.label} · {item.serving.calories} cal
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                    {[
+                      { lbl: "½", n: 0.5 },
+                      { lbl: `1 (${item.serving.label})`, n: 1 },
+                      { lbl: "2", n: 2 },
+                      ...(item.estServings && item.estServings > 2 ? [{ lbl: `All ~${Math.round(item.estServings)}`, n: item.estServings }] : []),
+                    ].map(({ lbl, n }) => {
+                      const active = !item.customVal && Math.abs((item.servings ?? -1) - n) < 0.01;
+                      return (
+                        <button key={lbl} onClick={() => setServings(i, n)} style={{ padding: "6px 13px", borderRadius: 999, border: `1.5px solid ${active ? ui.red : mut(0.15)}`, background: active ? "rgba(var(--cm-red-rgb,255,59,48),0.1)" : "none", color: active ? ui.red : mut(0.6), fontFamily: ui.af, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{lbl}</button>
+                      );
+                    })}
+                  </div>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <input
+                      type="number" inputMode="decimal" placeholder="Custom"
+                      value={item.customVal}
+                      onChange={e => setCustom(i, e.target.value, item.customUnit)}
+                      style={{ width: 78, background: mut(0.04), border: `1px solid ${item.customVal ? ui.red : mut(0.12)}`, borderRadius: 8, padding: "7px 9px", color: ui.ink, fontFamily: ui.mono, fontSize: 13, boxSizing: "border-box" }}
+                    />
+                    <div style={{ display: "flex", gap: 4 }}>
+                      {["serving", ...(item.serving.grams > 0 ? ["g", "oz"] : [])].map(u => (
+                        <button key={u} onClick={() => setCustom(i, item.customVal, u)} style={{ padding: "6px 11px", borderRadius: 8, border: `1.5px solid ${item.customUnit === u ? ui.red : mut(0.15)}`, background: item.customUnit === u ? "rgba(var(--cm-red-rgb,255,59,48),0.1)" : "none", color: item.customUnit === u ? ui.red : mut(0.55), fontFamily: ui.af, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{u === "serving" ? "servings" : u}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontFamily: ui.mono, fontSize: 9, color: mut(0.45), letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 7 }}>
+                    How much of this did you eat?
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {[["¼", 0.25], ["½", 0.5], ["¾", 0.75], ["All", 1], ["1½×", 1.5]].map(([lbl, s]) => (
+                      <button key={lbl} onClick={() => setScale(i, s)} style={{ padding: "6px 13px", borderRadius: 999, border: `1.5px solid ${item.scale === s ? ui.red : mut(0.15)}`, background: item.scale === s ? "rgba(var(--cm-red-rgb,255,59,48),0.1)" : "none", color: item.scale === s ? ui.red : mut(0.6), fontFamily: ui.af, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{lbl}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Macros row */}
-              <div style={{ display: "flex", gap: 10 }}>
-                {[["Cal", v.calories, "", "#fff"], ["P", v.protein, "g", T.prot], ["C", v.carbs, "g", T.carb], ["F", v.fat, "g", T.fat]].map(([l, val, u, c]) => (
-                  <div key={l} style={{ textAlign: "center", flex: 1, background: T.s2, borderRadius: 8, padding: "6px 4px" }}>
-                    <div style={{ fontSize: 9, color: T.mu, textTransform: "uppercase", letterSpacing: 1, marginBottom: 1 }}>{l}</div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: c }}>{val}{u}</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                {[["Cal", v.calories, "", ui.ink], ["P", v.protein, "g", ui.prot], ["C", v.carbs, "g", ui.carb], ["F", v.fat, "g", ui.fat]].map(([l, val, u, c]) => (
+                  <div key={l} style={{ textAlign: "center", flex: 1, background: mut(0.04), borderRadius: 10, padding: "7px 4px" }}>
+                    <div style={{ fontFamily: ui.mono, fontSize: 9, color: mut(0.45), textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>{l}</div>
+                    <div style={{ fontFamily: ui.mono, fontSize: 15, fontWeight: 500, color: c }}>{val}{u}</div>
                   </div>
                 ))}
               </div>
 
               {item.notes && (
-                <div style={{ fontSize: 10, color: T.mu, marginTop: 8, fontStyle: "italic" }}>Note: {item.notes}</div>
+                <div style={{ fontFamily: ui.af, fontSize: 11, color: mut(0.5), marginTop: 8, fontStyle: "italic", lineHeight: 1.4 }}>Note: {item.notes}</div>
               )}
             </div>
           );
@@ -609,23 +732,23 @@ function ConfirmScreen({ analysis, previewDataUrl, onLog, onRetake, onClose }) {
 
         {/* Add ingredient */}
         {!showAdd ? (
-          <button onClick={() => setShowAdd(true)} style={{ width: "100%", padding: "12px", borderRadius: 12, border: `1.5px dashed ${T.bd}`, background: "none", color: T.mu, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          <button onClick={() => setShowAdd(true)} style={{ width: "100%", padding: "13px", borderRadius: 14, border: "1.5px dashed rgba(255,255,255,0.4)", background: "rgba(255,255,255,0.08)", color: "#fff", fontFamily: ui.af, fontSize: 13, fontWeight: 700, cursor: "pointer", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
             + Add missing ingredient
           </button>
         ) : (
-          <div style={{ background: T.s1, border: `1px solid ${T.brand}40`, borderRadius: 14, padding: "14px", marginBottom: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: T.brand, marginBottom: 10, letterSpacing: "0.06em" }}>ADD INGREDIENT</div>
+          <div style={{ background: ui.paper, border: `1px solid ${mut(0.08)}`, borderRadius: 16, padding: "14px", marginBottom: 14, boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}>
+            <div style={{ fontFamily: ui.mono, fontSize: 11, fontWeight: 500, color: ui.red, marginBottom: 10, letterSpacing: "0.1em", textTransform: "uppercase" }}>Add ingredient</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <input value={addForm.name} onChange={e => setAddForm(f => ({ ...f, name: e.target.value }))} placeholder="Food name *" style={{ background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px", color: "#fff", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" }} />
-              <input value={addForm.portion} onChange={e => setAddForm(f => ({ ...f, portion: e.target.value }))} placeholder="Portion (e.g. 1 cup, 4 oz)" style={{ background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px", color: "#fff", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" }} />
+              <input value={addForm.name} onChange={e => setAddForm(f => ({ ...f, name: e.target.value }))} placeholder="Food name *" style={{ background: mut(0.04), border: `1px solid ${mut(0.12)}`, borderRadius: 8, padding: "9px 11px", color: ui.ink, fontSize: 13, fontFamily: ui.af, width: "100%", boxSizing: "border-box" }} />
+              <input value={addForm.portion} onChange={e => setAddForm(f => ({ ...f, portion: e.target.value }))} placeholder="Portion (e.g. 1 cup, 4 oz)" style={{ background: mut(0.04), border: `1px solid ${mut(0.12)}`, borderRadius: 8, padding: "9px 11px", color: ui.ink, fontSize: 13, fontFamily: ui.af, width: "100%", boxSizing: "border-box" }} />
               <div style={{ display: "flex", gap: 6 }}>
                 {[["calories","Cal *"],["protein","Prot"],["carbs","Carbs"],["fat","Fat"]].map(([k, ph]) => (
-                  <input key={k} type="number" value={addForm[k]} onChange={e => setAddForm(f => ({ ...f, [k]: e.target.value }))} placeholder={ph} style={{ flex: 1, background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 6px", color: "#fff", fontSize: 12, fontFamily: "inherit", textAlign: "center", minWidth: 0 }} />
+                  <input key={k} type="number" value={addForm[k]} onChange={e => setAddForm(f => ({ ...f, [k]: e.target.value }))} placeholder={ph} style={{ flex: 1, background: mut(0.04), border: `1px solid ${mut(0.12)}`, borderRadius: 8, padding: "9px 6px", color: ui.ink, fontSize: 12, fontFamily: ui.mono, textAlign: "center", minWidth: 0 }} />
                 ))}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={addIngredient} style={{ flex: 1, padding: "10px", borderRadius: 10, background: T.brand, border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Add</button>
-                <button onClick={() => { setShowAdd(false); setAddForm({ name: "", portion: "", calories: "", protein: "", carbs: "", fat: "" }); }} style={{ flex: 1, padding: "10px", borderRadius: 10, background: "none", border: `1px solid ${T.bd}`, color: T.mu, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+                <button onClick={addIngredient} style={{ flex: 1, padding: "11px", borderRadius: 10, background: ui.red, border: "none", color: "#fff", fontFamily: ui.af, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Add</button>
+                <button onClick={() => { setShowAdd(false); setAddForm({ name: "", portion: "", calories: "", protein: "", carbs: "", fat: "" }); }} style={{ flex: 1, padding: "11px", borderRadius: 10, background: "none", border: `1px solid ${mut(0.15)}`, color: mut(0.6), fontFamily: ui.af, fontSize: 13, cursor: "pointer" }}>Cancel</button>
               </div>
             </div>
           </div>
@@ -633,19 +756,19 @@ function ConfirmScreen({ analysis, previewDataUrl, onLog, onRetake, onClose }) {
 
         {/* Suggestions */}
         {analysis.suggestions && (
-          <div style={{ background: `${T.prot}10`, border: `1px solid ${T.prot}25`, borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: T.prot }}>
+          <div style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 12, padding: "11px 14px", marginBottom: 16, fontFamily: ui.af, fontSize: 12.5, color: "#fff", lineHeight: 1.45 }}>
             💡 {analysis.suggestions}
           </div>
         )}
 
         {/* Totals bar */}
-        <div style={{ background: T.s1, border: `1px solid ${T.bd}`, borderRadius: 14, padding: "14px 16px", marginBottom: 20 }}>
-          <div style={{ fontSize: 10, color: T.mu, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 10, fontFamily: "'DM Mono',monospace" }}>Meal Totals</div>
+        <div style={{ background: ui.paper, border: `1px solid ${mut(0.08)}`, borderRadius: 16, padding: "16px", marginBottom: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}>
+          <div style={{ fontFamily: ui.mono, fontSize: 10, color: ui.red, fontWeight: 500, letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 12 }}>Meal Totals</div>
           <div style={{ display: "flex", gap: 10 }}>
-            {[["Calories", totals.calories, "", "#fff"], ["Protein", totals.protein, "g", T.prot], ["Carbs", totals.carbs, "g", T.carb], ["Fat", totals.fat, "g", T.fat]].map(([l, v, u, c]) => (
+            {[["Calories", totals.calories, "", ui.ink], ["Protein", totals.protein, "g", ui.prot], ["Carbs", totals.carbs, "g", ui.carb], ["Fat", totals.fat, "g", ui.fat]].map(([l, v, u, c]) => (
               <div key={l} style={{ flex: 1, textAlign: "center" }}>
-                <div style={{ fontSize: 9, color: T.mu, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>{l}</div>
-                <div style={{ fontSize: 22, fontWeight: 900, color: c, lineHeight: 1 }}>{v}{u}</div>
+                <div style={{ fontFamily: ui.mono, fontSize: 9, color: mut(0.45), textTransform: "uppercase", letterSpacing: 1, marginBottom: 3 }}>{l}</div>
+                <div style={{ fontFamily: ui.mono, fontSize: 22, fontWeight: 500, color: c, lineHeight: 1 }}>{v}{u}</div>
               </div>
             ))}
           </div>
@@ -655,14 +778,14 @@ function ConfirmScreen({ analysis, previewDataUrl, onLog, onRetake, onClose }) {
         <button
           onClick={handleLog}
           disabled={activeItems.length === 0}
-          style={{ width: "100%", padding: "16px", borderRadius: 14, background: activeItems.length ? T.brand : T.bd, border: "none", color: "#fff", fontSize: 17, fontWeight: 800, cursor: activeItems.length ? "pointer" : "default", fontFamily: "'Barlow Condensed',sans-serif", letterSpacing: "0.08em", marginBottom: 10 }}
+          style={{ width: "100%", padding: "16px", borderRadius: 16, background: activeItems.length ? "#fff" : "rgba(255,255,255,0.4)", border: "none", color: ui.red, fontFamily: ui.af, fontStyle: "italic", fontWeight: 900, fontSize: 18, letterSpacing: "0.02em", textTransform: "uppercase", cursor: activeItems.length ? "pointer" : "default", marginBottom: 10, boxShadow: "0 4px 16px rgba(0,0,0,0.15)" }}
         >
-          LOG THIS MEAL
+          Log this meal
         </button>
-        <button onClick={onRetake} style={{ width: "100%", padding: "13px", borderRadius: 14, background: "none", border: `1.5px solid ${T.bd}`, color: T.mu, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", letterSpacing: "0.06em", marginBottom: 10 }}>
-          Retake Photo
+        <button onClick={onRetake} style={{ width: "100%", padding: "13px", borderRadius: 14, background: "rgba(255,255,255,0.12)", border: "1.5px solid rgba(255,255,255,0.3)", color: "#fff", fontFamily: ui.af, fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 10 }}>
+          Retake photo
         </button>
-        <button onClick={onClose} style={{ width: "100%", padding: "10px", background: "none", border: "none", color: T.mu, fontSize: 12, cursor: "pointer", fontFamily: "inherit", marginBottom: 24 }}>
+        <button onClick={onClose} style={{ width: "100%", padding: "10px", background: "none", border: "none", color: "rgba(255,255,255,0.7)", fontFamily: ui.af, fontSize: 12, fontWeight: 600, cursor: "pointer", marginBottom: 24 }}>
           Cancel
         </button>
       </div>
@@ -765,7 +888,11 @@ export default function PhotoFoodLogger({ user, profile, onLog, onClose }) {
       }
 
       if (data.error) {
-        setErrorMsg(data.error === "No food detected" ? "No food detected in the photo. Try a clearer shot." : data.error);
+        // "Couldn't identify food" — a clean AI result (200), NOT a failure. Give it
+        // its own clear, non-alarming message distinct from a genuine error.
+        setErrorMsg(data.error === "No food detected"
+          ? "Couldn't identify any food in this photo. Try a clearer, well-lit shot of the plate."
+          : data.error);
         setPhase("error");
         return;
       }
@@ -774,7 +901,12 @@ export default function PhotoFoodLogger({ user, profile, onLog, onClose }) {
       setPhase("confirm");
     } catch (e) {
       if (abortRef.current) return;
-      setErrorMsg("Network error. Check your connection and try again.");
+      // Genuine failure path — distinguish a real connectivity problem (fetch throws
+      // TypeError) from an unexpected app error. Neither is the "no food found" case
+      // above, so never mislabel those as a network problem.
+      setErrorMsg(e instanceof TypeError
+        ? "Couldn't reach the analysis service. Check your connection and try again."
+        : "Something went wrong analyzing your photo. Try again.");
       setPhase("error");
     }
   }

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { T } from "./components.jsx";
 
 // ── Platform detection ────────────────────────────────────────────────────────
@@ -63,39 +64,39 @@ function DeniedCard({ onCancel }) {
   );
 }
 
-// ── Native scanner overlay (iOS / Android via Capacitor plugin) ───────────────
+// ── Native scanner overlay (iOS / Android via @capacitor-mlkit/barcode-scanning) ─
 //
-// The @capacitor-community/barcode-scanner plugin renders the native camera
-// *behind* the WKWebView by making the WebView background transparent.
-// We paint a full-screen fixed overlay over everything so the scanning UI
-// (corner brackets, cancel button) appears on top of the camera feed.
+// MLKit renders the native camera *behind* the WKWebView and makes the webview
+// itself transparent during startScan (BarcodeScanner.swift isOpaque=false). Our
+// job is to make the DOM transparent too — we add `barcode-scanning-active` to
+// <html>/<body>, which hides #root (the app chrome) via GLOBAL_CSS so only the
+// camera shows, and we portal the scanning UI to <body> so it stays visible.
+// startScan() returns immediately; detections arrive via the `barcodesScanned`
+// listener (unlike the old community plugin's blocking startScan()).
 
 function makeTransparent() {
-  document.documentElement.style.setProperty("background", "transparent", "important");
-  document.body.style.setProperty("background", "transparent", "important");
-  const root = document.getElementById("root");
-  if (root) root.style.setProperty("background", "transparent", "important");
+  document.documentElement.classList.add("barcode-scanning-active");
+  document.body.classList.add("barcode-scanning-active");
 }
 
 function restoreBackground() {
-  document.documentElement.style.removeProperty("background");
-  document.body.style.removeProperty("background");
-  const root = document.getElementById("root");
-  if (root) root.style.removeProperty("background");
+  document.documentElement.classList.remove("barcode-scanning-active");
+  document.body.classList.remove("barcode-scanning-active");
 }
 
 function NativeScanner({ onDetected, onCancel }) {
   // phase: "starting" | "scanning" | "denied"
   const [phase, setPhase] = useState("starting");
   const activeRef = useRef(true);
-  const pluginRef = useRef(null);
+  const scannerRef = useRef(null);
+  const listenerRef = useRef(null);
 
   async function cleanup() {
     restoreBackground();
-    const Scanner = pluginRef.current;
-    if (!Scanner) return;
-    try { await Scanner.stopScan(); } catch {}
-    try { await Scanner.showBackground(); } catch {}
+    try { await listenerRef.current?.remove(); } catch {}
+    listenerRef.current = null;
+    const Scanner = scannerRef.current;
+    if (Scanner) { try { await Scanner.stopScan(); } catch {} }
   }
 
   function handleCancel() {
@@ -105,52 +106,60 @@ function NativeScanner({ onDetected, onCancel }) {
 
   useEffect(() => {
     async function startNative() {
-      let Scanner;
+      let Scanner, BarcodeFormat;
       try {
-        const mod = await import("@capacitor-community/barcode-scanner");
+        const mod = await import("@capacitor-mlkit/barcode-scanning");
         Scanner = mod.BarcodeScanner;
-        pluginRef.current = Scanner;
+        BarcodeFormat = mod.BarcodeFormat;
+        scannerRef.current = Scanner;
       } catch (e) {
-        console.error("[NativeScanner] plugin import failed:", e);
+        console.error("[NativeScanner] mlkit import failed:", e);
         if (activeRef.current) setPhase("denied");
         return;
       }
 
-      // Request camera permission (shows system dialog if needed)
+      // Camera permission (shows the system dialog if not yet decided)
       let status;
       try {
         status = await Scanner.requestPermissions();
-      } catch {
+      } catch (e) {
+        console.error("[NativeScanner] requestPermissions threw:", e);
+        if (activeRef.current) setPhase("denied");
+        return;
+      }
+      if (!activeRef.current) return;
+      if (status.camera !== "granted" && status.camera !== "limited") { setPhase("denied"); return; }
+
+      // Register the detection listener BEFORE startScan (which returns immediately).
+      // MLKit 5.x emits `barcodeScanned` (singular) with { barcode }, NOT the v8 plural.
+      try {
+        listenerRef.current = await Scanner.addListener("barcodeScanned", (event) => {
+          const val = event?.barcode?.rawValue;
+          if (!val || !activeRef.current) return;
+          activeRef.current = false;
+          cleanup().finally(() => onDetected(val));
+        });
+      } catch (e) {
+        console.error("[NativeScanner] addListener threw:", e);
         if (activeRef.current) setPhase("denied");
         return;
       }
 
-      if (!activeRef.current) return;
-      if (status.camera !== 'granted') { setPhase("denied"); return; }
-
-      // Make WebView transparent so native camera shows through
+      // Hide the DOM chrome so the native camera (behind the transparent webview) shows
       makeTransparent();
-      try { await Scanner.hideBackground(); } catch {}
-
       if (!activeRef.current) { cleanup(); return; }
       setPhase("scanning");
 
-      // startScan() blocks until a barcode is found or stopScan() is called
-      let result;
       try {
-        result = await Scanner.startScan({
-          formats: ["EAN_13", "EAN_8", "UPC_A", "UPC_E", "CODE_128", "CODE_39"],
-        });
-      } catch {
-        if (activeRef.current) { cleanup(); onCancel(); }
-        return;
-      }
-
-      if (!activeRef.current) { cleanup(); return; }
-      await cleanup();
-
-      if (result?.barcodes?.[0]?.rawValue) {
-        onDetected(result.barcodes[0].rawValue);
+        await Scanner.startScan(BarcodeFormat ? {
+          formats: [
+            BarcodeFormat.Ean13, BarcodeFormat.Ean8, BarcodeFormat.UpcA,
+            BarcodeFormat.UpcE, BarcodeFormat.Code128, BarcodeFormat.Code39,
+          ],
+        } : undefined);
+      } catch (e) {
+        console.error("[NativeScanner] startScan threw:", e);
+        if (activeRef.current) cleanup().finally(() => onCancel());
       }
     }
 
@@ -173,9 +182,10 @@ function NativeScanner({ onDetected, onCancel }) {
     );
   }
 
-  // Transparent fixed overlay — native camera renders through the WebView below
-  return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "transparent", pointerEvents: "auto" }}>
+  // Portaled to <body> so it stays visible while #root (the app chrome) is hidden
+  // by the `barcode-scanning-active` class — only the native camera + this overlay show.
+  return createPortal(
+    <div style={{ position: "fixed", inset: 0, zIndex: 99999, background: "transparent", pointerEvents: "auto" }}>
       <style>{`@keyframes nativeScanLine{0%,100%{top:20%}50%{top:80%}}`}</style>
 
       {phase === "starting" && (
@@ -186,28 +196,20 @@ function NativeScanner({ onDetected, onCancel }) {
 
       {phase === "scanning" && (
         <>
-          {/* Darkened areas outside the scan zone */}
-          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", WebkitMaskImage: "url(#scan-cutout)" }} />
-
           {/* Scan window — corner brackets */}
           <div style={{ position: "absolute", top: "28%", left: "10%", right: "10%", bottom: "28%", pointerEvents: "none" }}>
-            {/* TL */}
             <svg width="44" height="44" viewBox="0 0 44 44" style={{ position: "absolute", top: -2, left: -2 }}>
               <path d="M3 22 L3 3 L22 3" stroke={T.brand} strokeWidth="3" fill="none" strokeLinecap="round" />
             </svg>
-            {/* TR */}
             <svg width="44" height="44" viewBox="0 0 44 44" style={{ position: "absolute", top: -2, right: -2 }}>
               <path d="M22 3 L41 3 L41 22" stroke={T.brand} strokeWidth="3" fill="none" strokeLinecap="round" />
             </svg>
-            {/* BL */}
             <svg width="44" height="44" viewBox="0 0 44 44" style={{ position: "absolute", bottom: -2, left: -2 }}>
               <path d="M3 22 L3 41 L22 41" stroke={T.brand} strokeWidth="3" fill="none" strokeLinecap="round" />
             </svg>
-            {/* BR */}
             <svg width="44" height="44" viewBox="0 0 44 44" style={{ position: "absolute", bottom: -2, right: -2 }}>
               <path d="M22 41 L41 41 L41 22" stroke={T.brand} strokeWidth="3" fill="none" strokeLinecap="round" />
             </svg>
-            {/* Animated scan line */}
             <div style={{ position: "absolute", left: 0, right: 0, top: "50%", height: 2, background: `${T.brand}cc`, borderRadius: 1, transform: "translateY(-50%)", animation: "nativeScanLine 1.8s ease-in-out infinite" }} />
           </div>
 
@@ -226,7 +228,8 @@ function NativeScanner({ onDetected, onCancel }) {
           Cancel
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

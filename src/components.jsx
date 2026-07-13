@@ -530,6 +530,10 @@ export const GLOBAL_CSS = `
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body,#root{height:100%}
+  /* Barcode scan (MLKit): native camera renders behind a transparent webview.
+     Hide the app chrome so only the camera + the portaled scanner overlay show. */
+  html.barcode-scanning-active,html.barcode-scanning-active body{background:transparent!important}
+  html.barcode-scanning-active #root{visibility:hidden!important}
   button,a,[role=button]{min-height:44px;min-width:44px}
   @media(prefers-reduced-motion:reduce){*{animation-duration:0.01ms!important;transition-duration:0.01ms!important}}
   body{font-family:var(--body);color:var(--white);-webkit-font-smoothing:antialiased;background:var(--bg);background-image:radial-gradient(ellipse at 30% 20%,rgba(var(--accent-rgb),0.06),transparent 50%)}

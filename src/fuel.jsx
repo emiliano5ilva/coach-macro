@@ -944,6 +944,27 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const mno={fontFamily:"'DM Mono',monospace"};
   const [macrosOn,setMacrosOn]=useState(false); // food-log meal bars: calorie ⇄ P/C/F-segmented (session-only)
+  // Food photos live in a PRIVATE bucket — `entry.photo_url` holds a storage PATH.
+  // Batch-sign owner-scoped, time-limited URLs on load; never persist a signed URL.
+  const [signedPhotos,setSignedPhotos]=useState({}); // path -> signed URL
+  const signedPathsRef=useRef(new Set());            // paths already signed (dedupe across renders)
+  useEffect(()=>{
+    const paths=[...new Set((log||[])
+      .map(e=>e.photo_url)
+      .filter(p=>p&&!/^https?:\/\//.test(p)&&!signedPathsRef.current.has(p)))]; // http-prefix guard = legacy full URLs, used as-is
+    if(!paths.length)return;
+    let cancelled=false;
+    sb.storage.from("food-photos").createSignedUrls(paths,3600)
+      .then(({data})=>{
+        if(cancelled||!data)return;
+        const add={};
+        data.forEach(d=>{if(d?.signedUrl&&d?.path){add[d.path]=d.signedUrl;signedPathsRef.current.add(d.path);}});
+        if(Object.keys(add).length)setSignedPhotos(prev=>({...prev,...add}));
+      })
+      .catch(()=>{});
+    return()=>{cancelled=true;};
+  },[log]);
+  const photoSrc=(item)=>{const u=item?.photo_url;if(!u)return null;return /^https?:\/\//.test(u)?u:(signedPhotos[u]||null);};
   const [logMode,setLogMode]=useState(null);
   const [aiEstimate,setAiEstimate]=useState(null);
   const [aiEstimating,setAiEstimating]=useState(false);
@@ -2637,8 +2658,8 @@ Reply with ONLY a valid JSON object, no markdown:
                                 style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0"}}
                               >
                                 <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
-                                  {item.photo_url
-                                    ? <div style={{width:32,height:32,borderRadius:8,overflow:"hidden",flexShrink:0}}><img src={item.photo_url} style={{width:32,height:32,objectFit:"cover"}} alt=""/></div>
+                                  {photoSrc(item)
+                                    ? <div style={{width:32,height:32,borderRadius:8,overflow:"hidden",flexShrink:0}}><img src={photoSrc(item)} style={{width:32,height:32,objectFit:"cover"}} alt=""/></div>
                                     : <FoodIcon name={item} method={item.method} size={32} userId={user?.id} />
                                   }
                                   <div style={{flex:1,minWidth:0}}>
