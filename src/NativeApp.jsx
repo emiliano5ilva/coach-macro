@@ -121,7 +121,7 @@ function AuthScreen({onAuth, startView="welcome", initialError=""}) {
   }
 
   async function handleResetPassword(){
-    if(newPassword.length<6){setError("Password must be at least 6 characters.");return;}
+    if(newPassword.length<8){setError("Password must be at least 8 characters.");return;}
     setLoading(true);setError("");
     try{
       const{error:e}=await sb.auth.updateUser({password:newPassword});
@@ -284,7 +284,7 @@ function AuthScreen({onAuth, startView="welcome", initialError=""}) {
         </div>
         <div style={authTitle}>New<br/><span style={{color:"var(--red)"}}>Password.</span></div>
         <p style={authSub}>Almost there — choose a new password and you're back in.</p>
-        {field("New Password",newPassword,setNewPassword,"password","At least 6 characters")}
+        {field("New Password",newPassword,setNewPassword,"password","At least 8 characters")}
         {error&&<ErrorMessage error={error} style={{marginTop:2,marginBottom:16}}/>}
         <button onClick={handleResetPassword} disabled={loading} style={loading?ctaBtnLoading:ctaBtn}>
           {loading?"Saving...":"Set New Password →"}
@@ -364,7 +364,7 @@ function AuthScreen({onAuth, startView="welcome", initialError=""}) {
         </div>
         {view==="signup"&&field("Your Name",name,setName,"text","e.g. Marcus")}
         {field("Email",email,setEmail,"email","you@email.com")}
-        {field("Password",password,setPassword,"password","Min 6 characters")}
+        {field("Password",password,setPassword,"password",view==="signup"?"At least 8 characters":"Your password")}
         {view==="signin"&&(
           <div style={{textAlign:"right",marginBottom:14,marginTop:-8}}>
             <button onClick={()=>{setView("forgot");setError("");}} style={{background:"none",border:"none",color:"var(--red)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.08em",padding:0}}>Forgot password?</button>

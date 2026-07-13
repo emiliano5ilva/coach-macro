@@ -1211,7 +1211,9 @@ export function NewOnboarding({ onComplete, user, signupName }) {
       <style>{GLOBAL_CSS}{`@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,900&family=Barlow:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');`}</style>
       <div className="ob-inner" style={{ animation: "fadeIn 0.3s ease" }}>
         <ProgressHeader pct={pct} />
-        {sc > 1 && sc !== 31 && (
+        {/* Only show Back when there's history to pop — on the first screen the stack is empty,
+            so a shown-but-dead button (old `sc > 1`) did nothing. Gate on history.length. */}
+        {history.length > 0 && sc !== 31 && (
           <button onClick={back} style={{
             background: "none", border: "none", color: "#FFFFFF",
             cursor: "pointer", fontSize: 18, padding: "0 0 16px",
