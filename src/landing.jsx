@@ -347,8 +347,8 @@ const CSS = `
     .lp-solution-split-text .lp-solution-lead { max-width: 620px; }
   }
 
-  /* ── THE KITCHEN — recipe/nutrition depth (reuses .lp-solution-split + .lp-sphone) ── */
-  .lp-kitchen { padding: 140px 48px; border-top: 1px solid var(--white-border); }
+  /* ── THE KITCHEN + THE DETAILS — shared alternating phone-split layout (reuses .lp-solution-split + .lp-sphone) ── */
+  .lp-kitchen, .lp-detail { padding: 140px 48px; border-top: 1px solid var(--white-border); }
   .lp-kitchen-inner { max-width: 1080px; margin: 0 auto; }
   .lp-kitchen-head { max-width: 720px; margin: 0 auto; text-align: center; }
   .lp-kitchen-head .lp-section-title { text-align: center; }
@@ -362,7 +362,7 @@ const CSS = `
   .lp-kitchen-close { max-width: 680px; margin: 84px auto 0; text-align: center; }
   .lp-kitchen-close .lp-kitchen-lead { font-size: 20px; max-width: 620px; margin: 0 auto; }
   @media (max-width: 820px) {
-    .lp-kitchen { padding: 100px 20px; }
+    .lp-kitchen, .lp-detail { padding: 100px 20px; }
     .lp-solution-split.reverse { flex-direction: column; }
     .lp-kitchen-split { margin-top: 56px; }
     .lp-kitchen-mid, .lp-kitchen-close { margin-top: 60px; }
@@ -922,16 +922,65 @@ function ScreenPhone({ eyebrow, title, headerRight, children }) {
   );
 }
 
-// Real product screenshot inside the phone frame (full-res 1284x2778 → optimized 800w WebP+JPEG).
-function RealScreen({ src, alt }) {
+// ── THE DETAILS OTHER APPS SKIP — training/coaching depth (rest calc, progression, level coaching, load mgmt) ──
+function DetailSection() {
   return (
-    <div className="lp-sphone">
-      <picture>
-        <source srcSet={`/screens/${src}.webp`} type="image/webp" />
-        <img className="lp-sphone-shot" src={`/screens/${src}.jpg`} alt={alt} width="800" height="1731" loading="eager" decoding="async" />
-      </picture>
-      <div className="lp-sphone-notch"/>
-    </div>
+    <section className="lp-detail" id="details">
+      <div className="lp-kitchen-inner">
+        <div className="lp-kitchen-head">
+          <div className="lp-section-eyebrow">The details other apps skip</div>
+          <h2 className="lp-section-title fade-up">Coaching that sweats<br/>the <span className="accent">small stuff.</span></h2>
+          <p className="lp-kitchen-lead fade-up">Most apps hand you "3 sets of 10" and call it programming. Coach Macro calculates every variable — because the details are what actually make training work.</p>
+        </div>
+
+        {/* Rest — text left, key-cue phone right */}
+        <div className="lp-solution-split lp-kitchen-split fade-up">
+          <div className="lp-solution-split-text">
+            <p className="lp-solution-lead"><strong>Your rest is prescribed, not guessed.</strong> Every set's rest time is calculated from the movement and your goal — 30 seconds on a fat-loss isolation set, up to 5 minutes on a heavy compound. A live timer counts it down between sets. No more scrolling your phone wondering if it's been long enough.</p>
+          </div>
+          <div className="lp-solution-split-phone">
+            <div className="lp-sphone">
+              <picture>
+                <source srcSet="/screens/coaching-technique.webp" type="image/webp" />
+                <img className="lp-sphone-shot" src="/screens/coaching-technique.jpg" alt="Coach Macro exercise coaching — Barbell Squat key cue, technique guidance, and a demonstration" width="800" height="1731" loading="lazy" decoding="async" />
+              </picture>
+              <div className="lp-sphone-notch"/>
+            </div>
+          </div>
+        </div>
+
+        {/* Progression — centered statement (no screenshot) */}
+        <div className="lp-kitchen-mid fade-up">
+          <p className="lp-kitchen-lead"><strong>Your weights progress on their own.</strong> Hit your reps, the weight goes up next session. Miss, add a rep instead. Program-aware increments, and if you stall three sessions in a row, it automatically deloads you 10% to break through. Progressive overload, no spreadsheet required.</p>
+        </div>
+
+        {/* Level coaching — how-to phone left, text right */}
+        <div className="lp-solution-split reverse lp-kitchen-split fade-up">
+          <div className="lp-solution-split-text">
+            <p className="lp-solution-lead"><strong>Coaching written for your level.</strong> 309 tailored coaching write-ups across 103 exercises — the same lift cued differently whether you're a beginner or advanced. Key cues, what to watch for, what it should feel like. Every major lift comes with real technique guidance, muscle targeting, and a demonstration.</p>
+          </div>
+          <div className="lp-solution-split-phone">
+            <div className="lp-sphone">
+              <picture>
+                <source srcSet="/screens/coaching-cues.webp" type="image/webp" />
+                <img className="lp-sphone-shot" src="/screens/coaching-cues.jpg" alt="Coach Macro exercise detail — target muscles, step-by-step how-to, and your lift history" width="800" height="1731" loading="lazy" decoding="async" />
+              </picture>
+              <div className="lp-sphone-notch"/>
+            </div>
+          </div>
+        </div>
+
+        {/* Load management — centered statement (no screenshot) */}
+        <div className="lp-kitchen-mid fade-up">
+          <p className="lp-kitchen-lead"><strong>And it watches your load.</strong> Daily readiness check-ins auto-adjust your weights when you're beat up. An acute-to-chronic workload model flags injury risk before you feel it. Tweak or pain? It adapts the session automatically.</p>
+        </div>
+
+        {/* Close */}
+        <div className="lp-kitchen-close fade-up">
+          <p className="lp-kitchen-lead">This is the difference between an app that lists exercises and one that <span className="lp-hook">actually coaches you.</span></p>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -993,7 +1042,6 @@ function KitchenSection() {
 }
 
 function ScreensSection() {
-  const scrollRef = useRef(null);
   const stageRef = useRef(null);
   const phoneRef = useRef(null);
   // Angled-phone scroll reveal: starts tilted in 3D, straightens to face-on as it scrolls up,
@@ -1020,18 +1068,6 @@ function ScreensSection() {
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll, { passive: true });
     return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); if (raf) cancelAnimationFrame(raf); };
-  }, []);
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    let down = false, startX = 0, scrollLeft = 0;
-    const onDown = e => { down = true; startX = e.pageX - el.offsetLeft; scrollLeft = el.scrollLeft; el.style.cursor = 'grabbing'; };
-    const onUp = () => { down = false; el.style.cursor = 'grab'; };
-    const onMove = e => { if (!down) return; e.preventDefault(); const x = e.pageX - el.offsetLeft; el.scrollLeft = scrollLeft - (x - startX) * 1.5; };
-    el.addEventListener('mousedown', onDown);
-    window.addEventListener('mouseup', onUp);
-    el.addEventListener('mousemove', onMove);
-    return () => { el.removeEventListener('mousedown', onDown); window.removeEventListener('mouseup', onUp); el.removeEventListener('mousemove', onMove); };
   }, []);
 
   return (
@@ -1062,13 +1098,6 @@ function ScreensSection() {
         </div>
       </div>
 
-      <div className="lp-scroll" ref={scrollRef}>
-        <RealScreen src="meal-plan" alt="Coach Macro meal plan for the day, built around your macros" />
-        <RealScreen src="grocery-list" alt="Coach Macro grocery list grouped by aisle" />
-        <RealScreen src="coaching-technique" alt="Coach Macro exercise form coaching with technique cues" />
-        <RealScreen src="coaching-cues" alt="Coach Macro exercise coaching with form tips" />
-      </div>
-      <div style={{padding:'8px 48px 0',color:'var(--white-faint)',fontFamily:'var(--mono)',fontSize:10,letterSpacing:'0.16em',textTransform:'uppercase'}}>← Drag to explore →</div>
     </section>
   );
 }
@@ -1707,6 +1736,7 @@ export function LandingPage({ onSignUp }) {
 
       {/* Conversion sequence: Hero → Problem → Solution → How → Trust → Screens → Features → Works → Pricing (comparison table now consolidated inside Pricing) → FAQ → Final CTA */}
       <SolutionSection/>
+      <DetailSection/>
       <HowSection/>
       <TrustSection/>
       <KitchenSection/>
