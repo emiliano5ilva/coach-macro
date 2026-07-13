@@ -22,7 +22,7 @@ import { getWorkoutForDay } from "./programs.js";
 import { applyEquipmentToWorkout } from "./exercise_database.js";
 import { FuelSection } from "./fuel.jsx";
 import { scanTextAllergens, findAllergens } from "./utils/allergenFilter.js";
-import { sb, ai, streamAI } from "./client.js";
+import { sb, ai, streamAI, aiExtractBodyScan } from "./client.js";
 import { track, EVENTS, trackError } from "./services/analytics.js";
 import { getCyclePhase } from "./utils/ait.js";
 import { getCycleNutrition, getConsistencyScore, showConsistencyScore, isCalorieFreeMode } from "./utils/female.js";
@@ -5181,11 +5181,71 @@ const MILESTONES=[
   {id:'day_90',type:'membership',threshold:90,title:'90 DAYS.',sub:"Three months. You're a different athlete now.",icon:'W12'},
 ];
 
-function BodyweightSection({logs,user:u,setLogs,wUnit}) {
+// One body-scan comparison row: "prev → new" + a delta colored by whether the change
+// is GOOD or BAD for that metric (goodDir "down"|"up"|"neutral"), not just direction.
+// No previous value → shows the value cleanly with no delta.
+function ScanRow({ label, val, prev, unit = "", goodDir = "neutral", dec = 1, primary = false }) {
+  if (val == null || val === "" || isNaN(Number(val))) return null;
+  const AF = "'Archivo',sans-serif", MONO = "'DM Mono',monospace";
+  const mut = (a) => `rgba(var(--cm-ink-rgb,10,10,10),${a})`;
+  const nv = Number(val);
+  const has = prev != null && prev !== "" && !isNaN(Number(prev));
+  const pv = has ? Number(prev) : null;
+  const p10 = Math.pow(10, dec);
+  const d = has ? Math.round((nv - pv) * p10) / p10 : null;
+  const fmt = (x) => x == null ? "" : (Number.isInteger(x) ? String(x) : x.toFixed(dec));
+  let color = mut(0.5);
+  if (has && d !== 0 && goodDir !== "neutral") color = ((goodDir === "down" && d < 0) || (goodDir === "up" && d > 0)) ? "#16a34a" : "#dc2626";
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderTop: "1px solid " + mut(0.05) }}>
+      <span style={{ fontFamily: AF, fontSize: 13, fontWeight: 600, color: mut(0.62) }}>{label}</span>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
+        {has && <span style={{ fontFamily: MONO, fontSize: 11, color: mut(0.38) }}>{fmt(pv)}{unit}</span>}
+        {has && <span style={{ fontFamily: MONO, fontSize: 11, color: mut(0.28) }}>→</span>}
+        <span style={{ fontFamily: MONO, fontSize: primary ? 17 : 15, fontWeight: 500, color: "var(--cm-ink,#0A0A0A)" }}>{fmt(nv)}{unit}</span>
+        {has && d !== 0 && <span style={{ fontFamily: MONO, fontSize: 12, fontWeight: 700, color, minWidth: 32, textAlign: "right" }}>{d < 0 ? "↓" : "↑"}{fmt(Math.abs(d))}</span>}
+      </div>
+    </div>
+  );
+}
+
+// Downscale + JPEG-encode an image File → base64 (no data: prefix). Mirrors the
+// food-photo compression (PhotoFoodLogger resizeImageBase64) but at a higher max
+// edge so a scan sheet's numbers stay legible. Keeps the payload well under Vercel's
+// ~4.5MB serverless limit (raw phone photos are ~4MB → base64 ~5.5M chars → 413).
+function compressImageFile(file, maxPx = 1600, quality = 0.75) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+      if (Math.max(w, h) > maxPx) { const s = maxPx / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s); }
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", quality).split(",")[1]);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("image decode failed")); };
+    img.src = url;
+  });
+}
+
+function BodyweightSection({logs,user:u,setLogs,wUnit,profile,onProfileUpdate}) {
   const [bwModal,setBwModal]=useState(false);
   const [bwInput,setBwInput]=useState("");
   const [bwDate,setBwDate]=useState(()=>new Date().toISOString().split("T")[0]);
   const [bwSaving,setBwSaving]=useState(false);
+  // ── Evolt360 body-scan upload ──
+  const [scanState,setScanState]=useState("idle"); // idle | reading | review | error
+  const [scanData,setScanData]=useState(null);
+  const [scanErr,setScanErr]=useState("");
+  const [prevScan,setPrevScan]=useState(null); // most recent prior scan, for the comparison view
+  const [applyTEE,setApplyTEE]=useState(false);
+  const [scanSaving,setScanSaving]=useState(false);
+  const scanFileRef=useRef(null);
+  // chosen weight in the user's display unit (scan reports kg)
+  const scanW=scanData&&scanData.weight_kg!=null?(wUnit==="kg"?Math.round(Number(scanData.weight_kg)*10)/10:Math.round(Number(scanData.weight_kg)/0.4536*10)/10):null;
 
   async function saveWeight(){
     const w=parseFloat(bwInput);
@@ -5195,6 +5255,79 @@ function BodyweightSection({logs,user:u,setLogs,wUnit}) {
     await sb.from("bodyweight_logs").upsert({user_id:u.id,...entry},{onConflict:"user_id,date"});
     setLogs(prev=>[...prev.filter(x=>x.date!==bwDate),entry].sort((a,b)=>a.date.localeCompare(b.date)));
     setBwModal(false);setBwInput("");setBwSaving(false);
+  }
+
+  async function handleScanFile(e){
+    const file=e.target.files?.[0]; if(e.target)e.target.value="";
+    if(!file)return;
+    setBwModal(false); setScanErr(""); setScanData(null); setApplyTEE(false); setScanState("reading");
+    const isPdf=file.type==="application/pdf"||/\.pdf$/i.test(file.name||"");
+    console.log("[bodyscan] file:", file.type, (file.size/1024).toFixed(0)+"KB");
+    try{
+      let b64, mt;
+      if(isPdf){
+        b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]);r.onerror=()=>rej(new Error("file read failed"));r.readAsDataURL(file);});
+        mt="application/pdf";
+      }else{
+        b64=await compressImageFile(file,1600,0.75); // downscale + JPEG → payload clears the ~4.5MB serverless limit
+        mt="image/jpeg";
+      }
+      if(!b64) throw new Error("empty file");
+      if(b64.length>3200000){ setScanErr(isPdf?"This PDF is too large to process. Try a photo or screenshot of the results sheet instead.":"This image is too large to process. Try again."); setScanState("error"); return; }
+      const data=await aiExtractBodyScan(b64,mt);
+      console.log("[bodyscan] recognized=", data?.recognized, "confidence=", data?.confidence, "weight_kg=", data?.weight_kg);
+      if(!data||data.recognized===false||data.confidence==="low"||data.weight_kg==null){
+        setScanErr("We couldn't read this as an Evolt360 scan. Upload a clear photo or PDF of the full results sheet."); setScanState("error"); return;
+      }
+      // fetch the most recent prior scan for the comparison view (this one isn't saved yet)
+      let prev=null; try{ const r=await sb.from("body_scans").select("*").eq("user_id",u.id).order("scan_date",{ascending:false}).order("created_at",{ascending:false}).limit(1); prev=(r.data&&r.data[0])||null; }catch{}
+      setPrevScan(prev);
+      setScanData(data); setScanState("review");
+    }catch(err){
+      const msg=err?.message||String(err);
+      console.error("[bodyscan] error:", err);
+      // consent-declined / subscription / daily-limit are handled by the app's global UI → just close
+      if(err?.name==="AIConsentDeclined"||/subscription|daily ai limit/i.test(msg)){ setScanState("idle"); return; }
+      setScanErr("We couldn't read this as an Evolt360 scan. Upload a clear photo or PDF of the full results sheet."); setScanState("error");
+    }
+  }
+
+  async function handleConfirmScan(){
+    if(!scanData||!u||scanW==null)return;
+    setScanSaving(true);
+    const today=new Date().toISOString().split("T")[0];
+    const scanDate=/^\d{4}-\d{2}-\d{2}$/.test(scanData.scan_date||"")?scanData.scan_date:today;
+    try{
+      // 1. weigh-in (feeds the weight trend), dated to the scan
+      await sb.from("bodyweight_logs").upsert({user_id:u.id,date:scanDate,weight:scanW},{onConflict:"user_id,date"});
+      setLogs(prev=>[...prev.filter(x=>x.date!==scanDate),{date:scanDate,weight:scanW}].sort((a,b)=>a.date.localeCompare(b.date)));
+      // 2. profile update — engine reads profile.weight (protein) + profile.bodyFat (Katch BMR)
+      const patch={weight:scanW};
+      if(scanData.body_fat_pct!=null) patch.bodyFat=Math.round(Number(scanData.body_fat_pct)*10)/10;
+      if(applyTEE&&scanData.tee_kcal!=null){
+        const oldBase=Number(profile?.baseTDEE)||Number(profile?.goalCals)||0;
+        const oldGoal=Number(profile?.goalCals)||oldBase;
+        const rate=oldGoal-oldBase; // preserve the user's deficit/surplus, re-anchor maintenance to measured TEE
+        patch.baseTDEE=Math.round(Number(scanData.tee_kcal));
+        patch.goalCals=Math.round(Number(scanData.tee_kcal)+rate);
+        if(scanData.bmr_kcal!=null) patch.bmr=Math.round(Number(scanData.bmr_kcal));
+      }
+      onProfileUpdate&&onProfileUpdate(patch);
+      await sb.from("profiles").upsert({id:u.id,profile_data:{...(profile||{}),...patch},updated_at:new Date().toISOString()},{onConflict:"id"});
+      // 3. full scan → history
+      const num=(v)=>v!=null?Number(v):null; const int=(v)=>v!=null?Math.round(Number(v)):null;
+      await sb.from("body_scans").insert({
+        user_id:u.id, scan_date:scanDate, source:"evolt360",
+        weight_kg:num(scanData.weight_kg), body_fat_pct:num(scanData.body_fat_pct),
+        lean_mass_kg:num(scanData.lean_mass_kg), skeletal_muscle_kg:num(scanData.skeletal_muscle_kg),
+        visceral_fat:num(scanData.visceral_fat), body_water_pct:num(scanData.body_water_pct),
+        bone_mass_kg:num(scanData.bone_mass_kg), protein_kg:num(scanData.protein_kg),
+        bmr_kcal:int(scanData.bmr_kcal), tee_kcal:int(scanData.tee_kcal), metabolic_age:int(scanData.metabolic_age),
+        raw:scanData,
+      });
+      setScanState("idle"); setScanData(null);
+    }catch(e){ console.error("[bodyscan confirm]",e); setScanErr("Couldn't save your scan. Please try again."); setScanState("error"); }
+    setScanSaving(false);
   }
 
   const chartData=(()=>{
@@ -5277,6 +5410,76 @@ function BodyweightSection({logs,user:u,setLogs,wUnit}) {
             <button onClick={saveWeight} disabled={!bwInput||bwSaving} style={{width:"100%",padding:"14px",background:!bwInput||bwSaving?"rgba(var(--cm-ink-rgb,10,10,10),0.08)":"var(--cm-red,#FF3B30)",color:!bwInput||bwSaving?"rgba(var(--cm-ink-rgb,10,10,10),0.3)":"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:!bwInput||bwSaving?"default":"pointer",fontFamily:"'Archivo',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>
               {bwSaving?"Saving...":"Save Weight"}
             </button>
+            <div style={{display:"flex",alignItems:"center",gap:10,margin:"16px 0 12px"}}>
+              <div style={{flex:1,height:1,background:"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}}/>
+              <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)"}}>or</div>
+              <div style={{flex:1,height:1,background:"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}}/>
+            </div>
+            <button onClick={()=>scanFileRef.current&&scanFileRef.current.click()} style={{width:"100%",padding:"13px",background:"none",border:"1.5px solid rgba(var(--cm-red-rgb,255,59,48),0.4)",borderRadius:12,color:"var(--cm-red,#FF3B30)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Archivo',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>Upload an Evolt360 body scan</button>
+            <div style={{fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",textAlign:"center",marginTop:8,fontFamily:"'Archivo',sans-serif",lineHeight:1.4}}>We support Evolt360 scans — photo or PDF. You'll review everything before it updates.</div>
+          </div>
+        </div>
+      )}
+
+      <input ref={scanFileRef} type="file" accept="application/pdf,image/*" onChange={handleScanFile} style={{display:"none"}}/>
+
+      {scanState!=="idle"&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:10000,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"20px 20px 0 0",padding:24,width:"100%",maxWidth:480,maxHeight:"88vh",overflowY:"auto",paddingBottom:"max(24px,env(safe-area-inset-bottom))"}}>
+            {scanState==="reading"&&(
+              <div style={{textAlign:"center",padding:"32px 0"}}>
+                <div style={{width:36,height:36,border:"3px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderTop:"3px solid var(--cm-red,#FF3B30)",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto 16px"}}/>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:16,color:"var(--cm-ink,#0A0A0A)"}}>Reading your scan…</div>
+                <div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",marginTop:6,fontFamily:"'Archivo',sans-serif"}}>Extracting your Evolt360 values.</div>
+              </div>
+            )}
+            {scanState==="error"&&(
+              <div style={{padding:"8px 0"}}>
+                <div style={{fontSize:34,textAlign:"center",marginBottom:12}}>📄</div>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:18,color:"var(--cm-ink,#0A0A0A)",textAlign:"center",marginBottom:8,lineHeight:1.2}}>Couldn't read this scan</div>
+                <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.55)",textAlign:"center",marginBottom:20,fontFamily:"'Archivo',sans-serif",lineHeight:1.5}}>{scanErr}</div>
+                <button onClick={()=>scanFileRef.current&&scanFileRef.current.click()} style={{width:"100%",padding:"14px",background:"var(--cm-red,#FF3B30)",color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:"'Archivo',sans-serif",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:10}}>Try another file</button>
+                <button onClick={()=>setScanState("idle")} style={{width:"100%",padding:"10px",background:"none",border:"none",color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"'Archivo',sans-serif"}}>Cancel</button>
+              </div>
+            )}
+            {scanState==="review"&&scanData&&(
+              <div>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,letterSpacing:"0.24em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginBottom:6}}>Evolt360 scan{(()=>{const d=/^\d{4}-\d{2}-\d{2}$/.test(scanData.scan_date||"")?scanData.scan_date:null;return d?` · ${new Date(d+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}`:"";})()}</div>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:22,color:"var(--cm-ink,#0A0A0A)",marginBottom:4,lineHeight:1.1}}>Here's what we read</div>
+                <div style={{fontSize:12.5,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginBottom:16,fontFamily:"'Archivo',sans-serif",lineHeight:1.45}}>{prevScan?"Change vs. your previous values — green is an improvement. ":""}Nothing changes until you confirm.</div>
+
+                <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.05)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:16,padding:"4px 16px 12px",marginBottom:12}}>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.1em",textTransform:"uppercase",padding:"12px 0 0"}}>Will update your profile</div>
+                  <ScanRow label="Weight" val={scanW} prev={latest?.weight} unit={` ${wUnit}`} goodDir="neutral" dec={1} primary/>
+                  <ScanRow label="Body fat" val={scanData.body_fat_pct} prev={profile?.bodyFat!=null?profile.bodyFat:prevScan?.body_fat_pct} unit="%" goodDir="down" dec={1} primary/>
+                </div>
+
+                {[scanData.lean_mass_kg,scanData.skeletal_muscle_kg,scanData.visceral_fat,scanData.body_water_pct,scanData.bone_mass_kg,scanData.protein_kg,scanData.bmr_kcal,scanData.tee_kcal,scanData.metabolic_age].some(v=>v!=null)&&(
+                  <div style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.03)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)",borderRadius:16,padding:"4px 16px 12px",marginBottom:12}}>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",letterSpacing:"0.1em",textTransform:"uppercase",padding:"12px 0 0"}}>Saved to your scan history</div>
+                    <ScanRow label="Lean mass" val={scanData.lean_mass_kg} prev={prevScan?.lean_mass_kg} unit=" kg" goodDir="up"/>
+                    <ScanRow label="Skeletal muscle" val={scanData.skeletal_muscle_kg} prev={prevScan?.skeletal_muscle_kg} unit=" kg" goodDir="up"/>
+                    <ScanRow label="Visceral fat" val={scanData.visceral_fat} prev={prevScan?.visceral_fat} unit="" goodDir="down"/>
+                    <ScanRow label="Body water" val={scanData.body_water_pct} prev={prevScan?.body_water_pct} unit="%" goodDir="neutral"/>
+                    <ScanRow label="Bone mass" val={scanData.bone_mass_kg} prev={prevScan?.bone_mass_kg} unit=" kg" goodDir="neutral"/>
+                    <ScanRow label="Protein" val={scanData.protein_kg} prev={prevScan?.protein_kg} unit=" kg" goodDir="up"/>
+                    <ScanRow label="BMR" val={scanData.bmr_kcal} prev={prevScan?.bmr_kcal} unit=" kcal" goodDir="neutral" dec={0}/>
+                    <ScanRow label="TEE" val={scanData.tee_kcal} prev={prevScan?.tee_kcal} unit=" kcal" goodDir="neutral" dec={0}/>
+                    <ScanRow label="Metabolic age" val={scanData.metabolic_age} prev={prevScan?.metabolic_age} unit=" yr" goodDir="down" dec={0}/>
+                  </div>
+                )}
+
+                {scanData.tee_kcal!=null&&(
+                  <button onClick={()=>setApplyTEE(v=>!v)} style={{width:"100%",display:"flex",alignItems:"flex-start",gap:10,background:"none",border:`1.5px solid ${applyTEE?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.12)"}`,borderRadius:12,padding:"12px 14px",marginBottom:16,cursor:"pointer",textAlign:"left"}}>
+                    <div style={{width:20,height:20,borderRadius:6,border:`1.5px solid ${applyTEE?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.3)"}`,background:applyTEE?"var(--cm-red,#FF3B30)":"none",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"#fff",fontSize:13,marginTop:1}}>{applyTEE?"✓":""}</div>
+                    <div><div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.35}}>Also update my daily calories to the scan's measured TEE ({Math.round(scanData.tee_kcal)} kcal)</div><div style={{fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginTop:3,fontFamily:"'Archivo',sans-serif"}}>This changes your daily target (keeps your current deficit/surplus). Off by default.</div></div>
+                  </button>
+                )}
+
+                <button onClick={handleConfirmScan} disabled={scanSaving} style={{width:"100%",padding:"15px",background:scanSaving?"rgba(var(--cm-ink-rgb,10,10,10),0.08)":"var(--cm-red,#FF3B30)",color:scanSaving?"rgba(var(--cm-ink-rgb,10,10,10),0.3)":"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:scanSaving?"default":"pointer",fontFamily:"'Archivo',sans-serif",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:8}}>{scanSaving?"Saving…":"Confirm & update"}</button>
+                <button onClick={()=>{setScanState("idle");setScanData(null);}} disabled={scanSaving} style={{width:"100%",padding:"10px",background:"none",border:"none",color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"'Archivo',sans-serif"}}>Cancel</button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -5285,7 +5488,7 @@ function BodyweightSection({logs,user:u,setLogs,wUnit}) {
 }
 
 const ProgressSection = React.memo(function ProgressSection({
-  coachScore,progressTab,setProgressTab,profile,wPrefs,user,macros,isMobile,
+  coachScore,progressTab,setProgressTab,profile,wPrefs,user,macros,isMobile,onProfileUpdate,
   workoutLogsRaw,allActs,healthSnap,bodyweightLogs,dbPRs,schedule,
   deloadWeeksHistory,prefetchedDNA,prefetchedRecovery,prefetchedOptim,
   latestBalance,pendingMilestone,activePlateaus,programCurrentWeek,
@@ -6806,7 +7009,7 @@ const ProgressSection = React.memo(function ProgressSection({
               );
             })()}
 
-            <BodyweightSection logs={bodyweightLogs} user={user} setLogs={setBodyweightLogs} wUnit={profile?.wUnit||'lbs'}/>
+            <BodyweightSection logs={bodyweightLogs} user={user} setLogs={setBodyweightLogs} wUnit={profile?.wUnit||'lbs'} profile={profile} onProfileUpdate={onProfileUpdate}/>
             {weightProjection?(
               <div style={{background:"var(--bg)",padding:"16px 20px",borderBottom:"1px solid var(--card-border)",marginBottom:14}}>
                 <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>Weight Projection</div>
@@ -11414,6 +11617,7 @@ Rules:
           progressTab={progressTab}
           setProgressTab={setProgressTab}
           profile={profile}
+          onProfileUpdate={onProfileUpdate}
           wPrefs={wPrefs}
           user={user}
           macros={macros}
@@ -11551,8 +11755,8 @@ Rules:
           <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,background:"var(--cm-paper,#FFFFFF)",borderRadius:"22px 22px 0 0",padding:"24px 22px calc(24px + env(safe-area-inset-bottom,0px))",boxShadow:"0 -10px 44px rgba(0,0,0,.34)",fontFamily:"'Archivo',sans-serif",animation:"sheet-in 0.24s ease forwards"}}>
             <div style={{width:36,height:4,borderRadius:2,background:"rgba(var(--cm-ink-rgb,10,10,10),0.14)",margin:"0 auto 18px"}}/>
             <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:20,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.1,marginBottom:12,textTransform:"uppercase"}}>Heads up — AI features</div>
-            <div style={{fontSize:14,fontWeight:500,color:"rgba(var(--cm-ink-rgb,10,10,10),0.62)",lineHeight:1.55,marginBottom:10}}>Coach Macro uses AI (<strong style={{color:"var(--cm-ink,#0A0A0A)"}}>Anthropic's Claude</strong>) for food descriptions, photo logging, meal suggestions, and workout coaching.</div>
-            <div style={{fontSize:14,fontWeight:500,color:"rgba(var(--cm-ink-rgb,10,10,10),0.62)",lineHeight:1.55,marginBottom:10}}>When you use these, the details you're logging — a food description or photo, your goals, and your macro targets — are sent to Anthropic to generate your result. We <strong style={{color:"var(--cm-ink,#0A0A0A)"}}>never</strong> send your name or email, and Anthropic <strong style={{color:"var(--cm-ink,#0A0A0A)"}}>doesn't</strong> train its models on it.</div>
+            <div style={{fontSize:14,fontWeight:500,color:"rgba(var(--cm-ink-rgb,10,10,10),0.62)",lineHeight:1.55,marginBottom:10}}>Coach Macro uses AI (Anthropic's Claude) for food descriptions, photo logging, meal suggestions, and workout coaching.</div>
+            <div style={{fontSize:14,fontWeight:500,color:"rgba(var(--cm-ink-rgb,10,10,10),0.62)",lineHeight:1.55,marginBottom:10}}>When you use these, the details you're logging — a food description or photo, your goals, and your macro targets — are sent to Anthropic to generate your result. We <strong style={{color:"var(--cm-ink,#0A0A0A)"}}>never</strong> send your name or email, and it's not used to train any AI models.</div>
             <div style={{fontSize:12.5,fontWeight:500,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",lineHeight:1.5,marginBottom:20}}>Turn this off anytime in Settings → Display &amp; tracking.  ·  <span onClick={()=>{const u="https://www.coach-macro.com/privacy";try{window.open(u,"_system")||window.open(u,"_blank");}catch{}}} style={{color:"var(--cm-red,#FF3B30)",textDecoration:"underline",cursor:"pointer"}}>Privacy Policy</span></div>
             <button onClick={handleAIEnable} style={{width:"100%",padding:"15px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:15,letterSpacing:"0.04em",cursor:"pointer",marginBottom:10}}>Enable AI features</button>
             <button onClick={handleAINotNow} style={{width:"100%",padding:"13px",background:"none",border:"none",color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:14,cursor:"pointer"}}>Not now</button>

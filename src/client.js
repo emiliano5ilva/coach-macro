@@ -276,3 +276,74 @@ export async function aiWithToolsAndVision(base64Image, mediaType, textPrompt, t
   }
   return toolUse.input;
 }
+
+// aiExtractBodyScan — reads an Evolt360 body-composition scan (photo/screenshot OR PDF)
+// via forced tool use. Reuses /api/claude (consent/auth/subscription/limit gated). A PDF
+// goes as a `document` block (Claude reads it natively; /api/claude forwards content blocks
+// verbatim); an image goes as an `image` block. Returns the structured tool input, which
+// includes `recognized` (false when it's NOT an Evolt360 sheet) + `confidence` — the caller
+// uses those to show the graceful "couldn't read this as an Evolt360 scan" fallback.
+const EVOLT_SCAN_TOOL = {
+  name: "evolt_scan",
+  description: "Extract body-composition metrics from an Evolt360 body-composition scan sheet.",
+  input_schema: {
+    type: "object",
+    properties: {
+      recognized:         { type: "boolean", description: "true ONLY if this is clearly an Evolt360 body-composition scan (a labeled Evolt360 results sheet). false for any other document, a different scanner brand, or an unreadable image." },
+      confidence:         { type: "string", enum: ["high", "medium", "low"], description: "Internal reliability rating — not shown to the user." },
+      scan_date:          { type: "string", description: "The test/scan date printed on the sheet, formatted YYYY-MM-DD. Omit if not clearly shown." },
+      weight_kg:          { type: "number", description: "Body weight in KILOGRAMS (convert if the sheet shows lb)." },
+      body_fat_pct:       { type: "number", description: "Body fat percentage (number only)." },
+      lean_mass_kg:       { type: "number", description: "Lean Body Mass / Fat-Free Mass, in kg." },
+      skeletal_muscle_kg: { type: "number", description: "Skeletal Muscle Mass, in kg." },
+      visceral_fat:       { type: "number", description: "Visceral fat rating/level (unitless number)." },
+      body_water_pct:     { type: "number", description: "Total Body Water percentage." },
+      bone_mass_kg:       { type: "number", description: "Bone mineral content / bone mass, in kg." },
+      protein_kg:         { type: "number", description: "Protein mass, in kg." },
+      bmr_kcal:           { type: "number", description: "Basal Metabolic Rate, kcal/day." },
+      tee_kcal:           { type: "number", description: "Total Energy Expenditure / Active Metabolic Rate, kcal/day." },
+      metabolic_age:      { type: "number", description: "Metabolic age in years." },
+      notes:              { type: "string", description: "Anything ambiguous or unreadable." },
+    },
+    required: ["recognized", "confidence"],
+  },
+};
+
+export async function aiExtractBodyScan(base64, mediaType, max = 1500) {
+  if (!(await ensureAIConsent())) throw new AIConsentDeclined();
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session?.access_token) throw new Error("Not authenticated");
+  const isPdf = mediaType === "application/pdf";
+  const mediaBlock = isPdf
+    ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } }
+    : { type: "image",    source: { type: "base64", media_type: mediaType, data: base64 } };
+  const prompt = "This is a user-uploaded Evolt360 body-composition scan — a photo/screenshot or a PDF of the results sheet. Extract the labeled values into the evolt_scan tool. Report all weights in KILOGRAMS (convert from lb if the sheet is imperial). Include the test/scan date printed on the sheet (scan_date, YYYY-MM-DD) if shown. Only fill fields you can actually read; omit anything not clearly present. If this is NOT an Evolt360 body-composition scan sheet, or it's unreadable, set recognized=false and leave the metrics empty.";
+  const body = JSON.stringify({
+    model: "claude-sonnet-4-6",
+    max_tokens: max,
+    feature: "body_scan",
+    tools: [EVOLT_SCAN_TOOL],
+    tool_choice: { type: "tool", name: "evolt_scan" },
+    messages: [{ role: "user", content: [mediaBlock, { type: "text", text: prompt }] }],
+  });
+  const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` };
+  console.log("[bodyscan] send: isPdf=", isPdf, "mediaType=", mediaType, "b64len=", base64?.length ?? 0);
+  const response = await fetch(`${API_BASE}/api/claude`, { method: "POST", headers, body });
+  const text = await response.text();
+  console.log("[bodyscan] /api/claude status=", response.status, "len=", text.length);
+  let d; try { d = JSON.parse(text); } catch { throw new Error(`Bad response (status ${response.status}): ${text.slice(0, 140)}`); }
+  if (response.status === 402) { window.dispatchEvent(new CustomEvent("cm:subscription-required", { detail: d })); throw new Error(d.message || "Subscription required"); }
+  if (response.status === 429) { window.dispatchEvent(new CustomEvent("cm:daily-limit-reached", { detail: d })); throw Object.assign(new Error(d.message || "Daily AI limit reached"), { reason: d.reason, limitDetail: d }); }
+  if (!response.ok || d.type === "error") {
+    // A PDF the proxy/model can't accept surfaces here → the status + message reveal it.
+    console.error("[bodyscan] API error:", response.status, d);
+    throw new Error(`API ${response.status}: ${String(d.error?.message || d.error || "error").slice(0, 160)}`);
+  }
+  const toolUse = d.content?.find(b => b.type === "tool_use" && b.name === "evolt_scan");
+  if (!toolUse?.input) {
+    console.error("[bodyscan] no tool_use block. stop_reason=", d.stop_reason, "blocks=", d.content?.map(b => b.type));
+    throw new Error(`No structured output (stop=${d.stop_reason || "?"})`);
+  }
+  console.log("[bodyscan] extracted:", JSON.stringify(toolUse.input));
+  return toolUse.input;
+}

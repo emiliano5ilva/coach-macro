@@ -18,7 +18,7 @@ const supabaseAdmin = createClient(
 // user_id also protects shared/curated rows — e.g. `recipes` presets have
 // user_id IS NULL, so an eq('user_id', uid) match never touches the 299 curated recipes.
 const USER_ID_TABLES = [
-  'ai_usage', 'analytics_events', 'bio_data_points', 'bio_insights', 'bodyweight_logs',
+  'ai_usage', 'analytics_events', 'bio_data_points', 'bio_insights', 'body_scans', 'bodyweight_logs',
   'coach_memories', 'cohort_assignments', 'connected_apps', 'connection_insights',
   'connections_data', 'custom_foods', 'custom_routines', 'deload_weeks', 'error_logs',
   'feature_unlocks', 'food_history', 'food_logs', 'injury_logs', 'injury_risks',
