@@ -16,7 +16,7 @@ import { getErrorMessage } from "./utils/errors.js";
 import { ErrorMessage } from "./utils/errors.jsx";
 import { sb } from "./supabase.js";
 import { track, EVENTS, setAnalyticsEnabled } from "./services/analytics.js";
-import { initDeepLinks, isRecoveryInProgress, clearRecovery, getFpTrail, clearFpTrail } from "./services/deepLinks.js";
+import { initDeepLinks, isRecoveryInProgress, clearRecovery } from "./services/deepLinks.js";
 import { initPushNotifications, scheduleTrialExpiryNotification } from "./services/notifications.js";
 import { FuelOnboarding, TrainOnboarding } from "./onboarding.jsx";
 import { PromoScreen, Paywall, UpgradeScreen, ExpiredPaywall } from "./sections.jsx";
@@ -139,6 +139,14 @@ function AuthScreen({onAuth, startView="welcome", initialError=""}) {
   const inputStyle={width:"100%",background:"rgba(245,245,240,0.04)",border:"1.5px solid var(--white-border)",borderRadius:12,padding:"14px 16px",color:"#f5f5f0",fontSize:15,outline:"none",fontFamily:"var(--body)",boxSizing:"border-box"};
   const labelStyle={display:"block",fontSize:10,color:"var(--white-dim)",fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:7,fontFamily:"var(--mono)"};
   const outer={minHeight:"100vh",background:"#000000",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",position:"relative",overflow:"hidden"};
+  // Shared premium auth treatment — matches the sign-in view (big italic condensed title,
+  // readable subtitle, full-weight red CTA) so the forgot/reset screens belong to the same app.
+  const authTitle={fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,lineHeight:.88,letterSpacing:"-0.01em",marginBottom:14,color:"#f5f5f0",textTransform:"uppercase"};
+  const authSub={fontSize:15,color:"rgba(245,245,240,0.62)",lineHeight:1.6,marginBottom:30,fontFamily:"var(--body)",maxWidth:360};
+  const ctaBtn={width:"100%",padding:"17px",background:"var(--red)",color:"#fff",fontWeight:800,fontSize:15,letterSpacing:"0.1em",border:"none",borderRadius:14,cursor:"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)"};
+  const ctaBtnLoading={...ctaBtn,background:"rgba(245,245,240,0.1)",color:"var(--white-dim)",cursor:"default"};
+  const backBtn={background:"none",border:"none",color:"rgba(245,245,240,0.55)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:36,display:"flex",alignItems:"center",gap:6,padding:0};
+  const authBadge={width:56,height:56,borderRadius:16,background:"rgba(255,59,48,0.12)",border:"1px solid rgba(255,59,48,0.28)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:24,boxShadow:"0 0 30px -8px rgba(255,59,48,0.5)"};
   const invitePending=(()=>{try{return JSON.parse(localStorage.getItem("coachMacroInvite")||"null");}catch{return null;}})();
 
   const field=(label,val,setVal,type="text",ph="")=>(
@@ -248,13 +256,20 @@ function AuthScreen({onAuth, startView="welcome", initialError=""}) {
   if(view==="forgot-sent") return(
     <div style={outer}>
       <style>{GLOBAL_CSS}</style>
-      <div style={{width:"100%",maxWidth:420,textAlign:"center"}}>
-        <div style={{fontSize:52,marginBottom:16}}>📬</div>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:40,lineHeight:.9,marginBottom:16,textTransform:"uppercase"}}>Check Your<br/><span style={{color:"var(--red)"}}>Email.</span></div>
-        <p style={{fontSize:14,color:"var(--white-dim)",marginBottom:28,lineHeight:1.65}}>
-          We sent a reset link to <strong style={{color:"#fff"}}>{email}</strong>. Open the link on your phone to set a new password.
-        </p>
-        <button onClick={()=>setView("signin")} style={{width:"100%",padding:"14px",background:"var(--red)",color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.08em",textTransform:"uppercase"}}>Back to Sign In</button>
+      <div style={{width:"100%",maxWidth:420}}>
+        <button onClick={()=>setView("signin")} style={backBtn}>
+          <svg width={14} height={14} viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+          Back
+        </button>
+        <div style={authBadge}>
+          <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>
+        </div>
+        <div style={authTitle}>Check Your<br/><span style={{color:"var(--red)"}}>Email.</span></div>
+        <p style={authSub}>We sent a reset link to <strong style={{color:"#f5f5f0",fontWeight:600}}>{email}</strong>. Open it on this phone to set a new password.</p>
+        <div style={{background:"rgba(245,245,240,0.04)",border:"1px solid rgba(245,245,240,0.10)",borderRadius:14,padding:"14px 16px",marginBottom:26,fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,fontFamily:"var(--body)"}}>
+          Didn't get it? Check your spam folder — or head back and try again.
+        </div>
+        <button onClick={()=>setView("signin")} style={ctaBtn}>Back to Sign In</button>
       </div>
     </div>
   );
@@ -263,10 +278,14 @@ function AuthScreen({onAuth, startView="welcome", initialError=""}) {
     <div style={outer}>
       <style>{GLOBAL_CSS}</style>
       <div style={{width:"100%",maxWidth:420}}>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:40,lineHeight:.9,marginBottom:24,textTransform:"uppercase"}}>New<br/><span style={{color:"var(--red)"}}>Password.</span></div>
-        {field("New Password",newPassword,setNewPassword,"password","Min 6 characters")}
-        {error&&<ErrorMessage error={error} style={{marginBottom:16}}/>}
-        <button onClick={handleResetPassword} disabled={loading} style={{width:"100%",padding:"16px",background:loading?"rgba(245,245,240,0.1)":"var(--red)",color:loading?"var(--white-dim)":"#fff",fontWeight:800,fontSize:15,letterSpacing:"0.1em",border:"none",borderRadius:14,cursor:loading?"default":"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)"}}>
+        <div style={authBadge}>
+          <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        </div>
+        <div style={authTitle}>New<br/><span style={{color:"var(--red)"}}>Password.</span></div>
+        <p style={authSub}>Almost there — choose a new password and you're back in.</p>
+        {field("New Password",newPassword,setNewPassword,"password","At least 6 characters")}
+        {error&&<ErrorMessage error={error} style={{marginTop:2,marginBottom:16}}/>}
+        <button onClick={handleResetPassword} disabled={loading} style={loading?ctaBtnLoading:ctaBtn}>
           {loading?"Saving...":"Set New Password →"}
         </button>
       </div>
@@ -277,16 +296,19 @@ function AuthScreen({onAuth, startView="welcome", initialError=""}) {
     <div style={outer}>
       <style>{GLOBAL_CSS}</style>
       <div style={{width:"100%",maxWidth:420}}>
-        <button onClick={()=>setView("signin")} style={{background:"none",border:"none",color:"var(--white-dim)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:32,display:"flex",alignItems:"center",gap:6,padding:0}}>
+        <button onClick={()=>setView("signin")} style={backBtn}>
           <svg width={14} height={14} viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
           Back
         </button>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:40,lineHeight:.9,marginBottom:8,textTransform:"uppercase"}}>Reset<br/><span style={{color:"var(--red)"}}>Password.</span></div>
-        <p style={{fontSize:13,color:"var(--white-dim)",marginBottom:24,lineHeight:1.6}}>Enter your email and we'll send a reset link.</p>
+        <div style={authBadge}>
+          <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+        </div>
+        <div style={authTitle}>Reset<br/><span style={{color:"var(--red)"}}>Password.</span></div>
+        <p style={authSub}>Enter your email and we'll send a secure link to set a new one.</p>
         {field("Email",email,setEmail,"email","you@email.com")}
-        {error&&<ErrorMessage error={error} style={{marginBottom:16}}/>}
-        <button onClick={handleForgot} disabled={loading} style={{width:"100%",padding:"16px",background:loading?"rgba(245,245,240,0.1)":"var(--red)",color:loading?"var(--white-dim)":"#fff",fontWeight:800,fontSize:15,letterSpacing:"0.1em",border:"none",borderRadius:14,cursor:loading?"default":"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)"}}>
-          {loading?"Sending...":"Send Reset Email →"}
+        {error&&<ErrorMessage error={error} style={{marginTop:2,marginBottom:16}}/>}
+        <button onClick={handleForgot} disabled={loading} style={loading?ctaBtnLoading:ctaBtn}>
+          {loading?"Sending...":"Send Reset Link →"}
         </button>
       </div>
     </div>
@@ -834,21 +856,6 @@ export default function NativeApp() {
     };
   },[]);
 
-  // ── DEV-ONLY forgot-password deep-link debug overlay ──────────────────────────
-  // WKWebView JS console is hard to capture on-device, so surface the redacted reset-flow
-  // trail visibly. Compile-time gated on MODE → terser-strips the whole block from prod.
-  useEffect(()=>{
-    if(import.meta.env.MODE==="production")return;
-    const box=document.createElement("div");
-    box.style.cssText="position:fixed;left:6px;right:6px;bottom:6px;z-index:99999;max-height:46vh;overflow:auto;background:rgba(0,0,0,0.9);color:#39FF6A;font:10px/1.4 ui-monospace,Menlo,monospace;padding:9px 11px;border:1px solid #2a2;border-radius:8px;white-space:pre-wrap;-webkit-user-select:text;";
-    const render=()=>{const t=getFpTrail();box.textContent="── FP DEEP-LINK DEBUG (dev) · tap to clear ──\n"+(t.length?t.join("\n"):"(no deep-link events yet — tap the reset email link)");};
-    box.addEventListener("click",()=>clearFpTrail());
-    const onLog=()=>render();
-    window.addEventListener("cm:fp-log",onLog);
-    render();document.body.appendChild(box);
-    return()=>{window.removeEventListener("cm:fp-log",onLog);try{box.remove();}catch{}};
-  },[]);
-
   useEffect(()=>{
     if(!profile)return;
     const lrd=wPrefs.longRunDay||null;
@@ -892,8 +899,11 @@ export default function NativeApp() {
     </div>
   );
 
-  if(phase==="reset-password")return<AuthScreen onAuth={handleAuth} startView="reset" initialError={resetErr}/>;
-  if(phase==="welcome-screen")return<AuthScreen onAuth={handleAuth} startView="welcome"/>;
+  // Distinct keys: without them React reuses one AuthScreen instance across the phase
+  // change, so its internal `view` stays on whatever the user last opened (e.g. "forgot-sent")
+  // and startView="reset" is ignored. Keying by phase forces a fresh mount into the reset view.
+  if(phase==="reset-password")return<AuthScreen key="auth-reset" onAuth={handleAuth} startView="reset" initialError={resetErr}/>;
+  if(phase==="welcome-screen")return<AuthScreen key="auth-welcome" onAuth={handleAuth} startView="welcome"/>;
 
   if(phase==="loading")return(
     <div style={{minHeight:"100vh",background:"#000000",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
