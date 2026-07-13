@@ -58,8 +58,22 @@ export default withLogging(async function handler(req, res) {
       supabaseAdmin.from('support_tickets').delete().eq('email', email),
       supabaseAdmin.from('waitlist').delete().eq('email', email),
     ] : []),
+    // Storage: the user's food photos live under `${uid}/…` in the food-photos bucket
+    // (PhotoFoodLogger uploads to `${userId}/${ts}.jpg`). Delete them so no personal data
+    // survives in Storage. Paginated so a heavy user's full history is cleared; empty is a
+    // no-op; throws on a real error so the best-effort logger below flags the orphan risk.
+    (async () => {
+      for (;;) {
+        const { data: files, error: listErr } = await supabaseAdmin.storage.from('food-photos').list(uid, { limit: 1000 });
+        if (listErr) throw listErr;
+        if (!files?.length) break;
+        const { error: rmErr } = await supabaseAdmin.storage.from('food-photos').remove(files.map(f => `${uid}/${f.name}`));
+        if (rmErr) throw rmErr;
+        if (files.length < 1000) break;
+      }
+    })(),
   ];
-  const labels = [...USER_ID_TABLES, 'referrals', 'rate_limits', ...(email ? ['support_tickets', 'waitlist'] : [])];
+  const labels = [...USER_ID_TABLES, 'referrals', 'rate_limits', ...(email ? ['support_tickets', 'waitlist'] : []), 'storage:food-photos'];
   const results = await Promise.allSettled(ops);
   // Surface any cleanup failures server-side (orphan risk) without blocking deletion.
   results.forEach((r, i) => {

@@ -29,7 +29,7 @@ export const ERROR_MESSAGES = {
   // Network
   network_error: {
     title: 'No connection',
-    message: 'Check your internet connection. Your workout and food logs still work offline.',
+    message: 'Check your internet connection. Anything you log will save and sync when you reconnect.',
     action: 'Retry',
   },
   timeout: {
