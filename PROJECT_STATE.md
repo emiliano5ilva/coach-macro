@@ -312,6 +312,12 @@ _Consolidated 2026-07-06. THIS is the single source of truth for "what must be r
    wearer, cleanest via delete/reinstall so HRV is in the initial grant. [detail ~"HRV full device verification" bullet below]
 8. **Analytics breadcrumbs keep-vs-gate** — `ah_*` / `tier` / `bmr` / `plan_confirm_*` breadcrumbs kept through dev for cheap
    observability; **gate or strip before App Store**. [detail ~"Breadcrumb keep-vs-gate" bullet below]
+9. **Private food-photos bucket (privacy hardening)** — the `food-photos` Storage bucket is currently **public**, so users'
+   food photos are reachable by anyone with the URL (structure is `${uid}/${ts}.jpg` → guessable/enumerable). Switch to
+   **private + signed URLs**: upload stores the object *path* instead of `getPublicUrl` (`PhotoFoodLogger.jsx:31,37,799`),
+   the thumbnail display generates a signed URL on-demand from the path (`fuel.jsx:2641`), then flip the bucket to private.
+   Dedicated focused pass + device-test photo-log AND display. _(Logged this session, 2026-07-12. Deletion is already
+   handled — `delete-account.js` clears `food-photos/${uid}/` best-effort; that gap is closed.)_
 
 ---
 
