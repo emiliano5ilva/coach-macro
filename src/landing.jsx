@@ -1472,14 +1472,15 @@ function PricingSection({ onStart }) {
   const rivals = [
     { name:'RP Strength', cat:'Training only',  price:'$34.99', covers:['Training'] },
     { name:'STNDRD',      cat:'Training + nutrition', price:'~$15', covers:['Training','Nutrition'] },
-    { name:'Runna',       cat:'Running only',   price:'~$18',   covers:['Running'] },
+    { name:'Runna',       cat:'Running + strength', price:'~$18', covers:['Training','Running','Recovery'] },
     { name:'MacroFactor', cat:'Nutrition only', price:'$11.99', covers:['Nutrition'] },
+    { name:'Eat This Much', cat:'Nutrition only', price:'$14.99', covers:['Nutrition'] },
   ];
   return (
     <section className="lp-pricing" id="pricing">
       <div className="lp-pricing-inner">
         <div className="lp-section-eyebrow">Pricing</div>
-        <h2 className="lp-section-title fade-up">Everything.<br/>For less than <span className="accent">any one app.</span></h2>
+        <h2 className="lp-section-title fade-up">Everything.<br/>For less than <span className="accent">the average.</span></h2>
         <p className="lp-lede fade-up">No tiers, no upsells, no paying five apps to do what one should. Free for 7&nbsp;days.</p>
 
         {/* Consolidated comparison — competitor price ladder WITH coverage checks, one table. */}
@@ -1527,8 +1528,8 @@ function PricingSection({ onStart }) {
 
         {/* Payoff line — moved to BELOW the comparison table. */}
         <div className="lp-vs fade-up" style={{ margin: '0 auto 42px' }}>
-          <div className="lp-vs-head">One app. Less than any single piece costs on its own.</div>
-          <div className="lp-vs-sub">Every one of those apps does a slice of it. Coach Macro does all of it — for less than the cheapest single-purpose one.</div>
+          <div className="lp-vs-head">Those five average $18.99 a month, each doing one thing.</div>
+          <div className="lp-vs-sub">We're 32% under that — doing all of it.</div>
         </div>
 
         <div className="lp-price-grid">
