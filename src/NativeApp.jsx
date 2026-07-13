@@ -265,9 +265,10 @@ function AuthScreen({onAuth, startView="welcome", initialError=""}) {
           <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>
         </div>
         <div style={authTitle}>Check Your<br/><span style={{color:"var(--red)"}}>Email.</span></div>
-        <p style={authSub}>We sent a reset link to <strong style={{color:"#f5f5f0",fontWeight:600}}>{email}</strong>. Open it on this phone to set a new password.</p>
-        <div style={{background:"rgba(245,245,240,0.04)",border:"1px solid rgba(245,245,240,0.10)",borderRadius:14,padding:"14px 16px",marginBottom:26,fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,fontFamily:"var(--body)"}}>
-          Didn't get it? Check your spam folder — or head back and try again.
+        <p style={authSub}>If an account exists for <strong style={{color:"#f5f5f0",fontWeight:600}}>{email}</strong>, we've sent a reset link. Open it on this phone to set a new password.</p>
+        <div style={{background:"rgba(245,245,240,0.04)",border:"1px solid rgba(245,245,240,0.10)",borderRadius:14,padding:"14px 16px",marginBottom:26,fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.55,fontFamily:"var(--body)"}}>
+          Didn't get an email? Double-check you entered the right address — or{" "}
+          <span onClick={()=>{setView("signup");setError("");}} style={{color:"var(--red)",fontWeight:600,cursor:"pointer",textDecoration:"underline"}}>create an account</span>{" "}if you're new.
         </div>
         <button onClick={()=>setView("signin")} style={ctaBtn}>Back to Sign In</button>
       </div>
