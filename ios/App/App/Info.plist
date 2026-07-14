@@ -60,6 +60,8 @@
 	<string>Coach Macro saves your completed workouts and active calorie burns to Apple Health to keep your activity records in sync.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Coach Macro uses your location to track distance, pace, and route during your runs.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Coach Macro uses your location to track distance, pace, and route during your runs.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
