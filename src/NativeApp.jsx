@@ -239,7 +239,7 @@ function AuthScreen({onAuth, startView="welcome", initialError=""}) {
         <p style={{fontSize:13,color:"var(--white-dim)",marginBottom:28,lineHeight:1.55}}>
           Tap the link in the email to activate your account, then come back to sign in.
         </p>
-        {error&&<div style={{background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.3)",borderRadius:10,padding:"10px 14px",fontSize:13,color:"#f87171",marginBottom:16}}>{error}</div>}
+        {error&&<div style={{background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.3)",borderRadius:10,padding:"10px 14px",fontSize:13,color:"#f87171",marginBottom:16}}>{typeof error==="string"?error:(error?.message||error?.title||"Something went wrong.")}</div>}
         <button onClick={()=>setView("signin")} style={{width:"100%",padding:"15px",background:"var(--red)",color:"#fff",fontWeight:700,fontSize:15,border:"none",borderRadius:13,cursor:"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:12}}>
           Go to Sign In →
         </button>

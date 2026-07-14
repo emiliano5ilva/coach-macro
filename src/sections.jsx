@@ -123,7 +123,7 @@ import { thermalAt, THERMAL_NODATA } from "./data/thermalPalette.js";
 import { getPrescription, getRestTime, getGoalLabel, getGoalContext } from "./data/prescription.js";
 import { calculateTrainingDNA } from "./services/trainingDnaService.js";
 import { getAdaptLimit, trialDaysRemaining, trialExpiringSoon, isExpired, getSubscriptionLabel } from "./utils/subscription.js";
-import { purchaseMonthly, purchaseAnnual, restorePurchases, devUnlockEntitlement } from "./services/purchaseService.js";
+import { purchaseMonthly, purchaseAnnual, restorePurchases, devUnlockEntitlement, withTimeout } from "./services/purchaseService.js";
 import { getTodaySoreness } from "./services/sorenessService.js";
 import { getProgramImage } from "./data/programImages.js";
 import { triggerEventUnlock } from "./services/featureUnlockService.js";
@@ -6694,26 +6694,62 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
     setDelError("");
     setDelStep(4);        // "Deleting…"
     setDeleting(true);
+    // Step logger — every await in this flow prints "[delete] <step> (+Nms)" so a
+    // stuck build shows EXACTLY which line never completed (grep console for [delete]).
+    const _t0 = Date.now();
+    const step = (s) => { try { console.log(`[delete] ${s} (+${Date.now()-_t0}ms)`); } catch {} };
     try {
-      const { data:{ session } } = await sb.auth.getSession();
+      // getSession can hang on the supabase-js auth lock in WKWebView (a hang is
+      // NOT a rejection → it would spin "Deleting…" forever). Bound it so a stall
+      // surfaces as an error the catch below can show.
+      step('getSession start');
+      const { data:{ session } } = await withTimeout(sb.auth.getSession(), 6000, 'getSession');
+      step('getSession done, fetch start');
       // Absolute URL — a relative /api path hits the local capacitor origin in the
       // native app and never reaches the server. Base matches the other API calls.
       const base=import.meta.env.VITE_API_BASE_URL||import.meta.env.VITE_API_BASE||"";
-      const res = await fetch(`${base}/api/delete-account`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session?.access_token}`,
-        },
-      });
+      // AbortController so a stalled network request fails cleanly instead of hanging.
+      const ctrl = new AbortController();
+      const abortT = setTimeout(() => ctrl.abort(), 15000);
+      let res;
+      try {
+        res = await fetch(`${base}/api/delete-account`, {
+          method: "POST",
+          signal: ctrl.signal,
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session?.access_token}`,
+          },
+        });
+      } finally { clearTimeout(abortT); }
+      step(`fetch response received: status ${res.status}`);
       if (!res.ok) throw new Error("Delete failed");
-      // Log out of RevenueCat so the SDK doesn't retain/recreate the app user.
-      try{ const { Purchases } = await import('@revenuecat/purchases-capacitor'); await Purchases.logOut(); }catch{}
-      // Success → sign out → App unmounts back to the welcome/auth screen.
-      await sb.auth.signOut();
+      // ── Account is now DELETED server-side. Everything below is best-effort
+      //    cleanup that must NEVER block the user from leaving. Each await is
+      //    timeout-guarded: the supabase-js signOut PROMISE can hang on the
+      //    WKWebView auth-lock even AFTER its /logout network call returns (the
+      //    real cause of the "Deleting…" freeze), and RevenueCat's native bridge
+      //    can stall too. We hard-reload to the welcome screen no matter what. ──
+      step('server delete OK, RevenueCat logout start');
+      try {
+        const { Purchases } = await import('@revenuecat/purchases-capacitor');
+        await withTimeout(Purchases.logOut(), 4000, 'rcLogout');
+        step('RevenueCat logout done');
+      } catch(e){ step(`RevenueCat logout skipped: ${e?.message||e}`); }
+      // scope:'local' clears the session WITHOUT the pointless /logout round-trip
+      // (the user no longer exists → it 403s); still timeout-guarded for the lock.
+      step('signOut(local) start');
+      try {
+        await withTimeout(sb.auth.signOut({ scope: 'local' }), 4000, 'signOut');
+        step('signOut done');
+      } catch(e){ step(`signOut skipped: ${e?.message||e}`); }
+      // Guaranteed escape: a fresh boot finds no valid session → welcome/auth screen.
+      step('reloading to welcome screen');
+      window.location.reload();
     } catch(e) {
-      // No silent partial delete — surface a real error so the user can retry
-      // (leaving a half-deleted account is worse than a clear failure).
+      // Reached only if the delete did NOT complete (getSession/fetch failed or
+      // non-OK) → account still exists, so surface a real error for retry.
+      step(`FAILED before delete completed: ${e?.message||e}`);
       setDeleting(false);
       setDelError("Couldn't delete your account. Check your connection and try again.");
       setDelStep(3);       // back to the type-DELETE step
@@ -7212,11 +7248,16 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
               )}
               <MeRow label="Restore Purchases" isLast onPress={async()=>{
                 showToast("Checking purchases...","info");
-                const{data:{user:u}}=await sb.auth.getUser().catch(()=>({data:{user:null}}));
-                if(!u)return;
-                const tier=await restorePurchases(u.id);
-                if(tier)showToast(`Restored: ${tier==="monthly"?"Pro Monthly":"Pro Annual"} active.`,"success");
-                else showToast("No active purchases found.","info");
+                try{
+                  const{data:{user:u}}=await withTimeout(sb.auth.getUser(),6000,'getUser').catch(()=>({data:{user:null}}));
+                  if(!u){showToast("Couldn't restore purchases. Try again.","error");return;}
+                  const tier=await restorePurchases(u.id);
+                  if(tier)showToast(`Restored: ${tier==="monthly"?"Pro Monthly":"Pro Annual"} active.`,"success");
+                  else showToast("No active purchases found.","info");
+                }catch(e){
+                  console.warn("[restore] failed:",e?.message,e);
+                  showToast("Couldn't restore purchases. Try again.","error");
+                }
               }} value=""/>
             </div>
             {/* Peer Comparison */}
@@ -7291,7 +7332,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 if(purchaseLoading)return;
                 setPurchaseLoading(plan.id);
                 try{
-                  const{data:{user:u}}=await sb.auth.getUser().catch(()=>({data:{user:null}}));
+                  const{data:{user:u}}=await withTimeout(sb.auth.getUser(),6000,'getUser').catch(()=>({data:{user:null}}));
                   if(!u){showToast("Please sign in to continue.","error");return;}
                   // ── DEV-TEST BYPASS (build:sim → MODE!=="production") — visible simulated unlock.
                   //    MODE-gated → terser-stripped from production `vite build` (never ships). ──

@@ -4,8 +4,11 @@ export { ERROR_MESSAGES, getErrorMessage, getAIErrorMessage } from "./errors.js"
 export function ErrorMessage({ error, onAction, style }) {
   if (!error) return null;
 
+  // A string that IS a known key expands to its rich message; any other string
+  // (e.g. a plain client-side validation sentence like "Password must be at least
+  // 8 characters.") is shown verbatim — NOT collapsed into the generic `unknown`.
   const msg = typeof error === 'string'
-    ? (ERROR_MESSAGES[error] || ERROR_MESSAGES.unknown)
+    ? (ERROR_MESSAGES[error] || { title: null, message: error })
     : getErrorMessage(error);
 
   return (
@@ -19,9 +22,11 @@ export function ErrorMessage({ error, onAction, style }) {
       gap: 6,
       ...style,
     }}>
-      <div style={{ color: '#fff', fontWeight: 700, fontSize: 14, fontFamily: 'inherit' }}>
-        {msg.title}
-      </div>
+      {msg.title && (
+        <div style={{ color: '#fff', fontWeight: 700, fontSize: 14, fontFamily: 'inherit' }}>
+          {msg.title}
+        </div>
+      )}
       <div style={{ color: 'rgba(245,245,240,0.65)', fontSize: 13, lineHeight: 1.55, fontFamily: 'inherit' }}>
         {msg.message}
       </div>

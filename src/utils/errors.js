@@ -112,6 +112,13 @@ export const ERROR_MESSAGES = {
 };
 
 export const getErrorMessage = (error) => {
+  // Idempotent: if we were handed an ALREADY-mapped message object (a plain object
+  // with a title, not a raw Error), return it unchanged. Callers sometimes do
+  // setError(getErrorMessage(e)) and ErrorMessage re-runs getErrorMessage on it —
+  // without this guard the mapped object's generic .message re-maps to `unknown`
+  // (this is what turned every weak-password error into "Something went wrong").
+  if (error && typeof error === 'object' && !(error instanceof Error) && error.title) return error;
+
   const msg  = (error?.message || '').toLowerCase();
   const code = (error?.code    || '').toLowerCase();
   const combined = msg + ' ' + code;
@@ -119,7 +126,21 @@ export const getErrorMessage = (error) => {
   if (combined.includes('invalid_credentials') || combined.includes('invalid login') || combined.includes('invalid email or password')) return ERROR_MESSAGES.invalid_credentials;
   if (combined.includes('email_not_confirmed') || combined.includes('email not confirmed')) return ERROR_MESSAGES.email_not_confirmed;
   if (combined.includes('user_already_exists') || combined.includes('already registered') || combined.includes('already exists')) return ERROR_MESSAGES.user_already_exists;
-  if (combined.includes('weak_password') || combined.includes('password should be')) return ERROR_MESSAGES.weak_password;
+  // Weak/short/leaked password — Supabase phrases this several ways: code
+  // 'weak_password'; "Password should be at least N characters"; "Password should
+  // contain…"; and the leaked-password (HaveIBeenPwned) check → "Password is known
+  // to be weak and easy to guess, please choose a different one." Match them ALL and
+  // surface Supabase's SPECIFIC reason so the user sees the real rule.
+  if (code === 'weak_password'
+      || combined.includes('weak_password')
+      || combined.includes('password should')
+      || combined.includes('known to be weak')
+      || combined.includes('weak and easy')
+      || combined.includes('password is too weak')
+      || (combined.includes('password') && combined.includes('at least'))) {
+    const serverMsg = /password/i.test(error?.message || '') ? error.message : null;
+    return { ...ERROR_MESSAGES.weak_password, message: serverMsg || ERROR_MESSAGES.weak_password.message };
+  }
   if (combined.includes('session_expired') || combined.includes('session has expired') || combined.includes('jwt expired')) return ERROR_MESSAGES.session_expired;
   if (combined.includes('subscription required') || combined.includes('trial has ended') || combined.includes('upgrade to pro')) return ERROR_MESSAGES.ai_subscription_required;
   if (combined.includes('monthly') && combined.includes('limit')) return ERROR_MESSAGES.ai_monthly_limit;
