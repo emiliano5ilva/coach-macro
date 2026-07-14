@@ -6696,8 +6696,13 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
     setDeleting(true);
     // Step logger — every await in this flow prints "[delete] <step> (+Nms)" so a
     // stuck build shows EXACTLY which line never completed (grep console for [delete]).
+    // MODE-gated like the other dev-only diagnostics: `vite build` (production) folds
+    // the condition to false so terser strips the console.log; `build:sim`
+    // (--mode development) keeps it for future debugging.
     const _t0 = Date.now();
-    const step = (s) => { try { console.log(`[delete] ${s} (+${Date.now()-_t0}ms)`); } catch {} };
+    const step = import.meta.env.MODE!=="production"
+      ? (s) => { try { console.log(`[delete] ${s} (+${Date.now()-_t0}ms)`); } catch {} }
+      : () => {};
     try {
       // getSession can hang on the supabase-js auth lock in WKWebView (a hang is
       // NOT a rejection → it would spin "Deleting…" forever). Bound it so a stall
