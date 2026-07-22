@@ -9326,11 +9326,9 @@ Rules:
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [centerHintSeen, setCenterHintSeen] = useState(()=>{ try { return localStorage.getItem('cm_center_hint')==='1'; } catch { return true; } });
 
-  // ── TAB BAR FADE/SLIDE — opacity+transform only, GPU-composited, no layout changes ──
-  // Hide when scrolled past 60px, show when back under 20px (hysteresis prevents flicker).
-  const [tabBarHidden, setTabBarHidden] = useState(false);
-  const _tbhRef = useRef(false);
-
+  // ── TAB BAR SCALE SHRINK — transform only, direct DOM write, zero React during scroll ──
+  // Bar DOM box is FIXED SIZE always. scale(0.82) fakes the shrink; transform-origin:center bottom
+  // anchors to the bottom edge. Direct element.style.transform — no state, no re-renders.
   useLayoutEffect(() => {
     if (!_use5tab) return;
     const measure = () => {
@@ -9356,16 +9354,15 @@ Rules:
       if (raf) return;
       raf = requestAnimationFrame(() => {
         raf = null;
+        const bar = tabBarRef.current;
+        if (!bar) return;
         const scrollY = section === 'today'
           ? (window.scrollY ?? 0)
           : (appScreenRef.current?.scrollTop ?? 0);
-        if (scrollY > 60 && !_tbhRef.current) {
-          _tbhRef.current = true;
-          setTabBarHidden(true);
-        } else if (scrollY < 20 && _tbhRef.current) {
-          _tbhRef.current = false;
-          setTabBarHidden(false);
-        }
+        // Direct DOM write — no setState, no re-render, just one GPU property.
+        bar.style.transform = scrollY > 40
+          ? 'scale(0.82) translateY(6px)'
+          : 'scale(1) translateY(0px)';
       });
     }
     const target = section === 'today' ? window : appScreenRef.current;
@@ -9373,9 +9370,7 @@ Rules:
     return () => {
       if (target) target.removeEventListener('scroll', onScroll);
       if (raf) { cancelAnimationFrame(raf); raf = null; }
-      // Always show bar when switching tabs.
-      _tbhRef.current = false;
-      setTabBarHidden(false);
+      if (tabBarRef.current) tabBarRef.current.style.transform = 'scale(1) translateY(0px)';
     };
   }, [_use5tab, section]);
 
@@ -11721,12 +11716,7 @@ Rules:
       )}
 
 
-      <div className={`app-tab-bar${_use5tab?" app-tab-bar--slide":""}`} ref={tabBarRef}
-        style={_use5tab ? {
-          opacity:      tabBarHidden ? 0 : 1,
-          transform:    tabBarHidden ? 'translateY(8px)' : 'translateY(0px)',
-          pointerEvents: tabBarHidden ? 'none' : undefined,
-        } : undefined}>
+      <div className={`app-tab-bar${_use5tab?" app-tab-bar--slide":""}`} ref={tabBarRef}>
         {_use5tab&&barDims.w>0&&(
           <svg className="tab-bar-svg" aria-hidden="true" width={barDims.w} height={barDims.h+TAB_HUMP_RISE}
             viewBox={`0 0 ${barDims.w} ${barDims.h+TAB_HUMP_RISE}`} preserveAspectRatio="none">

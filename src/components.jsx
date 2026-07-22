@@ -707,11 +707,13 @@ export const REDESIGN_CSS = `
   /* BUMPED PILL: the visible off-white pill (+ center hump) is an inline SVG (.tab-bar-svg) behind
      the icons — a border-radius rect can't make the hump. The bar itself is a transparent flex
      layout container; SVG carries the fill + drop-shadow. NO overflow:hidden (hump rises above). */
-  /* ── FADE/SLIDE TAB BAR — opacity+transform only (GPU-composited, no layout) ──
-     Bar never changes size. When scrolled >60px: fades out + slides down 8px.
-     When back <20px: fades in. CSS transition drives it — smooth in WKWebView
-     because opacity+transform skip layout+paint and run on the compositor. ── */
-  .goclub .app-tab-bar--slide      { left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); padding: 9px 10px; gap: 6px; align-items: center; justify-content: space-between; background: transparent; transition: opacity 200ms ease, transform 200ms ease; will-change: opacity, transform; }
+  /* ── SCALE SHRINK TAB BAR — transform only, direct DOM write, GPU-composited ──
+     Bar DOM box is FIXED SIZE always — no layout changes, no repaints.
+     scale(0.82) + translateY(6px) fakes the shrink; transform-origin:center bottom
+     anchors the bottom edge so it shrinks upward toward the screen bottom.
+     Scroll listener writes element.style.transform directly — zero React, zero repaints.
+     CSS transition: Instagram's exact easing on the transform property only. ── */
+  .goclub .app-tab-bar--slide      { left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); padding: 9px 10px; gap: 6px; align-items: center; justify-content: space-between; background: transparent; transform-origin: center bottom; transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94); will-change: transform; }
   .tab-bar-svg                     { position: absolute; left: 0; bottom: 0; z-index: 0; pointer-events: none; filter: drop-shadow(0 12px 26px rgba(120,8,4,0.24)) drop-shadow(0 3px 8px rgba(0,0,0,0.10)); }
   .tab-slider                      { position: absolute; left: 0; top: 9px; width: 54px; height: 46px; border-radius: 23px; background: var(--cm-accent); z-index: 0; pointer-events: none; }
   .tab-fab                         { position: absolute; top: -38px; left: 50%; transform: translateX(-50%); transform-origin: center center; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; color: var(--cm-accent); font-size: 32px; font-weight: 700; line-height: 1; z-index: 3; cursor: pointer; transition: transform 0.2s ease; }
