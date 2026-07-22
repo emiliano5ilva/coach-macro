@@ -716,12 +716,12 @@ export const REDESIGN_CSS = `
   .tab-bar-svg                     { position: absolute; left: 0; bottom: 0; z-index: 0; pointer-events: none; filter: drop-shadow(0 12px 26px rgba(120,8,4,0.24)) drop-shadow(0 3px 8px rgba(0,0,0,0.10)); }
   .tab-slider                      { position: absolute; left: 0; top: 9px; width: 54px; height: 46px; border-radius: 23px; background: var(--cm-accent); z-index: 0; pointer-events: none; }
   .tab-fab                         { position: absolute; top: -38px; left: 50%; transform: translateX(-50%); transform-origin: center center; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; color: var(--cm-accent); font-size: 32px; font-weight: 700; line-height: 1; z-index: 3; cursor: pointer; transition: transform 0.2s ease; }
-  /* EXPANDED defaults — Framer sets height/borderRadius/padding inline */
-  .goclub .app-tab-bar--slide .app-tab        { flex: 1; width: auto; padding: 5px 4px; gap: 0; justify-content: center; z-index: 1; color: rgba(0,0,0,0.48); transition: flex 0.18s ease, color 0.15s ease; }
+  /* EXPANDED defaults — Framer motion values own all geometry via style prop */
+  .goclub .app-tab-bar--slide .app-tab        { flex: 1; width: auto; gap: 0; justify-content: center; z-index: 1; color: rgba(0,0,0,0.48); transition: flex 0.12s ease, color 0.12s ease; }
   .goclub .app-tab-bar--slide .app-tab.active { background: var(--cm-accent); color: #fff; }
   .goclub .app-tab-bar--slide .app-tab--center { flex: 0 0 64px; width: 64px; position: relative; }
-  /* COMPACT static overrides — flex/width/color only; Framer handles geometry */
-  .goclub .app-tab-bar--slide.tab-bar--compact .app-tab        { flex: 0 0 44px; width: 44px; padding: 0; gap: 0; color: #A8A29B; }
+  /* COMPACT — only flex/width/color; padding + geometry are Framer motion values */
+  .goclub .app-tab-bar--slide.tab-bar--compact .app-tab        { flex: 0 0 44px; width: 44px; gap: 0; color: #A8A29B; }
   .goclub .app-tab-bar--slide.tab-bar--compact .app-tab.active { background: transparent; color: #ffffff; }
   .goclub .app-tab-bar--slide.tab-bar--compact .app-tab--center { flex: 0 0 52px; width: 52px; }
   /* First-run coachmark hint above the + glyph. */

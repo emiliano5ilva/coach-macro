@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import ReactDOM from "react-dom";
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useMotionValue, useTransform, useReducedMotion } from 'motion/react';
 import { MN, SlotNumber, MotionArc, StaggerItem } from './motion-layer.jsx';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 const _hL=()=>{Haptics.impact({style:ImpactStyle.Light}).catch(()=>{});};
@@ -9326,27 +9326,44 @@ Rules:
   const [quickLogOpen, setQuickLogOpen] = useState(false); // + (and swipe) → quick-log panel
   const [centerHintSeen, setCenterHintSeen] = useState(()=>{ try { return localStorage.getItem('cm_center_hint')==='1'; } catch { return true; } });
 
-  // ── COLLAPSING TAB BAR — scroll state ──────────────────────────────────────
-  // Expanded (default, scroll ≤ 25px): icons + labels, flex tabs.
-  // Compact (scroll > 25px): icons-only, fixed 50px tabs, slider visible.
-  const [tabBarCompact, setTabBarCompact] = useState(false);
-  const _tbcRef = useRef(false); // mirrors state to avoid stale closure in RAF
-  const _tbcRaf = useRef(null);
+  // ── COLLAPSING TAB BAR — single motion-value system ────────────────────────
+  // t=0 → expanded, t=1 → compact. Scroll 0–40px maps linearly to t=0→1
+  // (scroll-linked, no spring lag). All geometry derives from this one value
+  // via useTransform — guaranteed lockstep, no fighting between systems.
+  const [tabBarCompact, setTabBarCompact] = useState(false); // CSS class gate at t≥0.5
+  const _tbcRef = useRef(false);
+  const tabBarT = useMotionValue(0);
+  // Container inset + padding
+  const _tbLeft  = useTransform(tabBarT, [0,1], [12, 24]);
+  const _tbRight = useTransform(tabBarT, [0,1], [12, 24]);
+  const _tbPadV  = useTransform(tabBarT, [0,1], [9,  4]);
+  const _tbPadHL = useTransform(tabBarT, [0,1], [10, 6]);
+  const _tbPadHR = useTransform(tabBarT, [0,1], [10, 6]);
+  // Tab button geometry
+  const _tabH    = useTransform(tabBarT, [0,1], [58, 44]);
+  const _tabBR   = useTransform(tabBarT, [0,1], [29, 22]);
+  const _tabPadV = useTransform(tabBarT, [0,1], [5,  0]);
+  const _tabPadH = useTransform(tabBarT, [0,1], [4,  0]);
+  // Icon scale
+  const _iconSc  = useTransform(tabBarT, [0,1], [1, 0.8]);
+  // Slider
+  const _slOp    = useTransform(tabBarT, [0,1], [0,  1]);
+  const _slTop   = useTransform(tabBarT, [0,1], [9,  4]);
+  const _slH     = useTransform(tabBarT, [0,1], [46, 36]);
+  const _slBR    = useTransform(tabBarT, [0,1], [23, 18]);
+
   useEffect(() => {
     if (!_use5tab) return;
-    function check() {
-      const scrolled = Math.max(
+    function onScroll() {
+      const scrollY = Math.max(
         appScreenRef.current?.scrollTop ?? 0,
         window.scrollY ?? 0
-      ) > 25;
-      if (scrolled !== _tbcRef.current) {
-        _tbcRef.current = scrolled;
-        setTabBarCompact(scrolled);
-      }
-    }
-    function onScroll() {
-      if (_tbcRaf.current) return;
-      _tbcRaf.current = requestAnimationFrame(() => { _tbcRaf.current = null; check(); });
+      );
+      // Direct scroll-linked: first 40px maps to t 0→1, stays at 1 beyond.
+      tabBarT.set(Math.min(1, Math.max(0, scrollY / 40)));
+      // CSS class for discrete layout changes (flex, active bg) — switches at midpoint.
+      const compact = scrollY >= 20;
+      if (compact !== _tbcRef.current) { _tbcRef.current = compact; setTabBarCompact(compact); }
     }
     const el = appScreenRef.current;
     if (el) el.addEventListener('scroll', onScroll, { passive: true });
@@ -9354,9 +9371,8 @@ Rules:
     return () => {
       if (el) el.removeEventListener('scroll', onScroll);
       window.removeEventListener('scroll', onScroll);
-      if (_tbcRaf.current) cancelAnimationFrame(_tbcRaf.current);
     };
-  }, [_use5tab]); // appScreenRef is a ref (stable); _use5tab gates the whole feature
+  }, [_use5tab, tabBarT]);
 
   useLayoutEffect(() => {
     if (!_use5tab) return;
@@ -9384,26 +9400,29 @@ Rules:
     // delayed effect below AFTER the spring settles, preventing mid-transition jumps.
   }, [_use5tab, section]);
 
-  // Remeasure SVG dims + slider position AFTER spring settles.
-  // Delayed so the path/slider snap happens after animation, not mid-spring.
+  // Remeasure SVG + slider 100ms after scroll stops (debounced on tabBarT changes).
+  // Fires when motion value settles so path + slider snap at final resting position.
   useEffect(() => {
     if (!_use5tab) return;
-    const t = setTimeout(() => {
-      const bar = tabBarRef.current;
-      if (!bar) return;
-      const c = bar.getBoundingClientRect();
-      const bw = Math.round(c.width), bh = Math.round(c.height);
-      setBarDims(prev => (prev.w === bw && prev.h === bh) ? prev : { w: bw, h: bh });
-      // Slider must re-center on the active tab after compact size change.
-      const btn = tabRefs.current[section];
-      if (btn) {
-        const b = btn.getBoundingClientRect();
-        const left = Math.round((b.left - c.left) + b.width / 2 - 27);
-        setSliderPos(prev => (prev.left === left) ? prev : { left, width: 54 });
-      }
-    }, 150);
-    return () => clearTimeout(t);
-  }, [_use5tab, tabBarCompact, section]);
+    let timer;
+    const unsub = tabBarT.on('change', () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const bar = tabBarRef.current;
+        if (!bar) return;
+        const c = bar.getBoundingClientRect();
+        const bw = Math.round(c.width), bh = Math.round(c.height);
+        setBarDims(prev => (prev.w === bw && prev.h === bh) ? prev : { w: bw, h: bh });
+        const btn = tabRefs.current[section];
+        if (btn) {
+          const b = btn.getBoundingClientRect();
+          const left = Math.round((b.left - c.left) + b.width / 2 - 27);
+          setSliderPos(prev => (prev.left === left) ? prev : { left, width: 54 });
+        }
+      }, 100);
+    });
+    return () => { unsub(); clearTimeout(timer); };
+  }, [_use5tab, tabBarT, section]);
 
   function TabIcon({name, size=22}) {
     const paths = {
@@ -11748,16 +11767,14 @@ Rules:
 
 
       <motion.div className={`app-tab-bar${_use5tab?" app-tab-bar--slide":""}${_use5tab&&tabBarCompact?" tab-bar--compact":""}`} ref={tabBarRef}
-        initial={false}
-        animate={_use5tab ? {
-          left:         tabBarCompact ? 24 : 12,
-          right:        tabBarCompact ? 24 : 12,
-          paddingTop:    tabBarCompact ? 4  : 9,
-          paddingBottom: tabBarCompact ? 4  : 9,
-          paddingLeft:   tabBarCompact ? 6  : 10,
-          paddingRight:  tabBarCompact ? 6  : 10,
-        } : undefined}
-        transition={_use5tab ? {type:'spring',stiffness:600,damping:28,mass:0.6} : undefined}>
+        style={_use5tab ? {
+          left:          _tbLeft,
+          right:         _tbRight,
+          paddingTop:    _tbPadV,
+          paddingBottom: _tbPadV,
+          paddingLeft:   _tbPadHL,
+          paddingRight:  _tbPadHR,
+        } : undefined}>
         {_use5tab&&barDims.w>0&&(
           <svg className="tab-bar-svg" aria-hidden="true" width={barDims.w} height={barDims.h+TAB_HUMP_RISE}
             viewBox={`0 0 ${barDims.w} ${barDims.h+TAB_HUMP_RISE}`} preserveAspectRatio="none">
@@ -11765,20 +11782,9 @@ Rules:
           </svg>
         )}
         {_use5tab&&<motion.div className="tab-slider" aria-hidden="true" initial={false}
-          animate={{
-            x:          sliderPos.left,
-            opacity:    tabBarCompact ? 1    : 0,
-            top:        tabBarCompact ? 4    : 9,
-            height:     tabBarCompact ? 36   : 46,
-            borderRadius: tabBarCompact ? 18 : 23,
-          }}
-          transition={{
-            x:       {duration:0.28, ease:[0.4,0,0.2,1]},
-            opacity: {type:'spring', stiffness:600, damping:28, mass:0.6},
-            top:     {type:'spring', stiffness:600, damping:28, mass:0.6},
-            height:  {type:'spring', stiffness:600, damping:28, mass:0.6},
-            borderRadius: {type:'spring', stiffness:600, damping:28, mass:0.6},
-          }}/>}
+          animate={{x: sliderPos.left}}
+          transition={{duration:0.28, ease:[0.4,0,0.2,1]}}
+          style={{opacity:_slOp, top:_slTop, height:_slH, borderRadius:_slBR}}/>}
         {activeNav.map(item=>{
           const isCenter = _use5tab && item.id==="today";
           const dismissHint = ()=>{ if(!centerHintSeen){ setCenterHintSeen(true); try{localStorage.setItem('cm_center_hint','1');}catch{} } };
@@ -11787,13 +11793,16 @@ Rules:
           return (
           <motion.button key={item.id} ref={el=>{tabRefs.current[item.id]=el;}} aria-label={item.label} aria-current={section===item.id?"page":undefined} className={`app-tab${section===item.id?" active":""}${isCenter?" app-tab--center":""}${item.emphasized?" app-tab--plan":""}`} onClick={()=>handleTabPress(item.id)} onPanEnd={isCenter?onCenterPan:undefined} {...(item.tour?{"data-tour":item.tour}:{})}
             whileTap={GOCLUB_REDESIGN?{scale:0.88}:undefined}
-            animate={_use5tab ? {height:tabBarCompact?44:58, borderRadius:tabBarCompact?22:29} : undefined}
-            transition={_use5tab ? {
-              height:{type:'spring',stiffness:600,damping:28,mass:0.6},
-              borderRadius:{type:'spring',stiffness:600,damping:28,mass:0.6},
-              scale:{type:'spring',stiffness:600,damping:20},
-            } : (GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined)}
-            style={GOCLUB_REDESIGN?{touchAction:'manipulation'}:undefined}>
+            transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
+            style={_use5tab ? {
+              touchAction:'manipulation',
+              height:        _tabH,
+              borderRadius:  _tabBR,
+              paddingTop:    _tabPadV,
+              paddingBottom: _tabPadV,
+              paddingLeft:   _tabPadH,
+              paddingRight:  _tabPadH,
+            } : (GOCLUB_REDESIGN?{touchAction:'manipulation'}:undefined)}>
             {/* Center: light red + glyph ABOVE the inline Today icon (reads as part of the bar, not a FAB).
                 Tap + → panel (stopPropagation so it doesn't navigate); tap the Today icon → navigate. */}
             {isCenter&&(
@@ -11803,10 +11812,7 @@ Rules:
             )}
             <div className="tab-icon-wrap" style={{position:"relative"}}>
               <motion.div
-                initial={false}
-                animate={_use5tab ? {scale: tabBarCompact ? 0.80 : 1} : undefined}
-                transition={{type:'spring',stiffness:600,damping:28,mass:0.6}}
-                style={{display:'flex',alignItems:'center',justifyContent:'center'}}>
+                style={{display:'flex',alignItems:'center',justifyContent:'center',scale:_use5tab?_iconSc:undefined}}>
                 {_use5tab&&TAB_EMOJI[item.icon]
                   ? <Icon icon={TAB_EMOJI[item.icon]} width={25} height={25}/>
                   : <TabIcon name={item.icon} size={22}/>}
