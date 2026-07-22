@@ -9368,21 +9368,34 @@ Rules:
 
   useEffect(() => {
     if (!_use5tab) return;
+    // ONE source only — Today tab scrolls window, all others scroll appScreenRef.
+    // Attaching both caused onScroll to fire twice per gesture (double-step animation).
+    const useWindow = section === 'today';
+    let raf = null;
     function onScroll() {
-      const scrollY = Math.max(
-        appScreenRef.current?.scrollTop ?? 0,
-        window.scrollY ?? 0
-      );
-      tabBarT.set(Math.min(1, Math.max(0, scrollY / 40)));
+      // RAF guard deduplicates any rapid successive fires within the same frame.
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = null;
+        const scrollY = useWindow
+          ? (window.scrollY ?? 0)
+          : (appScreenRef.current?.scrollTop ?? 0);
+        tabBarT.set(Math.min(1, Math.max(0, scrollY / 40)));
+      });
     }
-    const el = appScreenRef.current;
-    if (el) el.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('scroll', onScroll, { passive: true });
+    const target = useWindow ? window : appScreenRef.current;
+    if (target) target.addEventListener('scroll', onScroll, { passive: true });
     return () => {
-      if (el) el.removeEventListener('scroll', onScroll);
-      window.removeEventListener('scroll', onScroll);
+      if (target) target.removeEventListener('scroll', onScroll);
+      if (raf) { cancelAnimationFrame(raf); raf = null; }
     };
-  }, [_use5tab, tabBarT]);
+  }, [_use5tab, section, tabBarT]);
+
+  // Reset bar to expanded whenever the active tab changes.
+  // Without this, tabBarT keeps its last scroll value when switching tabs.
+  useEffect(() => {
+    if (_use5tab) tabBarT.set(0);
+  }, [_use5tab, section, tabBarT]);
 
   useLayoutEffect(() => {
     if (!_use5tab) return;
