@@ -712,7 +712,7 @@ export const REDESIGN_CSS = `
      borderRadius/padding/flexBasis/flexGrow, icon scale, active background color,
      inactive text color, slider opacity/top/height/radius. NO CSS transitions.
      CSS here: static positioning and layout only. No .tab-bar--compact class exists. ── */
-  .goclub .app-tab-bar--slide      { left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); padding: 9px 10px; gap: 6px; align-items: center; justify-content: space-between; background: transparent; }
+  .goclub .app-tab-bar--slide      { left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); padding: 9px 10px; gap: 6px; align-items: center; justify-content: space-between; background: transparent; will-change: transform; contain: layout style; }
   .tab-bar-svg                     { position: absolute; left: 0; bottom: 0; z-index: 0; pointer-events: none; filter: drop-shadow(0 12px 26px rgba(120,8,4,0.24)) drop-shadow(0 3px 8px rgba(0,0,0,0.10)); }
   .tab-slider                      { position: absolute; left: 0; top: 9px; width: 54px; height: 46px; border-radius: 23px; background: var(--cm-accent); z-index: 0; pointer-events: none; }
   .tab-fab                         { position: absolute; top: -38px; left: 50%; transform: translateX(-50%); transform-origin: center center; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; color: var(--cm-accent); font-size: 32px; font-weight: 700; line-height: 1; z-index: 3; cursor: pointer; transition: transform 0.2s ease; }
@@ -729,6 +729,14 @@ export const REDESIGN_CSS = `
   /* Muted text */
   .cm-muted          { color: rgba(17,17,17,0.42); }
   .goclub .cm-muted  { color: rgba(255,255,255,0.40); }
+
+  /* Content bottom clearance — always the EXPANDED bar footprint, never changes.
+     Expanded bar: paddingTop(9) + tabH(58) + paddingBottom(9) = 76px height.
+     Bar bottom offset: env(safe-area-inset-bottom) + 10px.
+     Total from screen bottom: 86px + safe-area. Add 10px buffer = 96px + safe-area.
+     This is PERMANENT — the bar shrinks visually inside this allocated space,
+     content never reflows/jumps when the bar animates. */
+  .goclub .app-screen { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px) !important; }
 
   /* Phase 3 — Today red field */
   .goclub.tab-today .app-screen { background: var(--cm-accent) !important; }
