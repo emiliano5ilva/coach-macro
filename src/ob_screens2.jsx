@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import ReactDOM from "react-dom";
-import { AnimatePresence, motion, useMotionValue, useTransform, useScroll, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { MN, SlotNumber, MotionArc, StaggerItem } from './motion-layer.jsx';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 const _hL=()=>{Haptics.impact({style:ImpactStyle.Light}).catch(()=>{});};
@@ -9321,113 +9321,63 @@ Rules:
   const _use5tab = GOCLUB_REDESIGN && hasFullPlan;
   const tabBarRef = useRef(null);
   const tabRefs = useRef({});
-  const [barDims, setBarDims] = useState({ w: 0, h: 0 }); // bar border-box → drives the SVG bumped-pill path
-  // Slider positions stored as refs — no React state, no re-renders when they update.
-  const _expandedPos = useRef({}); // measured at t=0 for all tabs
-  const _compactPos  = useRef({}); // computed mathematically at t=1 for all tabs
-  const [quickLogOpen, setQuickLogOpen] = useState(false); // + (and swipe) → quick-log panel
+  const [sliderPos, setSliderPos] = useState({ left: 0, width: 0 });
+  const [barDims, setBarDims] = useState({ w: 0, h: 0 });
+  const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [centerHintSeen, setCenterHintSeen] = useState(()=>{ try { return localStorage.getItem('cm_center_hint')==='1'; } catch { return true; } });
 
-  // ── COLLAPSING TAB BAR — Framer useScroll drives everything, zero event listeners ──
-  // tabBarT: 0=expanded, 1=compact. Derived from Framer's native scroll tracking
-  // (hooks into browser scroll compositing) — no event listener, no RAF, no setState.
-  // Today tab scrolls the window; all other tabs scroll the appScreen element.
-  const { scrollY: _appScrollY } = useScroll({ container: appScreenRef });
-  const { scrollY: _winScrollY } = useScroll();
-  const _activeScrollY = section === 'today' ? _winScrollY : _appScrollY;
-  const tabBarT = useTransform(_activeScrollY, [0, 40], [0, 1], { clamp: true });
-  // Container inset + padding
-  const _tbLeft  = useTransform(tabBarT, [0,1], [12, 24]);
-  const _tbRight = useTransform(tabBarT, [0,1], [12, 24]);
-  const _tbPadV  = useTransform(tabBarT, [0,1], [9,  4]);
-  const _tbPadHL = useTransform(tabBarT, [0,1], [10, 6]);
-  const _tbPadHR = useTransform(tabBarT, [0,1], [10, 6]);
-  // Tab button geometry
-  const _tabH    = useTransform(tabBarT, [0,1], [58, 44]);
-  const _tabBR   = useTransform(tabBarT, [0,1], [29, 22]);
-  const _tabPadV = useTransform(tabBarT, [0,1], [5,  0]);
-  const _tabPadH = useTransform(tabBarT, [0,1], [4,  0]);
-  // Tab flex — replaces the CSS class change entirely
-  const _tabFB   = useTransform(tabBarT, [0,1], [0,  44]); // flexBasis
-  const _tabFG   = useTransform(tabBarT, [0,1], [1,   0]); // flexGrow
-  const _ctrFB   = useTransform(tabBarT, [0,1], [64, 52]); // center flexBasis
-  // Tab colors — replaces CSS class color changes
-  const _tabColor    = useTransform(tabBarT, [0,1], ['rgba(10,10,10,0.48)', 'rgb(168,162,155)']);
-  const _activeTabBg = useTransform(tabBarT, [0,1], ['rgba(255,59,48,1)', 'rgba(255,59,48,0)']);
-  // Icon scale
-  const _iconSc  = useTransform(tabBarT, [0,1], [1, 0.8]);
-  // Slider geometry
-  const _slOp    = useTransform(tabBarT, [0,1], [0,  1]);
-  const _slTop   = useTransform(tabBarT, [0,1], [9,  4]);
-  const _slH     = useTransform(tabBarT, [0,1], [46, 36]);
-  const _slBR    = useTransform(tabBarT, [0,1], [23, 18]);
-  // Slider x: interpolates between expanded (measured) and compact (mathematical) positions.
-  // Zero DOM reads during scroll — positions are pre-computed in useLayoutEffect.
-  const _sliderX = useTransform(tabBarT, t => {
-    const exp = _expandedPos.current[section] ?? 0;
-    const cmp = _compactPos.current[section]  ?? 0;
-    return exp + (cmp - exp) * t;
-  });
-
-  // No scroll listener needed — Framer's useScroll drives tabBarT directly.
-  // Tab switches reset naturally: scrollToTop() zeroes the scroll container,
-  // _activeScrollY reads 0, tabBarT becomes 0, bar expands automatically.
+  // ── TAB BAR FADE/SLIDE — opacity+transform only, GPU-composited, no layout changes ──
+  // Hide when scrolled past 60px, show when back under 20px (hysteresis prevents flicker).
+  const [tabBarHidden, setTabBarHidden] = useState(false);
+  const _tbhRef = useRef(false);
 
   useLayoutEffect(() => {
     if (!_use5tab) return;
     const measure = () => {
+      const btn = tabRefs.current[section];
       const bar = tabBarRef.current;
-      if (!bar) return;
+      if (!btn || !bar) return;
       const c = bar.getBoundingClientRect();
-      setBarDims(prev => {
-        const bw = Math.round(c.width), bh = Math.round(c.height);
-        return (prev.w === bw && prev.h === bh) ? prev : { w: bw, h: bh };
-      });
-      // Measure expanded positions for ALL tabs in one pass — stored in ref, no setState.
-      Object.entries(tabRefs.current).forEach(([id, btn]) => {
-        if (!btn) return;
-        const b = btn.getBoundingClientRect();
-        _expandedPos.current[id] = Math.round((b.left - c.left) + b.width / 2 - 27);
-      });
-      // Compute compact positions mathematically from the current container width.
-      // At t=1: left:24 right:24 → pill is 24px narrower than expanded container.
-      const cmpW  = c.width - 24;
-      const padL  = 6; // _tbPadHL at t=1
-      const TW    = {train:44, fuel:44, today:52, progress:44, me:44};
-      const ORDER = ['train','fuel','today','progress','me'];
-      const totalTW = ORDER.reduce((s,id) => s + TW[id], 0); // 228
-      const extraPerGap = Math.max(0, cmpW - 2*padL - totalTW - 4*6) / 4;
-      const gap = 6 + extraPerGap;
-      let x = padL;
-      ORDER.forEach(id => {
-        _compactPos.current[id] = Math.round(x + TW[id]/2 - 27);
-        x += TW[id] + gap;
-      });
+      const bw = Math.round(c.width), bh = Math.round(c.height);
+      setBarDims(prev => (prev.w === bw && prev.h === bh) ? prev : { w: bw, h: bh });
+      const b = btn.getBoundingClientRect();
+      const left = Math.round((b.left - c.left) + b.width / 2 - 27);
+      setSliderPos(prev => prev.left === left ? prev : { left, width: 54 });
     };
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
-    // No section dep — measures ALL tabs at once so slider x has data for every tab.
-    // activeNav omitted (fresh array each render → setState loop).
-  }, [_use5tab]);
+  }, [_use5tab, section]);
 
-  // Remeasure SVG dims 100ms after scroll stops — only barDims (drives the SVG path).
-  // Slider position is a pure motion value now, no DOM reads needed during or after scroll.
   useEffect(() => {
     if (!_use5tab) return;
-    let timer;
-    const unsub = tabBarT.on('change', () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        const bar = tabBarRef.current;
-        if (!bar) return;
-        const c = bar.getBoundingClientRect();
-        const bw = Math.round(c.width), bh = Math.round(c.height);
-        setBarDims(prev => (prev.w === bw && prev.h === bh) ? prev : { w: bw, h: bh });
-      }, 100);
-    });
-    return () => { unsub(); clearTimeout(timer); };
-  }, [_use5tab, tabBarT]);
+    let raf = null;
+    function onScroll() {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = null;
+        const scrollY = section === 'today'
+          ? (window.scrollY ?? 0)
+          : (appScreenRef.current?.scrollTop ?? 0);
+        if (scrollY > 60 && !_tbhRef.current) {
+          _tbhRef.current = true;
+          setTabBarHidden(true);
+        } else if (scrollY < 20 && _tbhRef.current) {
+          _tbhRef.current = false;
+          setTabBarHidden(false);
+        }
+      });
+    }
+    const target = section === 'today' ? window : appScreenRef.current;
+    if (target) target.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      if (target) target.removeEventListener('scroll', onScroll);
+      if (raf) { cancelAnimationFrame(raf); raf = null; }
+      // Always show bar when switching tabs.
+      _tbhRef.current = false;
+      setTabBarHidden(false);
+    };
+  }, [_use5tab, section]);
 
   function TabIcon({name, size=22}) {
     const paths = {
@@ -11771,14 +11721,11 @@ Rules:
       )}
 
 
-      <motion.div className={`app-tab-bar${_use5tab?" app-tab-bar--slide":""}`} ref={tabBarRef}
+      <div className={`app-tab-bar${_use5tab?" app-tab-bar--slide":""}`} ref={tabBarRef}
         style={_use5tab ? {
-          left:          _tbLeft,
-          right:         _tbRight,
-          paddingTop:    _tbPadV,
-          paddingBottom: _tbPadV,
-          paddingLeft:   _tbPadHL,
-          paddingRight:  _tbPadHR,
+          opacity:      tabBarHidden ? 0 : 1,
+          transform:    tabBarHidden ? 'translateY(8px)' : 'translateY(0px)',
+          pointerEvents: tabBarHidden ? 'none' : undefined,
         } : undefined}>
         {_use5tab&&barDims.w>0&&(
           <svg className="tab-bar-svg" aria-hidden="true" width={barDims.w} height={barDims.h+TAB_HUMP_RISE}
@@ -11786,45 +11733,27 @@ Rules:
             <path d={bumpedPillPath(barDims.w, barDims.h)} fill="var(--cm-offwhite, #F4F1EC)"/>
           </svg>
         )}
-        {_use5tab&&<motion.div className="tab-slider" aria-hidden="true"
-          style={{x:_sliderX, opacity:_slOp, top:_slTop, height:_slH, borderRadius:_slBR}}/>}
+        {_use5tab&&<motion.div className="tab-slider" aria-hidden="true" initial={false}
+          animate={{x: sliderPos.left}}
+          transition={{type:'spring',stiffness:600,damping:28,mass:0.6}}/>}
         {activeNav.map(item=>{
           const isCenter = _use5tab && item.id==="today";
           const dismissHint = ()=>{ if(!centerHintSeen){ setCenterHintSeen(true); try{localStorage.setItem('cm_center_hint','1');}catch{} } };
-          // Vertical swipe on the center slot toggles the quick-log panel (up=open, down=close).
           const onCenterPan = (e,info)=>{ dismissHint(); if(info.offset.y<-20) setQuickLogOpen(true); else if(info.offset.y>20) setQuickLogOpen(false); };
           return (
           <motion.button key={item.id} ref={el=>{tabRefs.current[item.id]=el;}} aria-label={item.label} aria-current={section===item.id?"page":undefined} className={`app-tab${section===item.id?" active":""}${isCenter?" app-tab--center":""}${item.emphasized?" app-tab--plan":""}`} onClick={()=>handleTabPress(item.id)} onPanEnd={isCenter?onCenterPan:undefined} {...(item.tour?{"data-tour":item.tour}:{})}
             whileTap={GOCLUB_REDESIGN?{scale:0.88}:undefined}
             transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
-            style={_use5tab ? {
-              touchAction:   'manipulation',
-              height:        _tabH,
-              borderRadius:  _tabBR,
-              paddingTop:    _tabPadV,
-              paddingBottom: _tabPadV,
-              paddingLeft:   _tabPadH,
-              paddingRight:  _tabPadH,
-              flexBasis:     isCenter ? _ctrFB : _tabFB,
-              flexGrow:      isCenter ? 0 : _tabFG,
-              flexShrink:    isCenter ? 0 : _tabFG,
-              color:         section===item.id ? '#fff' : _tabColor,
-              backgroundColor: section===item.id ? _activeTabBg : 'transparent',
-            } : (GOCLUB_REDESIGN?{touchAction:'manipulation'}:undefined)}>
-            {/* Center: light red + glyph ABOVE the inline Today icon (reads as part of the bar, not a FAB).
-                Tap + → panel (stopPropagation so it doesn't navigate); tap the Today icon → navigate. */}
+            style={GOCLUB_REDESIGN?{touchAction:'manipulation'}:undefined}>
             {isCenter&&(
               <span className="tab-fab" role="button" aria-label="Quick log"
                 style={{transform:`translateX(-50%) rotate(${quickLogOpen?135:0}deg)`}}
                 onClick={(e)=>{e.stopPropagation();dismissHint();setQuickLogOpen(o=>!o);}}>+</span>
             )}
             <div className="tab-icon-wrap" style={{position:"relative"}}>
-              <motion.div
-                style={{display:'flex',alignItems:'center',justifyContent:'center',scale:_use5tab?_iconSc:undefined}}>
-                {_use5tab&&TAB_EMOJI[item.icon]
-                  ? <Icon icon={TAB_EMOJI[item.icon]} width={25} height={25}/>
-                  : <TabIcon name={item.icon} size={22}/>}
-              </motion.div>
+              {_use5tab&&TAB_EMOJI[item.icon]
+                ? <Icon icon={TAB_EMOJI[item.icon]} width={25} height={25}/>
+                : <TabIcon name={item.icon} size={22}/>}
               {item.id==="train"&&deloadActive&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:T.fat,border:"2px solid var(--navy)"}}/>}
               {item.id==="train"&&!deloadActive&&topRiskLevel&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":T.fat,border:"2px solid var(--navy)"}}/>}
             </div>
@@ -11832,7 +11761,7 @@ Rules:
             {isCenter&&!centerHintSeen&&<span className="tab-center-hint" aria-hidden="true">Tap + to log</span>}
           </motion.button>
         );})}
-      </motion.div>
+      </div>
 
       {/* Sub-step 3: quick-log panel — rises above the bar when + is tapped. Backdrop (below the bar,
           z:99) closes on outside tap; actions route via existing handlers + close. */}
