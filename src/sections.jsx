@@ -7882,8 +7882,23 @@ export function Paywall({profile}) {
             {purchasing ? 'Processing…' : 'Start Free Trial →'}
           </button>
         </div>
-        <div style={{fontSize:12,color:T.mu,textAlign:'center'}}>
-          Secure checkout · Cancel anytime · No charge for 7 days
+        <div style={{fontSize:12,color:T.mu,textAlign:'center',marginBottom:10}}>
+          Secure checkout · No charge for 7 days
+        </div>
+        <div style={{fontSize:11,color:T.mu,textAlign:'center',lineHeight:1.7}}>
+          {plan==='annual'
+            ? '7-day free trial, then $49.99/year, auto-renews.'
+            : '7-day free trial, then $12.99/month, auto-renews.'
+          }{' Cancel anytime in Settings.'}<br/>
+          <span
+            onClick={()=>{try{window.open('https://coach-macro.com/terms','_system')||window.open('https://coach-macro.com/terms','_blank')}catch{}}}
+            style={{color:T.mu,textDecoration:'underline',cursor:'pointer'}}
+          >Terms of Use</span>
+          {' · '}
+          <span
+            onClick={()=>{try{window.open('https://coach-macro.com/privacy','_system')||window.open('https://coach-macro.com/privacy','_blank')}catch{}}}
+            style={{color:T.mu,textDecoration:'underline',cursor:'pointer'}}
+          >Privacy Policy</span>
         </div>
       </div>
     </div>
@@ -8004,8 +8019,23 @@ export function UpgradeScreen({ profile, onContinue }) {
           </button>
         </div>
 
-        <div style={{ fontSize:12, color:T.mu, textAlign:'center' }}>
+        <div style={{ fontSize:12, color:T.mu, textAlign:'center', marginBottom:8 }}>
           Secure checkout · Cancel anytime
+        </div>
+        <div style={{ fontSize:11, color:T.mu, textAlign:'center', lineHeight:1.7 }}>
+          {plan==='annual'
+            ? '$49.99/year, auto-renews.'
+            : '$12.99/month, auto-renews.'
+          }{' Cancel anytime in Settings.'}<br/>
+          <span
+            onClick={()=>{try{window.open('https://coach-macro.com/terms','_system')||window.open('https://coach-macro.com/terms','_blank')}catch{}}}
+            style={{ color:T.mu, textDecoration:'underline', cursor:'pointer' }}
+          >Terms of Use</span>
+          {' · '}
+          <span
+            onClick={()=>{try{window.open('https://coach-macro.com/privacy','_system')||window.open('https://coach-macro.com/privacy','_blank')}catch{}}}
+            style={{ color:T.mu, textDecoration:'underline', cursor:'pointer' }}
+          >Privacy Policy</span>
         </div>
       </div>
     </div>
@@ -8251,12 +8281,29 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
         </div>
 
         {/* 10 ── RESTORE LINK */}
-        <div style={{ textAlign: 'center' }}>
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
           <button
             onClick={doRestore}
             disabled={loading}
             style={{ background: 'none', border: 'none', ...mono, fontSize: 11, color: '#fff', textDecoration: 'underline', cursor: 'pointer' }}
           >Restore purchase</button>
+        </div>
+
+        {/* 11 ── LEGAL FOOTER — Apple 3.1.2(c) required disclosure + tappable links */}
+        <div style={{ ...body, fontSize: 11, color: 'rgba(255,255,255,0.45)', textAlign: 'center', lineHeight: 1.7 }}>
+          {plan === 'annual'
+            ? '7-day free trial, then $49.99/year, auto-renews.'
+            : '7-day free trial, then $12.99/month, auto-renews.'
+          }{' Cancel anytime in Settings.'}<br/>
+          <span
+            onClick={()=>{try{window.open('https://coach-macro.com/terms','_system')||window.open('https://coach-macro.com/terms','_blank')}catch{}}}
+            style={{ color: 'rgba(255,255,255,0.45)', textDecoration: 'underline', cursor: 'pointer' }}
+          >Terms of Use</span>
+          {' · '}
+          <span
+            onClick={()=>{try{window.open('https://coach-macro.com/privacy','_system')||window.open('https://coach-macro.com/privacy','_blank')}catch{}}}
+            style={{ color: 'rgba(255,255,255,0.45)', textDecoration: 'underline', cursor: 'pointer' }}
+          >Privacy Policy</span>
         </div>
 
       </div>
