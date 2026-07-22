@@ -9394,7 +9394,7 @@ Rules:
       const c = bar.getBoundingClientRect();
       const bw = Math.round(c.width), bh = Math.round(c.height);
       setBarDims(prev => (prev.w === bw && prev.h === bh) ? prev : { w: bw, h: bh });
-    }, 300);
+    }, 150);
     return () => clearTimeout(t);
   }, [_use5tab, tabBarCompact]);
 
@@ -11758,10 +11758,10 @@ Rules:
           return (
           <motion.button key={item.id} ref={el=>{tabRefs.current[item.id]=el;}} aria-label={item.label} aria-current={section===item.id?"page":undefined} className={`app-tab${section===item.id?" active":""}${isCenter?" app-tab--center":""}${item.emphasized?" app-tab--plan":""}`} onClick={()=>handleTabPress(item.id)} onPanEnd={isCenter?onCenterPan:undefined} {...(item.tour?{"data-tour":item.tour}:{})}
             whileTap={GOCLUB_REDESIGN?{scale:0.88}:undefined}
-            animate={_use5tab&&!isCenter ? {height:tabBarCompact?50:58, borderRadius:tabBarCompact?25:14} : undefined}
+            animate={_use5tab ? {height:tabBarCompact?44:58, borderRadius:tabBarCompact?22:14} : undefined}
             transition={_use5tab ? {
-              height:{type:'spring',stiffness:520,damping:34},
-              borderRadius:{type:'spring',stiffness:520,damping:34},
+              height:{type:'spring',stiffness:600,damping:28,mass:0.6},
+              borderRadius:{type:'spring',stiffness:600,damping:28,mass:0.6},
               scale:{type:'spring',stiffness:600,damping:20},
             } : (GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined)}
             style={GOCLUB_REDESIGN?{touchAction:'manipulation'}:undefined}>
