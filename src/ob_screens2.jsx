@@ -9321,8 +9321,10 @@ Rules:
   const _use5tab = GOCLUB_REDESIGN && hasFullPlan;
   const tabBarRef = useRef(null);
   const tabRefs = useRef({});
-  const [sliderPos, setSliderPos] = useState({ left: 0, width: 0 });
   const [barDims, setBarDims] = useState({ w: 0, h: 0 }); // bar border-box → drives the SVG bumped-pill path
+  // Slider positions stored as refs — no React state, no re-renders when they update.
+  const _expandedPos = useRef({}); // measured at t=0 for all tabs
+  const _compactPos  = useRef({}); // computed mathematically at t=1 for all tabs
   const [quickLogOpen, setQuickLogOpen] = useState(false); // + (and swipe) → quick-log panel
   const [centerHintSeen, setCenterHintSeen] = useState(()=>{ try { return localStorage.getItem('cm_center_hint')==='1'; } catch { return true; } });
 
@@ -9351,11 +9353,18 @@ Rules:
   const _activeTabBg = useTransform(tabBarT, [0,1], ['rgba(255,59,48,1)', 'rgba(255,59,48,0)']);
   // Icon scale
   const _iconSc  = useTransform(tabBarT, [0,1], [1, 0.8]);
-  // Slider
+  // Slider geometry
   const _slOp    = useTransform(tabBarT, [0,1], [0,  1]);
   const _slTop   = useTransform(tabBarT, [0,1], [9,  4]);
   const _slH     = useTransform(tabBarT, [0,1], [46, 36]);
   const _slBR    = useTransform(tabBarT, [0,1], [23, 18]);
+  // Slider x: interpolates between expanded (measured) and compact (mathematical) positions.
+  // Zero DOM reads during scroll — positions are pre-computed in useLayoutEffect.
+  const _sliderX = useTransform(tabBarT, t => {
+    const exp = _expandedPos.current[section] ?? 0;
+    const cmp = _compactPos.current[section]  ?? 0;
+    return exp + (cmp - exp) * t;
+  });
 
   useEffect(() => {
     if (!_use5tab) return;
@@ -9378,31 +9387,43 @@ Rules:
   useLayoutEffect(() => {
     if (!_use5tab) return;
     const measure = () => {
-      const btn = tabRefs.current[section];
       const bar = tabBarRef.current;
-      if (!btn || !bar) return;
-      const b = btn.getBoundingClientRect();
+      if (!bar) return;
       const c = bar.getBoundingClientRect();
-      // Bar dims drive the SVG bumped-pill (responsive — re-measures on resize so the hump never distorts).
-      const bw = Math.round(c.width), bh = Math.round(c.height);
-      setBarDims(prev => (prev.w === bw && prev.h === bh) ? prev : { w: bw, h: bh });
-      // CENTER the fixed 50px slider on the tab's center (not left-edge align) — concentric with the
-      // icon regardless of tab width / padding / gaps. Slider width is fixed 50px in CSS.
-      const left = Math.round((b.left - c.left) + b.width / 2 - 27); // 27 = half the 54px pill → concentric
-      // Bail out when unchanged — returning prev makes React skip the re-render, so this can
-      // never drive an update loop even if the effect runs often.
-      setSliderPos(prev => (prev.left === left) ? prev : { left, width: 54 });
+      setBarDims(prev => {
+        const bw = Math.round(c.width), bh = Math.round(c.height);
+        return (prev.w === bw && prev.h === bh) ? prev : { w: bw, h: bh };
+      });
+      // Measure expanded positions for ALL tabs in one pass — stored in ref, no setState.
+      Object.entries(tabRefs.current).forEach(([id, btn]) => {
+        if (!btn) return;
+        const b = btn.getBoundingClientRect();
+        _expandedPos.current[id] = Math.round((b.left - c.left) + b.width / 2 - 27);
+      });
+      // Compute compact positions mathematically from the current container width.
+      // At t=1: left:24 right:24 → pill is 24px narrower than expanded container.
+      const cmpW  = c.width - 24;
+      const padL  = 6; // _tbPadHL at t=1
+      const TW    = {train:44, fuel:44, today:52, progress:44, me:44};
+      const ORDER = ['train','fuel','today','progress','me'];
+      const totalTW = ORDER.reduce((s,id) => s + TW[id], 0); // 228
+      const extraPerGap = Math.max(0, cmpW - 2*padL - totalTW - 4*6) / 4;
+      const gap = 6 + extraPerGap;
+      let x = padL;
+      ORDER.forEach(id => {
+        _compactPos.current[id] = Math.round(x + TW[id]/2 - 27);
+        x += TW[id] + gap;
+      });
     };
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
-    // NOTE: activeNav is a fresh array each render — must NOT be a dep (setState loop).
-    // tabBarCompact is intentionally NOT a dep here: the SVG remeasures via the
-    // delayed effect below AFTER the spring settles, preventing mid-transition jumps.
-  }, [_use5tab, section]);
+    // No section dep — measures ALL tabs at once so slider x has data for every tab.
+    // activeNav omitted (fresh array each render → setState loop).
+  }, [_use5tab]);
 
-  // Remeasure SVG + slider 100ms after scroll stops (debounced on tabBarT changes).
-  // Fires when motion value settles so path + slider snap at final resting position.
+  // Remeasure SVG dims 100ms after scroll stops — only barDims (drives the SVG path).
+  // Slider position is a pure motion value now, no DOM reads needed during or after scroll.
   useEffect(() => {
     if (!_use5tab) return;
     let timer;
@@ -9414,16 +9435,10 @@ Rules:
         const c = bar.getBoundingClientRect();
         const bw = Math.round(c.width), bh = Math.round(c.height);
         setBarDims(prev => (prev.w === bw && prev.h === bh) ? prev : { w: bw, h: bh });
-        const btn = tabRefs.current[section];
-        if (btn) {
-          const b = btn.getBoundingClientRect();
-          const left = Math.round((b.left - c.left) + b.width / 2 - 27);
-          setSliderPos(prev => (prev.left === left) ? prev : { left, width: 54 });
-        }
       }, 100);
     });
     return () => { unsub(); clearTimeout(timer); };
-  }, [_use5tab, tabBarT, section]);
+  }, [_use5tab, tabBarT]);
 
   function TabIcon({name, size=22}) {
     const paths = {
@@ -11782,10 +11797,8 @@ Rules:
             <path d={bumpedPillPath(barDims.w, barDims.h)} fill="var(--cm-offwhite, #F4F1EC)"/>
           </svg>
         )}
-        {_use5tab&&<motion.div className="tab-slider" aria-hidden="true" initial={false}
-          animate={{x: sliderPos.left}}
-          transition={{duration:0.28, ease:[0.4,0,0.2,1]}}
-          style={{opacity:_slOp, top:_slTop, height:_slH, borderRadius:_slBR}}/>}
+        {_use5tab&&<motion.div className="tab-slider" aria-hidden="true"
+          style={{x:_sliderX, opacity:_slOp, top:_slTop, height:_slH, borderRadius:_slBR}}/>}
         {activeNav.map(item=>{
           const isCenter = _use5tab && item.id==="today";
           const dismissHint = ()=>{ if(!centerHintSeen){ setCenterHintSeen(true); try{localStorage.setItem('cm_center_hint','1');}catch{} } };
