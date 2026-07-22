@@ -11774,6 +11774,7 @@ Rules:
             )}
             <div className="tab-icon-wrap" style={{position:"relative"}}>
               <motion.div
+                initial={false}
                 animate={_use5tab ? {scale: tabBarCompact ? 0.80 : 1} : undefined}
                 transition={{type:'spring',stiffness:600,damping:28,mass:0.6}}
                 style={{display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -11785,18 +11786,6 @@ Rules:
               {item.id==="train"&&!deloadActive&&topRiskLevel&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":T.fat,border:"2px solid var(--navy)"}}/>}
             </div>
             {!_use5tab&&<div className="tab-label-txt">{item.label}</div>}
-            {_use5tab&&(
-              <motion.div
-                className="tab-label-txt"
-                initial={false}
-                animate={tabBarCompact
-                  ? {opacity:0, scaleY:0.5, height:0}
-                  : {opacity:1, scaleY:1, height:14}
-                }
-                transition={{type:'spring',stiffness:520,damping:34}}
-                style={{overflow:'hidden', transformOrigin:'top center', display:'block', pointerEvents:'none'}}
-              >{item.label}</motion.div>
-            )}
             {isCenter&&!centerHintSeen&&<span className="tab-center-hint" aria-hidden="true">Tap + to log</span>}
           </motion.button>
         );})}
