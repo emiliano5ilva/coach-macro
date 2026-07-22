@@ -9379,11 +9379,24 @@ Rules:
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
-    // NOTE: activeNav is a fresh array each render (GOCLUB_NAV_* defined in App) — must NOT be a
-    // dep (it would re-fire every render → setState loop). section drives which tab is active; the
-    // tab set only changes when _use5tab flips, which is already a dep.
-    // tabBarCompact: bar height changes when compact toggles → SVG needs remeasure.
-  }, [_use5tab, section, tabBarCompact]);
+    // NOTE: activeNav is a fresh array each render — must NOT be a dep (setState loop).
+    // tabBarCompact is intentionally NOT a dep here: the SVG remeasures via the
+    // delayed effect below AFTER the spring settles, preventing mid-transition jumps.
+  }, [_use5tab, section]);
+
+  // Remeasure bar height for the SVG AFTER the collapse spring settles (~280ms).
+  // Fires on tabBarCompact change but delayed so the path snaps after animation, not during.
+  useEffect(() => {
+    if (!_use5tab) return;
+    const t = setTimeout(() => {
+      const bar = tabBarRef.current;
+      if (!bar) return;
+      const c = bar.getBoundingClientRect();
+      const bw = Math.round(c.width), bh = Math.round(c.height);
+      setBarDims(prev => (prev.w === bw && prev.h === bh) ? prev : { w: bw, h: bh });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [_use5tab, tabBarCompact]);
 
   function TabIcon({name, size=22}) {
     const paths = {
@@ -11745,7 +11758,12 @@ Rules:
           return (
           <motion.button key={item.id} ref={el=>{tabRefs.current[item.id]=el;}} aria-label={item.label} aria-current={section===item.id?"page":undefined} className={`app-tab${section===item.id?" active":""}${isCenter?" app-tab--center":""}${item.emphasized?" app-tab--plan":""}`} onClick={()=>handleTabPress(item.id)} onPanEnd={isCenter?onCenterPan:undefined} {...(item.tour?{"data-tour":item.tour}:{})}
             whileTap={GOCLUB_REDESIGN?{scale:0.88}:undefined}
-            transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
+            animate={_use5tab&&!isCenter ? {height:tabBarCompact?50:58, borderRadius:tabBarCompact?25:14} : undefined}
+            transition={_use5tab ? {
+              height:{type:'spring',stiffness:520,damping:34},
+              borderRadius:{type:'spring',stiffness:520,damping:34},
+              scale:{type:'spring',stiffness:600,damping:20},
+            } : (GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined)}
             style={GOCLUB_REDESIGN?{touchAction:'manipulation'}:undefined}>
             {/* Center: light red + glyph ABOVE the inline Today icon (reads as part of the bar, not a FAB).
                 Tap + → panel (stopPropagation so it doesn't navigate); tap the Today icon → navigate. */}
@@ -11763,15 +11781,16 @@ Rules:
             </div>
             {!_use5tab&&<div className="tab-label-txt">{item.label}</div>}
             {_use5tab&&(
-              <AnimatePresence>
-                {!tabBarCompact&&(
-                  <motion.div key="lbl" className="tab-label-txt"
-                    initial={{opacity:0,y:4}} animate={{opacity:1,y:0}} exit={{opacity:0,y:4}}
-                    transition={{type:'spring',stiffness:520,damping:34}}>
-                    {item.label}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <motion.div
+                className="tab-label-txt"
+                initial={false}
+                animate={tabBarCompact
+                  ? {opacity:0, scaleY:0.5, height:0}
+                  : {opacity:1, scaleY:1, height:14}
+                }
+                transition={{type:'spring',stiffness:520,damping:34}}
+                style={{overflow:'hidden', transformOrigin:'top center', display:'block', pointerEvents:'none'}}
+              >{item.label}</motion.div>
             )}
             {isCenter&&!centerHintSeen&&<span className="tab-center-hint" aria-hidden="true">Tap + to log</span>}
           </motion.button>

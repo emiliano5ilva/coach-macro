@@ -708,22 +708,23 @@ export const REDESIGN_CSS = `
      the icons — a border-radius rect can't make the hump. The bar itself is a transparent flex
      layout container; SVG carries the fill + drop-shadow. NO overflow:hidden (hump rises above). */
   /* ── COLLAPSING PILL TAB BAR ──
-     Default (no .tab-bar--compact) = EXPANDED: icons + labels, flex tabs, taller pill.
-     .tab-bar--compact = COMPACT: icons-only, fixed 50×50px, current sizing. ── */
-  .goclub .app-tab-bar--slide      { left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); padding: 9px 10px; gap: 6px; align-items: center; justify-content: space-between; background: transparent; transition: padding 0.2s ease; }
+     Framer Motion owns: height, borderRadius on each .app-tab (animate prop on motion.button),
+       label height/opacity/scaleY (motion.div), slider opacity (motion.div).
+     CSS owns: padding, flex, color, gap — transitioned with ease.
+     SVG pill remeasures 300ms after state change (delayed effect), not during animation. ── */
+  .goclub .app-tab-bar--slide      { left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); padding: 9px 10px; gap: 6px; align-items: center; justify-content: space-between; background: transparent; transition: padding 0.22s ease; }
   .goclub .app-tab-bar--slide.tab-bar--compact { padding: 7px 9px; }
   .tab-bar-svg                     { position: absolute; left: 0; bottom: 0; z-index: 0; pointer-events: none; filter: drop-shadow(0 12px 26px rgba(120,8,4,0.24)) drop-shadow(0 3px 8px rgba(0,0,0,0.10)); }
-  /* Slider: hidden in expanded (Framer opacity), visible in compact. */
   .tab-slider                      { position: absolute; left: 0; top: 9px; width: 54px; height: 46px; border-radius: 23px; background: var(--cm-accent); z-index: 0; pointer-events: none; }
   .tab-fab                         { position: absolute; top: -38px; left: 50%; transform: translateX(-50%); transform-origin: center center; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; color: var(--cm-accent); font-size: 32px; font-weight: 700; line-height: 1; z-index: 3; cursor: pointer; transition: transform 0.2s ease; }
-  /* EXPANDED tabs — flex, icon + label stacked, slightly taller, dark on off-white pill */
-  .goclub .app-tab-bar--slide .app-tab        { flex: 1; width: auto; height: 58px; border-radius: 14px; padding: 5px 4px; gap: 3px; justify-content: center; z-index: 1; color: rgba(0,0,0,0.48); transition: height 0.2s ease, padding 0.2s ease, border-radius 0.2s ease, flex 0.2s ease, color 0.15s ease; }
-  .goclub .app-tab-bar--slide .app-tab.active { background: var(--cm-accent); color: #fff; }
+  /* EXPANDED defaults — Framer overrides height+borderRadius inline; CSS handles the rest */
+  .goclub .app-tab-bar--slide .app-tab        { flex: 1; width: auto; padding: 5px 4px; gap: 3px; justify-content: center; z-index: 1; color: rgba(0,0,0,0.48); transition: padding 0.22s ease, flex 0.22s ease, color 0.15s ease, gap 0.22s ease; }
+  .goclub .app-tab-bar--slide .app-tab.active { background: var(--cm-accent); color: #fff; transition: background 0.2s ease, color 0.15s ease; }
   .goclub .app-tab-bar--slide .app-tab--center { flex: 0 0 64px; width: 64px; position: relative; }
-  /* Labels: styled for expanded; mounted/unmounted via AnimatePresence so display:block is correct */
-  .goclub .app-tab-bar--slide .tab-label-txt  { display: block; font-size: 9px; font-family: 'Archivo', sans-serif; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
-  /* COMPACT tabs — fixed 50×50px, icons-only, warm-grey inactive, white active, no bg on active */
-  .goclub .app-tab-bar--slide.tab-bar--compact .app-tab        { flex: 0 0 50px; width: 50px; height: 50px; border-radius: 25px; padding: 0; gap: 0; color: #A8A29B; }
+  /* Label text styling — Framer controls height/opacity/scaleY via inline style */
+  .goclub .app-tab-bar--slide .tab-label-txt  { display: block; font-size: 9px; font-family: 'Archivo', sans-serif; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1; white-space: nowrap; }
+  /* COMPACT — CSS overrides for props Framer doesn't control */
+  .goclub .app-tab-bar--slide.tab-bar--compact .app-tab        { flex: 0 0 50px; width: 50px; padding: 0; gap: 0; color: #A8A29B; }
   .goclub .app-tab-bar--slide.tab-bar--compact .app-tab.active { background: transparent; color: #ffffff; }
   .goclub .app-tab-bar--slide.tab-bar--compact .app-tab--center { flex: 0 0 60px; width: 60px; }
   /* First-run coachmark hint above the + glyph. */
