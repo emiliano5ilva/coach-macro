@@ -712,8 +712,8 @@ export const REDESIGN_CSS = `
      CSS owns: padding, flex, color, gap — transitioned with ease.
      SVG pill remeasures 150ms after state change (after spring settles), not during animation.
      Size targets: expanded 76px total (9+58+9), compact 52px total (4+44+4) = ~32% shorter. ── */
-  .goclub .app-tab-bar--slide      { left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); padding: 9px 10px; gap: 6px; align-items: center; justify-content: space-between; background: transparent; transition: padding 0.18s ease, gap 0.18s ease; }
-  .goclub .app-tab-bar--slide.tab-bar--compact { padding: 4px 6px; gap: 4px; }
+  .goclub .app-tab-bar--slide      { left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); padding: 9px 10px; gap: 6px; align-items: center; justify-content: space-between; background: transparent; transition: left 0.18s ease, right 0.18s ease, padding 0.18s ease, gap 0.18s ease; }
+  .goclub .app-tab-bar--slide.tab-bar--compact { left: 56px; right: 56px; padding: 4px 6px; gap: 4px; }
   .tab-bar-svg                     { position: absolute; left: 0; bottom: 0; z-index: 0; pointer-events: none; filter: drop-shadow(0 12px 26px rgba(120,8,4,0.24)) drop-shadow(0 3px 8px rgba(0,0,0,0.10)); }
   /* Slider: expanded = centered in 58px tab (top:9+6=15 → but leave at 9px for top-aligned feel) */
   .tab-slider                      { position: absolute; left: 0; top: 9px; width: 54px; height: 46px; border-radius: 23px; background: var(--cm-accent); z-index: 0; pointer-events: none; transition: top 0.18s ease, height 0.18s ease; }

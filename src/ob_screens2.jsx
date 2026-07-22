@@ -11773,9 +11773,14 @@ Rules:
                 onClick={(e)=>{e.stopPropagation();dismissHint();setQuickLogOpen(o=>!o);}}>+</span>
             )}
             <div className="tab-icon-wrap" style={{position:"relative"}}>
-              {_use5tab&&TAB_EMOJI[item.icon]
-                ? <Icon icon={TAB_EMOJI[item.icon]} width={25} height={25}/>
-                : <TabIcon name={item.icon} size={22}/>}
+              <motion.div
+                animate={_use5tab ? {scale: tabBarCompact ? 0.80 : 1} : undefined}
+                transition={{type:'spring',stiffness:600,damping:28,mass:0.6}}
+                style={{display:'flex',alignItems:'center',justifyContent:'center'}}>
+                {_use5tab&&TAB_EMOJI[item.icon]
+                  ? <Icon icon={TAB_EMOJI[item.icon]} width={25} height={25}/>
+                  : <TabIcon name={item.icon} size={22}/>}
+              </motion.div>
               {item.id==="train"&&deloadActive&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:T.fat,border:"2px solid var(--navy)"}}/>}
               {item.id==="train"&&!deloadActive&&topRiskLevel&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":T.fat,border:"2px solid var(--navy)"}}/>}
             </div>
