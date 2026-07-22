@@ -9335,12 +9335,20 @@ Rules:
       const btn = tabRefs.current[section];
       const bar = tabBarRef.current;
       if (!btn || !bar) return;
+      // Reset transform to scale(1) before measuring — getBoundingClientRect returns
+      // VISUAL (post-transform) coordinates, so a scaled bar gives wrong slider position.
+      // Disable transition first so the reset is instant; useLayoutEffect runs pre-paint
+      // so the user never sees this intermediate state.
+      bar.style.transition = 'none';
+      bar.style.transform   = 'scale(1) translateY(0px)';
       const c = bar.getBoundingClientRect();
       const bw = Math.round(c.width), bh = Math.round(c.height);
       setBarDims(prev => (prev.w === bw && prev.h === bh) ? prev : { w: bw, h: bh });
       const b = btn.getBoundingClientRect();
       const left = Math.round((b.left - c.left) + b.width / 2 - 27);
       setSliderPos(prev => prev.left === left ? prev : { left, width: 54 });
+      // Re-enable transition so the next scroll-triggered transform change animates.
+      bar.style.transition = '';
     };
     measure();
     window.addEventListener('resize', measure);
