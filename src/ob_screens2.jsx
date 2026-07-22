@@ -9326,12 +9326,10 @@ Rules:
   const [quickLogOpen, setQuickLogOpen] = useState(false); // + (and swipe) → quick-log panel
   const [centerHintSeen, setCenterHintSeen] = useState(()=>{ try { return localStorage.getItem('cm_center_hint')==='1'; } catch { return true; } });
 
-  // ── COLLAPSING TAB BAR — single motion-value system ────────────────────────
-  // t=0 → expanded, t=1 → compact. Scroll 0–40px maps linearly to t=0→1
-  // (scroll-linked, no spring lag). All geometry derives from this one value
-  // via useTransform — guaranteed lockstep, no fighting between systems.
-  const [tabBarCompact, setTabBarCompact] = useState(false); // CSS class gate at t≥0.5
-  const _tbcRef = useRef(false);
+  // ── COLLAPSING TAB BAR — pure motion-value system, zero React re-renders during scroll ──
+  // t=0 → expanded, t=1 → compact. First 40px of scroll maps 1:1 to t=0→1 (scroll-linked).
+  // ALL visual properties — including active background, flex, and color — derive from this
+  // single value. The scroll listener calls ONLY tabBarT.set(). No setState, no re-renders.
   const tabBarT = useMotionValue(0);
   // Container inset + padding
   const _tbLeft  = useTransform(tabBarT, [0,1], [12, 24]);
@@ -9344,6 +9342,13 @@ Rules:
   const _tabBR   = useTransform(tabBarT, [0,1], [29, 22]);
   const _tabPadV = useTransform(tabBarT, [0,1], [5,  0]);
   const _tabPadH = useTransform(tabBarT, [0,1], [4,  0]);
+  // Tab flex — replaces the CSS class change entirely
+  const _tabFB   = useTransform(tabBarT, [0,1], [0,  44]); // flexBasis
+  const _tabFG   = useTransform(tabBarT, [0,1], [1,   0]); // flexGrow
+  const _ctrFB   = useTransform(tabBarT, [0,1], [64, 52]); // center flexBasis
+  // Tab colors — replaces CSS class color changes
+  const _tabColor    = useTransform(tabBarT, [0,1], ['rgba(10,10,10,0.48)', 'rgb(168,162,155)']);
+  const _activeTabBg = useTransform(tabBarT, [0,1], ['rgba(255,59,48,1)', 'rgba(255,59,48,0)']);
   // Icon scale
   const _iconSc  = useTransform(tabBarT, [0,1], [1, 0.8]);
   // Slider
@@ -9359,11 +9364,7 @@ Rules:
         appScreenRef.current?.scrollTop ?? 0,
         window.scrollY ?? 0
       );
-      // Direct scroll-linked: first 40px maps to t 0→1, stays at 1 beyond.
       tabBarT.set(Math.min(1, Math.max(0, scrollY / 40)));
-      // CSS class for discrete layout changes (flex, active bg) — switches at midpoint.
-      const compact = scrollY >= 20;
-      if (compact !== _tbcRef.current) { _tbcRef.current = compact; setTabBarCompact(compact); }
     }
     const el = appScreenRef.current;
     if (el) el.addEventListener('scroll', onScroll, { passive: true });
@@ -11766,7 +11767,7 @@ Rules:
       )}
 
 
-      <motion.div className={`app-tab-bar${_use5tab?" app-tab-bar--slide":""}${_use5tab&&tabBarCompact?" tab-bar--compact":""}`} ref={tabBarRef}
+      <motion.div className={`app-tab-bar${_use5tab?" app-tab-bar--slide":""}`} ref={tabBarRef}
         style={_use5tab ? {
           left:          _tbLeft,
           right:         _tbRight,
@@ -11795,13 +11796,18 @@ Rules:
             whileTap={GOCLUB_REDESIGN?{scale:0.88}:undefined}
             transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
             style={_use5tab ? {
-              touchAction:'manipulation',
+              touchAction:   'manipulation',
               height:        _tabH,
               borderRadius:  _tabBR,
               paddingTop:    _tabPadV,
               paddingBottom: _tabPadV,
               paddingLeft:   _tabPadH,
               paddingRight:  _tabPadH,
+              flexBasis:     isCenter ? _ctrFB : _tabFB,
+              flexGrow:      isCenter ? 0 : _tabFG,
+              flexShrink:    isCenter ? 0 : _tabFG,
+              color:         section===item.id ? '#fff' : _tabColor,
+              backgroundColor: section===item.id ? _activeTabBg : 'transparent',
             } : (GOCLUB_REDESIGN?{touchAction:'manipulation'}:undefined)}>
             {/* Center: light red + glyph ABOVE the inline Today icon (reads as part of the bar, not a FAB).
                 Tap + → panel (stopPropagation so it doesn't navigate); tap the Today icon → navigate. */}

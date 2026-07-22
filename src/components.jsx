@@ -707,23 +707,18 @@ export const REDESIGN_CSS = `
   /* BUMPED PILL: the visible off-white pill (+ center hump) is an inline SVG (.tab-bar-svg) behind
      the icons — a border-radius rect can't make the hump. The bar itself is a transparent flex
      layout container; SVG carries the fill + drop-shadow. NO overflow:hidden (hump rises above). */
-  /* ── COLLAPSING PILL TAB BAR (icons-only, pure size difference) ──
-     Framer Motion owns ALL geometry: container left/right/padding, tab height/borderRadius,
-       icon scale, slider top/height/borderRadius/opacity. No CSS transitions on those props.
-     CSS owns static layout only: flex, width, color. ── */
+  /* ── COLLAPSING PILL TAB BAR — all geometry owned by Framer motion values ──
+     tabBarT (0=expanded, 1=compact) drives: container inset/padding, tab height/
+     borderRadius/padding/flexBasis/flexGrow, icon scale, active background color,
+     inactive text color, slider opacity/top/height/radius. NO CSS transitions.
+     CSS here: static positioning and layout only. No .tab-bar--compact class exists. ── */
   .goclub .app-tab-bar--slide      { left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); padding: 9px 10px; gap: 6px; align-items: center; justify-content: space-between; background: transparent; }
-  .goclub .app-tab-bar--slide.tab-bar--compact { gap: 4px; }
   .tab-bar-svg                     { position: absolute; left: 0; bottom: 0; z-index: 0; pointer-events: none; filter: drop-shadow(0 12px 26px rgba(120,8,4,0.24)) drop-shadow(0 3px 8px rgba(0,0,0,0.10)); }
   .tab-slider                      { position: absolute; left: 0; top: 9px; width: 54px; height: 46px; border-radius: 23px; background: var(--cm-accent); z-index: 0; pointer-events: none; }
   .tab-fab                         { position: absolute; top: -38px; left: 50%; transform: translateX(-50%); transform-origin: center center; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; color: var(--cm-accent); font-size: 32px; font-weight: 700; line-height: 1; z-index: 3; cursor: pointer; transition: transform 0.2s ease; }
-  /* EXPANDED defaults — Framer motion values own all geometry via style prop */
-  .goclub .app-tab-bar--slide .app-tab        { flex: 1; width: auto; gap: 0; justify-content: center; z-index: 1; color: rgba(0,0,0,0.48); transition: flex 0.12s ease, color 0.12s ease; }
-  .goclub .app-tab-bar--slide .app-tab.active { background: var(--cm-accent); color: #fff; }
+  /* Tab: static structure only — flex/color/bg/height/padding all via Framer motion values */
+  .goclub .app-tab-bar--slide .app-tab        { gap: 0; justify-content: center; z-index: 1; }
   .goclub .app-tab-bar--slide .app-tab--center { flex: 0 0 64px; width: 64px; position: relative; }
-  /* COMPACT — only flex/width/color; padding + geometry are Framer motion values */
-  .goclub .app-tab-bar--slide.tab-bar--compact .app-tab        { flex: 0 0 44px; width: 44px; gap: 0; color: #A8A29B; }
-  .goclub .app-tab-bar--slide.tab-bar--compact .app-tab.active { background: transparent; color: #ffffff; }
-  .goclub .app-tab-bar--slide.tab-bar--compact .app-tab--center { flex: 0 0 52px; width: 52px; }
   /* First-run coachmark hint above the + glyph. */
   .tab-center-hint                 { position: absolute; top: -46px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: rgba(10,10,10,0.85); color: #fff; font-family: 'Archivo', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.02em; padding: 4px 8px; border-radius: 8px; pointer-events: none; z-index: 4; }
   /* Quick-log panel (Sub-step 3) — row of action chips rising above the bar when + is tapped. */
