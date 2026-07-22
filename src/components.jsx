@@ -529,6 +529,8 @@ export const GLOBAL_CSS = `
     --body: 'Barlow', sans-serif;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  button:active:not(:disabled){opacity:0.72;transform:scale(0.97);transition:transform 0.06s ease,opacity 0.06s ease}
+  .cm-press:active{opacity:0.72;transform:scale(0.97);transition:transform 0.06s ease,opacity 0.06s ease}
   html,body,#root{height:100%}
   /* Barcode scan (MLKit): native camera renders behind a transparent webview.
      Hide the app chrome so only the camera + the portaled scanner overlay show. */

@@ -410,7 +410,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
       {/* STEP 2A — Lifting Split */}
       {step==="split"&&<div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
-          <button onClick={()=>setStep("type")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
+          <button onClick={()=>{_hL();setStep("type");}} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
           <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"var(--condensed)"}}>Choose your split</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -439,7 +439,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
       {/* STEP 2B — Exercise Preview */}
       {step==="exercises"&&split&&<div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
-          <button onClick={()=>setStep("split")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
+          <button onClick={()=>{_hL();setStep("split");}} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
           <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)"}}>{LIFTING_SPLITS[split]?.label}</div>
         </div>
         <div style={{background:`${T.carb}08`,border:`1px solid ${T.carb}25`,borderRadius:14,padding:"16px 20px",marginBottom:20}}>
@@ -466,7 +466,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
       {/* STEP 2C — Running */}
       {step==="run"&&<div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
-          <button onClick={()=>setStep("type")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
+          <button onClick={()=>{_hL();setStep("type");}} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
           <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"var(--condensed)"}}>Choose your run plan</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
@@ -501,7 +501,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
       {/* STEP 2D — Hybrid */}
       {step==="hybrid"&&<div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
-          <button onClick={()=>setStep("type")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
+          <button onClick={()=>{_hL();setStep("type");}} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
           <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"var(--condensed)"}}>Choose your hybrid template</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
@@ -529,7 +529,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
       {/* STEP 2E — Glute Program Selection */}
       {step==="glute"&&<div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
-          <button onClick={()=>setStep("type")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
+          <button onClick={()=>{_hL();setStep("type");}} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
           <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"var(--condensed)"}}>Choose your program</div>
         </div>
         <div style={{background:`rgba(255,153,0,.08)`,border:`1px solid rgba(255,153,0,.2)`,borderRadius:12,padding:"12px 16px",marginBottom:16,fontSize:12,color:"#ffb347",lineHeight:1.6}}>
@@ -558,7 +558,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
       {/* STEP 2F — Glute Program Preview */}
       {step==="glute-preview"&&split&&GLUTE_PROGRAMS[split]&&<div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
-          <button onClick={()=>setStep("glute")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
+          <button onClick={()=>{_hL();setStep("glute");}} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
           <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)"}}>{split}</div>
         </div>
         {GLUTE_PROGRAMS[split].days.map(dayName=>(
@@ -593,7 +593,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
                 <div style={{fontFamily:"var(--condensed)",fontSize:28,fontWeight:900,lineHeight:1}}>{todayFocus}</div>
                 <div style={{fontSize:12,color:T.mu,marginTop:4}}>{split||runPlanLocal||hybridTemplate} · {wPrefs.equipment}</div>
               </div>
-              <button onClick={()=>setStep(type==="lifting"?"exercises":type==="running"?"run":type==="glute"?"glute-preview":"hybrid")} style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:9,padding:"8px 14px",color:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>← Change</button>
+              <button onClick={()=>{_hL();setStep(type==="lifting"?"exercises":type==="running"?"run":type==="glute"?"glute-preview":"hybrid");}} style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:9,padding:"8px 14px",color:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>← Change</button>
             </div>
 
             {workoutLoading
@@ -1131,7 +1131,7 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
         </div>
       </div>
       <div className="adapt-footer">
-        <button className="adapt-secondary" onClick={()=>setScreen("categories")}>← Back</button>
+        <button className="adapt-secondary" onClick={()=>{_hL();setScreen("categories");}}>← Back</button>
       </div>
     </div>
   );
@@ -1160,7 +1160,7 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
         ))}
       </div>
       <div className="adapt-footer">
-        <button className="adapt-secondary" onClick={()=>setScreen("injury-location")}>← Back</button>
+        <button className="adapt-secondary" onClick={()=>{_hL();setScreen("injury-location");}}>← Back</button>
       </div>
     </div>
   );
@@ -5323,7 +5323,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     {/* Prev / Counter / Next navigation bar */}
                     <div style={{background:'var(--cm-paper,#fff)',border:'none',borderRadius:14,padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,boxShadow:'0 2px 12px rgba(0,0,0,.14)'}}>
                       {ei>0
-                        ?<button onClick={()=>setCurrentExerciseIdx(ei-1)} style={{background:'rgba(var(--cm-ink-rgb,10,10,10),.06)',border:'1px solid rgba(var(--cm-ink-rgb,10,10,10),.12)',borderRadius:10,padding:"10px 16px",fontFamily:"var(--mono)",fontSize:10,color:'var(--cm-ink,#0A0A0A)',cursor:"pointer",letterSpacing:"0.1em",minWidth:80}}>← PREV</button>
+                        ?<button onClick={()=>{_hL();setCurrentExerciseIdx(ei-1);}} style={{background:'rgba(var(--cm-ink-rgb,10,10,10),.06)',border:'1px solid rgba(var(--cm-ink-rgb,10,10,10),.12)',borderRadius:10,padding:"10px 16px",fontFamily:"var(--mono)",fontSize:10,color:'var(--cm-ink,#0A0A0A)',cursor:"pointer",letterSpacing:"0.1em",minWidth:80}}>← PREV</button>
                         :<div style={{minWidth:80}}/>
                       }
                       <span style={{fontFamily:"var(--mono)",fontSize:10,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',letterSpacing:"0.08em"}}>{ei+1} / {exList.length}</span>
@@ -6783,7 +6783,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const cardStyle={background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:12,border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",overflow:"hidden"};
   function MeRow({label:lbl,value:val,onPress,isLast,isDestructive,noChevron,rightEl}){
     return(
-      <div onClick={onPress} style={{padding:"14px 16px",borderBottom:isLast?"none":"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:onPress?"pointer":"default"}}>
+      <div onClick={onPress?()=>{_hL();onPress();}:undefined} className={onPress?"cm-press":undefined} style={{padding:"14px 16px",borderBottom:isLast?"none":"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:onPress?"pointer":"default"}}>
         <span style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:isDestructive?"var(--cm-red,#FF3B30)":"var(--cm-ink,#0A0A0A)"}}>{lbl}</span>
         {rightEl||(!isDestructive&&(
           <div style={{display:"flex",alignItems:"center",gap:6}}>
@@ -6887,7 +6887,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {meScreen==='plan'&&(
         <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
           <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
-            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+            <button onClick={()=>{_hL();setMeScreen(null);}} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
           </div>
           <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
             <div style={eyebrowStyle}>Plan & nutrition</div>
@@ -6986,7 +6986,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {meScreen==='display'&&(
         <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
           <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
-            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+            <button onClick={()=>{_hL();setMeScreen(null);}} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
           </div>
           <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
             <div style={eyebrowStyle}>Display & tracking</div>
@@ -7130,7 +7130,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {meScreen==='profile'&&(
         <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
           <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
-            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:6}}>← Back</button>
+            <button onClick={()=>{_hL();setMeScreen(null);}} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:6}}>← Back</button>
           </div>
           <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
             <div style={eyebrowStyle}>Profile</div>
@@ -7163,7 +7163,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {meScreen==='coachstyle'&&(
         <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
           <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
-            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+            <button onClick={()=>{_hL();setMeScreen(null);}} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
           </div>
           <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
             <div style={eyebrowStyle}>Coaching style</div>
@@ -7174,7 +7174,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {meScreen==='notifications'&&(
         <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
           <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
-            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+            <button onClick={()=>{_hL();setMeScreen(null);}} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
           </div>
           <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
             <div style={eyebrowStyle}>Notifications</div>
@@ -7185,7 +7185,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {meScreen==='patterns'&&(
         <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
           <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
-            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+            <button onClick={()=>{_hL();setMeScreen(null);}} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
           </div>
           <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
             <div style={eyebrowStyle}>Patterns & memory</div>
@@ -7198,7 +7198,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {meScreen==='connected'&&(
         <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
           <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
-            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+            <button onClick={()=>{_hL();setMeScreen(null);}} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
           </div>
           <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
             <div style={eyebrowStyle}>Connected apps</div>
@@ -7225,7 +7225,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {meScreen==='account'&&(
         <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
           <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
-            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+            <button onClick={()=>{_hL();setMeScreen(null);}} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
           </div>
           <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:8,padding:"24px 18px 48px"}}>
             <div style={eyebrowStyle}>Account</div>

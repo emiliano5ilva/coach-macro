@@ -3129,7 +3129,7 @@ function ConnectionsView({ userId, onClose, healthSnap, workoutLogsRaw, bodyweig
 
       {/* Header */}
       <div style={{ display:"flex", alignItems:"center", padding:"max(env(safe-area-inset-top),16px) 16px 12px", borderBottom:"1px solid var(--card-border)" }}>
-        <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", padding:"6px 10px 6px 0", color:"var(--text-dim)", fontFamily:_MO, fontSize:12 }}>← back</button>
+        <button onClick={()=>{_hL();onClose();}} style={{ background:"none", border:"none", cursor:"pointer", padding:"6px 10px 6px 0", color:"var(--text-dim)", fontFamily:_MO, fontSize:12 }}>← back</button>
         <div style={{ fontFamily:_MO, fontSize:11, color:"var(--accent)", letterSpacing:"0.14em", textTransform:"uppercase" }}>// Correlations</div>
       </div>
 
@@ -3403,7 +3403,7 @@ function PeerInsightsView({ userId, profile, onClose }) {
     <div style={{position:"fixed",inset:0,zIndex:1001,background:"var(--bg)",display:"flex",flexDirection:"column",overflowY:"auto"}}>
       {/* Header */}
       <div style={{display:"flex",alignItems:"center",padding:"max(env(safe-area-inset-top),16px) 16px 12px",borderBottom:"1px solid var(--card-border)",flexShrink:0}}>
-        <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",padding:"6px 10px 6px 0",color:"var(--text-dim)",fontFamily:_MO,fontSize:12}}>← back</button>
+        <button onClick={()=>{_hL();onClose();}} style={{background:"none",border:"none",cursor:"pointer",padding:"6px 10px 6px 0",color:"var(--text-dim)",fontFamily:_MO,fontSize:12}}>← back</button>
         <div style={{flex:1,fontFamily:_MO,fontSize:11,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase"}}>// Peer Comparison</div>
         {trusted&&comparison&&(
           <div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",letterSpacing:"0.08em"}}>{comparison.sample_size} ATHLETES</div>
@@ -5107,7 +5107,7 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,setSection,se
           {/* Row 2: back button — fixed-height row keeps step counter position stable on all steps */}
           <div style={{height:38,display:"flex",alignItems:"center"}}>
             {step!=="focus"&&(
-              <button onClick={()=>back(step)}
+              <button onClick={()=>{_hL();back(step);}}
                 style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:20,padding:"8px 14px",color:"#fff",fontFamily:AF,fontSize:13,fontWeight:600,cursor:"pointer",touchAction:"manipulation",WebkitTapHighlightColor:"transparent"}}>
                 ← Back
               </button>

@@ -558,7 +558,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
     const mealLabel=getSlotLabel(mealSlots[activeSlotIdx]||1);
     return(
       <div style={{maxWidth:isMobile?"100%":560}}>
-        <button onClick={()=>{selectedFoodRef.current=null;setSelectedFood(null);}} style={{background:"rgba(255,255,255,0.16)",border:"none",borderRadius:999,color:"#fff",cursor:"pointer",fontFamily:_AF,fontSize:12,fontWeight:700,letterSpacing:"0.04em",padding:"8px 16px",marginBottom:16}}>← Back to search</button>
+        <button onClick={()=>{_hL();selectedFoodRef.current=null;setSelectedFood(null);}} style={{background:"rgba(255,255,255,0.16)",border:"none",borderRadius:999,color:"#fff",cursor:"pointer",fontFamily:_AF,fontSize:12,fontWeight:700,letterSpacing:"0.04em",padding:"8px 16px",marginBottom:16}}>← Back to search</button>
         <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:18,padding:"20px",boxShadow:"0 2px 14px rgba(0,0,0,.12)"}}>
           {/* Header */}
           <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:18}}>
@@ -608,7 +608,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
   if(showBarcodeInSearch){
     return(
       <div style={{maxWidth:isMobile?"100%":560}}>
-        <button onClick={()=>setShowBarcodeInSearch(false)} style={{background:"none",border:"none",...{fontFamily:"'DM Mono',monospace"},fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.4)",cursor:"pointer",padding:"0 0 16px",letterSpacing:"0.12em",display:"block"}}>← BACK TO SEARCH</button>
+        <button onClick={()=>{_hL();setShowBarcodeInSearch(false);}} style={{background:"none",border:"none",...{fontFamily:"'DM Mono',monospace"},fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.4)",cursor:"pointer",padding:"0 0 16px",letterSpacing:"0.12em",display:"block"}}>← BACK TO SEARCH</button>
         <BarcodeScanner
           onDetected={async(code)=>{
             setShowBarcodeInSearch(false);
@@ -2997,7 +2997,7 @@ Reply with ONLY a valid JSON object, no markdown:
           <div style={{position:"fixed",inset:0,zIndex:500,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
             {/* Sticky header: ← Close + MEAL X chip */}
             <div style={{position:"sticky",top:0,background:"transparent",padding:"calc(env(safe-area-inset-top,0px) + 12px) 16px 12px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
-              <button onClick={()=>setFuelScreen("home")} style={{background:"none",border:"none",fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.85)",letterSpacing:"0.06em",cursor:"pointer",padding:0,textTransform:"uppercase",flexShrink:0}}>← Close</button>
+              <button onClick={()=>{_hL();setFuelScreen("home");}} style={{background:"none",border:"none",fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.85)",letterSpacing:"0.06em",cursor:"pointer",padding:0,textTransform:"uppercase",flexShrink:0}}>← Close</button>
               <div style={{flex:1}}/>
               <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,color:"#FFFFFF",letterSpacing:"0.06em",textTransform:"uppercase",background:"rgba(255,255,255,0.16)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:999,padding:"5px 14px",flexShrink:0}}>Meal {mealSlots[activeSlotIdx]||1}</div>
             </div>
@@ -3079,7 +3079,7 @@ Reply with ONLY a valid JSON object, no markdown:
                   );
                 })()}
                 {logMode&&logMode!=="restaurant"&&(
-                  <button onClick={()=>{setLogMode(null);setAiEstimate(null);setAiEstimating(false);}} style={{background:"none",border:"none",fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)",cursor:"pointer",padding:"0 0 16px",letterSpacing:"0.06em",textTransform:"uppercase",display:"block"}}>← All methods</button>
+                  <button onClick={()=>{_hL();setLogMode(null);setAiEstimate(null);setAiEstimating(false);}} style={{background:"none",border:"none",fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)",cursor:"pointer",padding:"0 0 16px",letterSpacing:"0.06em",textTransform:"uppercase",display:"block"}}>← All methods</button>
                 )}
                 {logMode==="scan"&&(
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -3406,7 +3406,7 @@ Reply with ONLY a valid JSON object, no markdown:
                           }}
                           style={{position:'relative',display:'block',width:'100%',aspectRatio:'16/10',background:`linear-gradient(135deg,rgba(${sel?'255,59,48':'30,10,10'},${sel?'0.32':'0.18'}),rgba(0,0,0,0.85))`,border:sel?'2px solid var(--cm-red,#FF3B30)':'1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)',borderRadius:16,cursor:'pointer',outline:'none',textAlign:'left',overflow:'hidden',padding:0,boxShadow:sel?'0 4px 18px rgba(var(--cm-red-rgb,255,59,48),0.22)':'0 2px 12px rgba(0,0,0,.10)',transition:'box-shadow 0.15s'}}>
                           {/* full-bleed photo (gradient fallback behind until images exist) */}
-                          <img src={`/diet-images/${d.id}.jpg`} alt={d.label} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';}}/>
+                          <img src={`/diet-images/${d.id}.png`} alt={d.label} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';}}/>
                           {/* legibility scrim */}
                           <div style={{position:'absolute',inset:0,background:'linear-gradient(to top,rgba(0,0,0,0.78) 0%,rgba(0,0,0,0.30) 42%,rgba(0,0,0,0) 72%)'}}/>
                           {/* badge top-left */}
@@ -3972,7 +3972,7 @@ Reply with ONLY a valid JSON object, no markdown:
           <div style={{position:"fixed",inset:0,background:"var(--cm-red)",zIndex:600,overflowY:"auto",paddingBottom:60,WebkitOverflowScrolling:"touch"}}>
             <div style={{position:"fixed",top:"-10%",left:"50%",transform:"translateX(-50%)",width:"70%",height:"50%",background:"radial-gradient(ellipse,rgba(255,255,255,0.15),transparent 70%)",pointerEvents:"none",zIndex:401}}/>
             <div style={{position:"relative",zIndex:402,padding:"56px 18px 20px"}}>
-              <button onClick={raBack} style={{background:"none",border:"none",fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.7)",cursor:"pointer",padding:0,letterSpacing:"0.12em",marginBottom:20,display:"block"}}>← BACK</button>
+              <button onClick={()=>{_hL();raBack();}} style={{background:"none",border:"none",fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.7)",cursor:"pointer",padding:0,letterSpacing:"0.12em",marginBottom:20,display:"block"}}>← BACK</button>
               <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:13,color:"#fff",letterSpacing:"0.03em",textTransform:"uppercase",marginBottom:10}}>Restaurant AI</div>
               <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)",borderRadius:10,padding:"10px 14px",marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8,boxShadow:"0 2px 12px rgba(0,0,0,.08)"}}>
                 {[
