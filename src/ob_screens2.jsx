@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import ReactDOM from "react-dom";
-import { AnimatePresence, motion, useMotionValue, useTransform, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useMotionValue, useTransform, useScroll, useReducedMotion } from 'motion/react';
 import { MN, SlotNumber, MotionArc, StaggerItem } from './motion-layer.jsx';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 const _hL=()=>{Haptics.impact({style:ImpactStyle.Light}).catch(()=>{});};
@@ -9328,11 +9328,14 @@ Rules:
   const [quickLogOpen, setQuickLogOpen] = useState(false); // + (and swipe) → quick-log panel
   const [centerHintSeen, setCenterHintSeen] = useState(()=>{ try { return localStorage.getItem('cm_center_hint')==='1'; } catch { return true; } });
 
-  // ── COLLAPSING TAB BAR — pure motion-value system, zero React re-renders during scroll ──
-  // t=0 → expanded, t=1 → compact. First 40px of scroll maps 1:1 to t=0→1 (scroll-linked).
-  // ALL visual properties — including active background, flex, and color — derive from this
-  // single value. The scroll listener calls ONLY tabBarT.set(). No setState, no re-renders.
-  const tabBarT = useMotionValue(0);
+  // ── COLLAPSING TAB BAR — Framer useScroll drives everything, zero event listeners ──
+  // tabBarT: 0=expanded, 1=compact. Derived from Framer's native scroll tracking
+  // (hooks into browser scroll compositing) — no event listener, no RAF, no setState.
+  // Today tab scrolls the window; all other tabs scroll the appScreen element.
+  const { scrollY: _appScrollY } = useScroll({ container: appScreenRef });
+  const { scrollY: _winScrollY } = useScroll();
+  const _activeScrollY = section === 'today' ? _winScrollY : _appScrollY;
+  const tabBarT = useTransform(_activeScrollY, [0, 40], [0, 1], { clamp: true });
   // Container inset + padding
   const _tbLeft  = useTransform(tabBarT, [0,1], [12, 24]);
   const _tbRight = useTransform(tabBarT, [0,1], [12, 24]);
@@ -9366,36 +9369,9 @@ Rules:
     return exp + (cmp - exp) * t;
   });
 
-  useEffect(() => {
-    if (!_use5tab) return;
-    // ONE source only — Today tab scrolls window, all others scroll appScreenRef.
-    // Attaching both caused onScroll to fire twice per gesture (double-step animation).
-    const useWindow = section === 'today';
-    let raf = null;
-    function onScroll() {
-      // RAF guard deduplicates any rapid successive fires within the same frame.
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = null;
-        const scrollY = useWindow
-          ? (window.scrollY ?? 0)
-          : (appScreenRef.current?.scrollTop ?? 0);
-        tabBarT.set(Math.min(1, Math.max(0, scrollY / 40)));
-      });
-    }
-    const target = useWindow ? window : appScreenRef.current;
-    if (target) target.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      if (target) target.removeEventListener('scroll', onScroll);
-      if (raf) { cancelAnimationFrame(raf); raf = null; }
-    };
-  }, [_use5tab, section, tabBarT]);
-
-  // Reset bar to expanded whenever the active tab changes.
-  // Without this, tabBarT keeps its last scroll value when switching tabs.
-  useEffect(() => {
-    if (_use5tab) tabBarT.set(0);
-  }, [_use5tab, section, tabBarT]);
+  // No scroll listener needed — Framer's useScroll drives tabBarT directly.
+  // Tab switches reset naturally: scrollToTop() zeroes the scroll container,
+  // _activeScrollY reads 0, tabBarT becomes 0, bar expands automatically.
 
   useLayoutEffect(() => {
     if (!_use5tab) return;
