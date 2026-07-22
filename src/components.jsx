@@ -707,24 +707,27 @@ export const REDESIGN_CSS = `
   /* BUMPED PILL: the visible off-white pill (+ center hump) is an inline SVG (.tab-bar-svg) behind
      the icons — a border-radius rect can't make the hump. The bar itself is a transparent flex
      layout container; SVG carries the fill + drop-shadow. NO overflow:hidden (hump rises above). */
-  .goclub .app-tab-bar--slide      { left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); padding: 7px 9px; gap: 6px; align-items: center; justify-content: space-between; background: transparent; }
+  /* ── COLLAPSING PILL TAB BAR ──
+     Default (no .tab-bar--compact) = EXPANDED: icons + labels, flex tabs, taller pill.
+     .tab-bar--compact = COMPACT: icons-only, fixed 50×50px, current sizing. ── */
+  .goclub .app-tab-bar--slide      { left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); padding: 9px 10px; gap: 6px; align-items: center; justify-content: space-between; background: transparent; transition: padding 0.2s ease; }
+  .goclub .app-tab-bar--slide.tab-bar--compact { padding: 7px 9px; }
   .tab-bar-svg                     { position: absolute; left: 0; bottom: 0; z-index: 0; pointer-events: none; filter: drop-shadow(0 12px 26px rgba(120,8,4,0.24)) drop-shadow(0 3px 8px rgba(0,0,0,0.10)); }
-  /* Active highlight = horizontal STADIUM pill, FIXED 54×46 (icons-only → translateX-only, never resizes). */
+  /* Slider: hidden in expanded (Framer opacity), visible in compact. */
   .tab-slider                      { position: absolute; left: 0; top: 9px; width: 54px; height: 46px; border-radius: 23px; background: var(--cm-accent); z-index: 0; pointer-events: none; }
-  /* Center action = LIGHT red + glyph above the inline Today icon — reads as part of the bar (icon
-     family), NOT a raised FAB. No circle/background/shadow; the accent glyph is the action cue. */
-  /* Square flex-centered box so the glyph's optical center == box center → rotate (+→×) spins IN
-     PLACE. transform-origin center; open state composes translateX(-50%) rotate(135deg) (inline). */
   .tab-fab                         { position: absolute; top: -38px; left: 50%; transform: translateX(-50%); transform-origin: center center; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; color: var(--cm-accent); font-size: 32px; font-weight: 700; line-height: 1; z-index: 3; cursor: pointer; transition: transform 0.2s ease; }
-  /* Center slot reserves a touch more width so the + above Today doesn't crowd neighbours. */
-  .goclub .app-tab-bar--slide .app-tab--center { flex: 0 0 60px; width: 60px; position: relative; }
+  /* EXPANDED tabs — flex, icon + label stacked, slightly taller, dark on off-white pill */
+  .goclub .app-tab-bar--slide .app-tab        { flex: 1; width: auto; height: 58px; border-radius: 14px; padding: 5px 4px; gap: 3px; justify-content: center; z-index: 1; color: rgba(0,0,0,0.48); transition: height 0.2s ease, padding 0.2s ease, border-radius 0.2s ease, flex 0.2s ease, color 0.15s ease; }
+  .goclub .app-tab-bar--slide .app-tab.active { background: var(--cm-accent); color: #fff; }
+  .goclub .app-tab-bar--slide .app-tab--center { flex: 0 0 64px; width: 64px; position: relative; }
+  /* Labels: styled for expanded; mounted/unmounted via AnimatePresence so display:block is correct */
+  .goclub .app-tab-bar--slide .tab-label-txt  { display: block; font-size: 9px; font-family: 'Archivo', sans-serif; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+  /* COMPACT tabs — fixed 50×50px, icons-only, warm-grey inactive, white active, no bg on active */
+  .goclub .app-tab-bar--slide.tab-bar--compact .app-tab        { flex: 0 0 50px; width: 50px; height: 50px; border-radius: 25px; padding: 0; gap: 0; color: #A8A29B; }
+  .goclub .app-tab-bar--slide.tab-bar--compact .app-tab.active { background: transparent; color: #ffffff; }
+  .goclub .app-tab-bar--slide.tab-bar--compact .app-tab--center { flex: 0 0 60px; width: 60px; }
   /* First-run coachmark hint above the + glyph. */
   .tab-center-hint                 { position: absolute; top: -46px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: rgba(10,10,10,0.85); color: #fff; font-family: 'Archivo', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.02em; padding: 4px 8px; border-radius: 8px; pointer-events: none; z-index: 4; }
-  /* Icons-only fixed 50px tabs (no label resize) — mid-grey inactive on light, white active. */
-  .goclub .app-tab-bar--slide .app-tab        { flex: 0 0 50px; width: 50px; height: 50px; border-radius: 25px; padding: 0; justify-content: center; z-index: 1; color: #A8A29B; }
-  .goclub .app-tab-bar--slide .app-tab.active { background: transparent; color: #ffffff; }
-  /* Icons-only: labels stay hidden even when active (no expand-on-active → no resize). */
-  .goclub .app-tab-bar--slide .tab-label-txt  { display: none; }
   /* Quick-log panel (Sub-step 3) — row of action chips rising above the bar when + is tapped. */
   .quick-log-row { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); z-index: 101; display: flex; justify-content: center; gap: 10px; pointer-events: none; }
   .quick-log-btn { pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 4px; background: #F4F1EC; border: none; border-radius: 18px; padding: 12px 14px; min-width: 64px; box-shadow: 0 8px 20px rgba(120,8,4,0.22); cursor: pointer; font-family: 'Archivo', sans-serif; font-size: 11px; font-weight: 700; color: var(--cm-ink, #0A0A0A); animation: quicklog-rise 0.22s ease both; }

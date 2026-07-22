@@ -9325,6 +9325,39 @@ Rules:
   const [barDims, setBarDims] = useState({ w: 0, h: 0 }); // bar border-box → drives the SVG bumped-pill path
   const [quickLogOpen, setQuickLogOpen] = useState(false); // + (and swipe) → quick-log panel
   const [centerHintSeen, setCenterHintSeen] = useState(()=>{ try { return localStorage.getItem('cm_center_hint')==='1'; } catch { return true; } });
+
+  // ── COLLAPSING TAB BAR — scroll state ──────────────────────────────────────
+  // Expanded (default, scroll ≤ 25px): icons + labels, flex tabs.
+  // Compact (scroll > 25px): icons-only, fixed 50px tabs, slider visible.
+  const [tabBarCompact, setTabBarCompact] = useState(false);
+  const _tbcRef = useRef(false); // mirrors state to avoid stale closure in RAF
+  const _tbcRaf = useRef(null);
+  useEffect(() => {
+    if (!_use5tab) return;
+    function check() {
+      const scrolled = Math.max(
+        appScreenRef.current?.scrollTop ?? 0,
+        window.scrollY ?? 0
+      ) > 25;
+      if (scrolled !== _tbcRef.current) {
+        _tbcRef.current = scrolled;
+        setTabBarCompact(scrolled);
+      }
+    }
+    function onScroll() {
+      if (_tbcRaf.current) return;
+      _tbcRaf.current = requestAnimationFrame(() => { _tbcRaf.current = null; check(); });
+    }
+    const el = appScreenRef.current;
+    if (el) el.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      if (el) el.removeEventListener('scroll', onScroll);
+      window.removeEventListener('scroll', onScroll);
+      if (_tbcRaf.current) cancelAnimationFrame(_tbcRaf.current);
+    };
+  }, [_use5tab]); // appScreenRef is a ref (stable); _use5tab gates the whole feature
+
   useLayoutEffect(() => {
     if (!_use5tab) return;
     const measure = () => {
@@ -9349,7 +9382,8 @@ Rules:
     // NOTE: activeNav is a fresh array each render (GOCLUB_NAV_* defined in App) — must NOT be a
     // dep (it would re-fire every render → setState loop). section drives which tab is active; the
     // tab set only changes when _use5tab flips, which is already a dep.
-  }, [_use5tab, section]);
+    // tabBarCompact: bar height changes when compact toggles → SVG needs remeasure.
+  }, [_use5tab, section, tabBarCompact]);
 
   function TabIcon({name, size=22}) {
     const paths = {
@@ -11693,14 +11727,16 @@ Rules:
       )}
 
 
-      <div className={`app-tab-bar${_use5tab?" app-tab-bar--slide":""}`} ref={tabBarRef}>
+      <div className={`app-tab-bar${_use5tab?" app-tab-bar--slide":""}${_use5tab&&tabBarCompact?" tab-bar--compact":""}`} ref={tabBarRef}>
         {_use5tab&&barDims.w>0&&(
           <svg className="tab-bar-svg" aria-hidden="true" width={barDims.w} height={barDims.h+TAB_HUMP_RISE}
             viewBox={`0 0 ${barDims.w} ${barDims.h+TAB_HUMP_RISE}`} preserveAspectRatio="none">
             <path d={bumpedPillPath(barDims.w, barDims.h)} fill="var(--cm-offwhite, #F4F1EC)"/>
           </svg>
         )}
-        {_use5tab&&<motion.div className="tab-slider" aria-hidden="true" initial={false} animate={{x:sliderPos.left}} transition={{duration:0.28,ease:[0.4,0,0.2,1]}}/>}
+        {_use5tab&&<motion.div className="tab-slider" aria-hidden="true" initial={false}
+          animate={{x:sliderPos.left, opacity:tabBarCompact?1:0}}
+          transition={{x:{duration:0.28,ease:[0.4,0,0.2,1]}, opacity:{type:'spring',stiffness:520,damping:34}}}/>}
         {activeNav.map(item=>{
           const isCenter = _use5tab && item.id==="today";
           const dismissHint = ()=>{ if(!centerHintSeen){ setCenterHintSeen(true); try{localStorage.setItem('cm_center_hint','1');}catch{} } };
@@ -11726,6 +11762,17 @@ Rules:
               {item.id==="train"&&!deloadActive&&topRiskLevel&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":T.fat,border:"2px solid var(--navy)"}}/>}
             </div>
             {!_use5tab&&<div className="tab-label-txt">{item.label}</div>}
+            {_use5tab&&(
+              <AnimatePresence>
+                {!tabBarCompact&&(
+                  <motion.div key="lbl" className="tab-label-txt"
+                    initial={{opacity:0,y:4}} animate={{opacity:1,y:0}} exit={{opacity:0,y:4}}
+                    transition={{type:'spring',stiffness:520,damping:34}}>
+                    {item.label}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            )}
             {isCenter&&!centerHintSeen&&<span className="tab-center-hint" aria-hidden="true">Tap + to log</span>}
           </motion.button>
         );})}
