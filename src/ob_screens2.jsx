@@ -9364,20 +9364,27 @@ Rules:
         raf = null;
         const bar = tabBarRef.current;
         if (!bar) return;
-        const scrollY = section === 'today'
-          ? (window.scrollY ?? 0)
-          : (appScreenRef.current?.scrollTop ?? 0);
-        // Direct DOM write — no setState, no re-render, just one GPU property.
+        // Listen to BOTH sources — different tabs may scroll either the window
+        // or appScreenRef depending on content height. Math.max captures whichever
+        // is active. The RAF guard above collapses simultaneous double-fires into
+        // one DOM write, so there is no double-step even if both fire together.
+        const scrollY = Math.max(
+          window.scrollY ?? 0,
+          appScreenRef.current?.scrollTop ?? 0
+        );
         bar.style.transform = scrollY > 40
           ? 'scale(0.82) translateY(6px)'
           : 'scale(1) translateY(0px)';
       });
     }
-    const target = section === 'today' ? window : appScreenRef.current;
-    if (target) target.addEventListener('scroll', onScroll, { passive: true });
+    const el = appScreenRef.current;
+    if (el) el.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
-      if (target) target.removeEventListener('scroll', onScroll);
+      if (el) el.removeEventListener('scroll', onScroll);
+      window.removeEventListener('scroll', onScroll);
       if (raf) { cancelAnimationFrame(raf); raf = null; }
+      // Reset to full size on tab switch — measurement in useLayoutEffect needs scale(1).
       if (tabBarRef.current) tabBarRef.current.style.transform = 'scale(1) translateY(0px)';
     };
   }, [_use5tab, section]);
