@@ -707,22 +707,20 @@ export const REDESIGN_CSS = `
   /* BUMPED PILL: the visible off-white pill (+ center hump) is an inline SVG (.tab-bar-svg) behind
      the icons — a border-radius rect can't make the hump. The bar itself is a transparent flex
      layout container; SVG carries the fill + drop-shadow. NO overflow:hidden (hump rises above). */
-  /* ── COLLAPSING PILL TAB BAR (icons-only in both states, pure size difference) ──
-     Framer Motion owns: height, borderRadius on each .app-tab; icon scale; slider opacity.
-     CSS owns: left/right inset, padding, flex, color, gap — transitioned with ease.
-     SVG pill remeasures 150ms after state change (after spring settles), not during animation.
-     Size: expanded 76px tall / 366px wide; compact 52px tall / ~342px wide (~20% narrower). ── */
-  .goclub .app-tab-bar--slide      { left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); padding: 9px 10px; gap: 6px; align-items: center; justify-content: space-between; background: transparent; transition: left 0.18s ease, right 0.18s ease, padding 0.18s ease, gap 0.18s ease; }
-  .goclub .app-tab-bar--slide.tab-bar--compact { left: 24px; right: 24px; padding: 4px 6px; gap: 4px; }
+  /* ── COLLAPSING PILL TAB BAR (icons-only, pure size difference) ──
+     Framer Motion owns ALL geometry: container left/right/padding, tab height/borderRadius,
+       icon scale, slider top/height/borderRadius/opacity. No CSS transitions on those props.
+     CSS owns static layout only: flex, width, color. ── */
+  .goclub .app-tab-bar--slide      { left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); padding: 9px 10px; gap: 6px; align-items: center; justify-content: space-between; background: transparent; }
+  .goclub .app-tab-bar--slide.tab-bar--compact { gap: 4px; }
   .tab-bar-svg                     { position: absolute; left: 0; bottom: 0; z-index: 0; pointer-events: none; filter: drop-shadow(0 12px 26px rgba(120,8,4,0.24)) drop-shadow(0 3px 8px rgba(0,0,0,0.10)); }
-  .tab-slider                      { position: absolute; left: 0; top: 9px; width: 54px; height: 46px; border-radius: 23px; background: var(--cm-accent); z-index: 0; pointer-events: none; transition: top 0.18s ease, height 0.18s ease; }
-  .goclub .app-tab-bar--slide.tab-bar--compact .tab-slider { top: 4px; height: 36px; border-radius: 18px; }
+  .tab-slider                      { position: absolute; left: 0; top: 9px; width: 54px; height: 46px; border-radius: 23px; background: var(--cm-accent); z-index: 0; pointer-events: none; }
   .tab-fab                         { position: absolute; top: -38px; left: 50%; transform: translateX(-50%); transform-origin: center center; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; color: var(--cm-accent); font-size: 32px; font-weight: 700; line-height: 1; z-index: 3; cursor: pointer; transition: transform 0.2s ease; }
-  /* EXPANDED defaults — Framer overrides height+borderRadius inline; CSS handles rest */
-  .goclub .app-tab-bar--slide .app-tab        { flex: 1; width: auto; padding: 5px 4px; gap: 0; justify-content: center; z-index: 1; color: rgba(0,0,0,0.48); transition: padding 0.18s ease, flex 0.18s ease, color 0.15s ease; }
-  .goclub .app-tab-bar--slide .app-tab.active { background: var(--cm-accent); color: #fff; transition: background 0.15s ease, color 0.15s ease; }
+  /* EXPANDED defaults — Framer sets height/borderRadius/padding inline */
+  .goclub .app-tab-bar--slide .app-tab        { flex: 1; width: auto; padding: 5px 4px; gap: 0; justify-content: center; z-index: 1; color: rgba(0,0,0,0.48); transition: flex 0.18s ease, color 0.15s ease; }
+  .goclub .app-tab-bar--slide .app-tab.active { background: var(--cm-accent); color: #fff; }
   .goclub .app-tab-bar--slide .app-tab--center { flex: 0 0 64px; width: 64px; position: relative; }
-  /* COMPACT — CSS overrides for props Framer doesn't control (height/borderRadius are Framer's) */
+  /* COMPACT static overrides — flex/width/color only; Framer handles geometry */
   .goclub .app-tab-bar--slide.tab-bar--compact .app-tab        { flex: 0 0 44px; width: 44px; padding: 0; gap: 0; color: #A8A29B; }
   .goclub .app-tab-bar--slide.tab-bar--compact .app-tab.active { background: transparent; color: #ffffff; }
   .goclub .app-tab-bar--slide.tab-bar--compact .app-tab--center { flex: 0 0 52px; width: 52px; }

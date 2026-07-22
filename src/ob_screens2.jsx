@@ -9384,8 +9384,8 @@ Rules:
     // delayed effect below AFTER the spring settles, preventing mid-transition jumps.
   }, [_use5tab, section]);
 
-  // Remeasure bar height for the SVG AFTER the collapse spring settles (~280ms).
-  // Fires on tabBarCompact change but delayed so the path snaps after animation, not during.
+  // Remeasure SVG dims + slider position AFTER spring settles.
+  // Delayed so the path/slider snap happens after animation, not mid-spring.
   useEffect(() => {
     if (!_use5tab) return;
     const t = setTimeout(() => {
@@ -9394,9 +9394,16 @@ Rules:
       const c = bar.getBoundingClientRect();
       const bw = Math.round(c.width), bh = Math.round(c.height);
       setBarDims(prev => (prev.w === bw && prev.h === bh) ? prev : { w: bw, h: bh });
+      // Slider must re-center on the active tab after compact size change.
+      const btn = tabRefs.current[section];
+      if (btn) {
+        const b = btn.getBoundingClientRect();
+        const left = Math.round((b.left - c.left) + b.width / 2 - 27);
+        setSliderPos(prev => (prev.left === left) ? prev : { left, width: 54 });
+      }
     }, 150);
     return () => clearTimeout(t);
-  }, [_use5tab, tabBarCompact]);
+  }, [_use5tab, tabBarCompact, section]);
 
   function TabIcon({name, size=22}) {
     const paths = {
@@ -11740,7 +11747,17 @@ Rules:
       )}
 
 
-      <div className={`app-tab-bar${_use5tab?" app-tab-bar--slide":""}${_use5tab&&tabBarCompact?" tab-bar--compact":""}`} ref={tabBarRef}>
+      <motion.div className={`app-tab-bar${_use5tab?" app-tab-bar--slide":""}${_use5tab&&tabBarCompact?" tab-bar--compact":""}`} ref={tabBarRef}
+        initial={false}
+        animate={_use5tab ? {
+          left:         tabBarCompact ? 24 : 12,
+          right:        tabBarCompact ? 24 : 12,
+          paddingTop:    tabBarCompact ? 4  : 9,
+          paddingBottom: tabBarCompact ? 4  : 9,
+          paddingLeft:   tabBarCompact ? 6  : 10,
+          paddingRight:  tabBarCompact ? 6  : 10,
+        } : undefined}
+        transition={_use5tab ? {type:'spring',stiffness:600,damping:28,mass:0.6} : undefined}>
         {_use5tab&&barDims.w>0&&(
           <svg className="tab-bar-svg" aria-hidden="true" width={barDims.w} height={barDims.h+TAB_HUMP_RISE}
             viewBox={`0 0 ${barDims.w} ${barDims.h+TAB_HUMP_RISE}`} preserveAspectRatio="none">
@@ -11748,8 +11765,20 @@ Rules:
           </svg>
         )}
         {_use5tab&&<motion.div className="tab-slider" aria-hidden="true" initial={false}
-          animate={{x:sliderPos.left, opacity:tabBarCompact?1:0}}
-          transition={{x:{duration:0.28,ease:[0.4,0,0.2,1]}, opacity:{type:'spring',stiffness:520,damping:34}}}/>}
+          animate={{
+            x:          sliderPos.left,
+            opacity:    tabBarCompact ? 1    : 0,
+            top:        tabBarCompact ? 4    : 9,
+            height:     tabBarCompact ? 36   : 46,
+            borderRadius: tabBarCompact ? 18 : 23,
+          }}
+          transition={{
+            x:       {duration:0.28, ease:[0.4,0,0.2,1]},
+            opacity: {type:'spring', stiffness:600, damping:28, mass:0.6},
+            top:     {type:'spring', stiffness:600, damping:28, mass:0.6},
+            height:  {type:'spring', stiffness:600, damping:28, mass:0.6},
+            borderRadius: {type:'spring', stiffness:600, damping:28, mass:0.6},
+          }}/>}
         {activeNav.map(item=>{
           const isCenter = _use5tab && item.id==="today";
           const dismissHint = ()=>{ if(!centerHintSeen){ setCenterHintSeen(true); try{localStorage.setItem('cm_center_hint','1');}catch{} } };
@@ -11758,7 +11787,7 @@ Rules:
           return (
           <motion.button key={item.id} ref={el=>{tabRefs.current[item.id]=el;}} aria-label={item.label} aria-current={section===item.id?"page":undefined} className={`app-tab${section===item.id?" active":""}${isCenter?" app-tab--center":""}${item.emphasized?" app-tab--plan":""}`} onClick={()=>handleTabPress(item.id)} onPanEnd={isCenter?onCenterPan:undefined} {...(item.tour?{"data-tour":item.tour}:{})}
             whileTap={GOCLUB_REDESIGN?{scale:0.88}:undefined}
-            animate={_use5tab ? {height:tabBarCompact?44:58, borderRadius:tabBarCompact?22:14} : undefined}
+            animate={_use5tab ? {height:tabBarCompact?44:58, borderRadius:tabBarCompact?22:29} : undefined}
             transition={_use5tab ? {
               height:{type:'spring',stiffness:600,damping:28,mass:0.6},
               borderRadius:{type:'spring',stiffness:600,damping:28,mass:0.6},
@@ -11789,7 +11818,7 @@ Rules:
             {isCenter&&!centerHintSeen&&<span className="tab-center-hint" aria-hidden="true">Tap + to log</span>}
           </motion.button>
         );})}
-      </div>
+      </motion.div>
 
       {/* Sub-step 3: quick-log panel — rises above the bar when + is tapped. Backdrop (below the bar,
           z:99) closes on outside tap; actions route via existing handlers + close. */}
