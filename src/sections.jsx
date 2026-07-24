@@ -8,7 +8,9 @@ import { registerPlugin } from '@capacitor/core';
 import { createGpsFilter } from './utils/gpsFilter.js';
 import { themeRoot } from './utils/portalRoot.js';
 import { MN, MotionArc, StaggerItem } from './motion-layer.jsx';
-// Phase 0: native background-geolocation, FOREGROUND-only for now (no backgroundMessage → When-In-Use).
+import RunMap from './RunMap.jsx';
+// Background geolocation via @capacitor-community/background-geolocation.
+// backgroundMessage + backgroundTitle keep GPS alive when the app is backgrounded (blue status-bar indicator).
 // Native CLLocationManager → the permission prompt reads "Coach Macro", not "localhost".
 const BackgroundGeolocation = registerPlugin('BackgroundGeolocation');
 const _hL=()=>{Haptics.impact({style:ImpactStyle.Light}).catch(()=>{});};
@@ -2595,6 +2597,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const [runEffort,setRunEffort]=useState(null);
   const [runSummary,setRunSummary]=useState(null);
   const [runLogId,setRunLogId]=useState(null);
+  const [splitInterval,setSplitInterval]=useState(()=>{try{return localStorage.getItem('cm_split_interval')||'1mi'}catch{return'1mi'}});
   const runTimerRef=useRef(null);
   const gpsWatchRef=useRef(null);      // native watcher id (string) from addWatcher
   const gpsFilterRef=useRef(null);     // per-run accuracy filter instance
@@ -3082,11 +3085,19 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       // distanceFilter:5 keeps it battery-light. Watcher is stopped on every exit (stopRunTracking).
       { backgroundMessage:"Tracking your run — distance, pace, and route.", backgroundTitle:"Coach Macro — run in progress", requestPermissions:true, stale:false, distanceFilter:5 },
       (location,error)=>{
+        // Background GPS diagnostic — stripped from production builds (MODE-gated).
+        // Check Xcode Console (filter "BGgps") while app is backgrounded to confirm callbacks fire.
+        // Continuous timestamps = JS running in background. Gap then burst = batch-delivered on resume.
+        if(import.meta.env.MODE!=='production'){
+          const _ts=new Date().toISOString().slice(11,23);
+          const _s=error?`ERR:${error.code||error}`:location?`${location.latitude.toFixed(5)},${location.longitude.toFixed(5)} acc=${Math.round(location.accuracy)}m`:'null';
+          console.log(`[BGgps] ${_ts} ${_s}`);
+        }
         if(error){ setRunGpsError(true); return; }
         if(!location) return;
         const r=_gf.push({ latitude:location.latitude, longitude:location.longitude, accuracy:location.accuracy, time:(typeof location.time==='number'?location.time:Date.now()) });
         if(r.accepted){
-          setRunCoords(prev=>[...prev,{lat:location.latitude,lon:location.longitude,alt:location.altitude||0,ts:location.time||Date.now()}]);
+          setRunCoords(prev=>[...prev,{lat:r.smoothedLat??location.latitude,lon:r.smoothedLon??location.longitude,alt:location.altitude||0,ts:Date.now()}]);
           if(r.reason!=='anchor'){
             const _dist=runDistBaseRef.current+r.totalKm;
             const _el=Math.max(0,Math.floor((Date.now()-runStartMsRef.current)/1000));
@@ -3128,7 +3139,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     const avgPace=fmtPace(dist,elapsed);
     const _durMin=Math.round(elapsed/60);
     const {kcal:cals,tier:_tier,bmr:_bmr}=estimateActiveKcal({hkType:"running",durationMin:_durMin,profile});
-    setRunSummary({mode:'gps',elapsed,distance:dist,avgPace,calories:cals,laps:runLaps,gpsError:runGpsError});
+    const _summary={mode:'gps',elapsed,distance:dist,avgPace,calories:cals,laps:runLaps,gpsError:runGpsError,coords:runCoords};
+    if(import.meta.env.MODE!=='production'){
+      const _c0=runCoords[0],_cN=runCoords[runCoords.length-1];
+      console.log('[finishGPSRun] summary shape:',{mode:_summary.mode,elapsed,distance:dist,laps_count:runLaps.length,coords_count:runCoords.length,first_coord:_c0,last_coord:_cN,first_ts_type:typeof _c0?.ts,first_ts:_c0?.ts,last_ts:_cN?.ts});
+    }
+    setRunSummary(_summary);
     setSessionMode('run-summary');
     if(user){
       sb.from('workout_logs').insert({
@@ -3353,6 +3369,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             </div>
           ))}
         </div>
+        <RunMap coords={runCoords} active={!runGpsError} />
         <div style={{display:"flex",gap:10}}>
           <button onClick={()=>{setRunLaps(p=>[...p,{km:runLaps.length+1,time:runElapsed,dist:runDistance}]);}} style={{width:64,height:64,borderRadius:"50%",background:"rgba(255,255,255,0.16)",border:"1px solid rgba(255,255,255,0.25)",color:"#fff",fontFamily:_MO,fontSize:10,fontWeight:700,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"}}>LAP</button>
           <button onClick={finishGPSRun} style={{flex:1,padding:"16px 24px",background:"var(--cm-paper,#FFFFFF)",border:"none",borderRadius:14,color:"var(--cm-red,#FF3B30)",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>FINISH RUN →</button>
@@ -3424,7 +3441,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
   function renderRunSummary(){
     if(!runSummary)return null;
-    const {elapsed,distance,calories,laps,mode,effort}=runSummary;
+    const {elapsed,distance,calories,laps,mode,effort,coords:summaryCo=[]}=runSummary;
     const _isGps=mode==='gps';
     const _effortLabel={1:"Easy",2:"Moderate",3:"Hard",4:"Max"}[effort]||"—";
     // ── unit helpers ──────────────────────────────────────────────────────────
@@ -3455,9 +3472,38 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     const _MO="'DM Mono',monospace";
     // ── lap times ─────────────────────────────────────────────────────────────
     const lapTimes=(laps||[]).map((lap,i)=>i===0?lap.time:lap.time-laps[i-1].time);
-    const fastestLap=lapTimes.length?Math.min(...lapTimes):0;
-    const slowestLap=lapTimes.length?Math.max(...lapTimes):0;
+    // GPS per-mile/km splits derived from coordinate timestamps when the runner didn't press LAP.
+    // Walks the coord array, interpolates the timestamp at each distance milestone, returns
+    // an array of split durations (seconds) identical in shape to manual lapTimes.
+    const _hKm=(a,b,c,d)=>{const R=6371,r=x=>x*Math.PI/180,dLa=r(c-a),dLo=r(d-b),v=Math.sin(dLa/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.min(1,Math.sqrt(v)));};
+    const _gpsSplits=(()=>{
+      const _STEP={'0.25mi':0.40234,'0.5mi':0.80467,'1mi':1.60934,'1km':1.0};
+      const stepKm=_STEP[splitInterval]??(_imperial?1.60934:1.0);
+      if(!(_isGps&&lapTimes.length===0&&summaryCo.length>1))return{full:lapTimes,partial:null,stepKm};
+      const mts=[summaryCo[0].ts];let cum=0,next=stepKm;
+      for(let i=1;i<summaryCo.length;i++){
+        const p=summaryCo[i-1],c=summaryCo[i],seg=_hKm(p.lat,p.lon,c.lat,c.lon),prev=cum;
+        cum+=seg;
+        while(cum>=next&&seg>0){mts.push(p.ts+((next-prev)/seg)*(c.ts-p.ts));next+=stepKm;}
+      }
+      const full=mts.slice(1).map((ts,i)=>Math.round((ts-mts[i])/1000)).filter(t=>t>0);
+      const remainKm=cum-(mts.length-1)*stepKm;
+      const remainSec=Math.round((summaryCo[summaryCo.length-1].ts-mts[mts.length-1])/1000);
+      const partial=remainKm>0.01&&remainSec>0?{distKm:remainKm,timeSec:remainSec}:null;
+      return{full,partial,stepKm};
+    })();
+    const displayLapTimes=_gpsSplits.full;
+    const _partial=_gpsSplits.partial;
+    const _stepKm=_gpsSplits.stepKm;
+    const _partialPaceSec=_partial&&_partial.distKm>0&&_stepKm>0
+      ?Math.round(_partial.timeSec/(_partial.distKm/_stepKm)):0;
+    const _allPaces=[...displayLapTimes,...(_partialPaceSec>0?[_partialPaceSec]:[])];
+    const fastestLap=_allPaces.length?Math.min(..._allPaces):0;
+    const slowestLap=_allPaces.length?Math.max(..._allPaces):0;
     const lapRange=Math.max(1,slowestLap-fastestLap);
+    // Display helpers derived from the active interval
+    const _splitLabel={'0.25mi':'¼ MI','0.5mi':'½ MI','1mi':'MI','1km':'KM'}[splitInterval]??'MI';
+    const _partialDistLabel=_partial?(splitInterval==='1km'?`${_partial.distKm.toFixed(2)} KM`:`${(_partial.distKm*0.621371).toFixed(2)} MI`):'';
     // ── NEXT UP (tomorrow) — this block was copied from SummaryPortal without its deps,
     //    causing "Can't find variable: tomorrowFullDay". Same chain, scoped to this render. ──
     const tomorrowKey=WDAYS[(WDAYS.indexOf(todayKey)+1)%7];
@@ -3514,6 +3560,13 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           ))}
         </div>
 
+        {/* ── ROUTE MAP (GPS only, needs 2+ coords) ─── */}
+        {_isGps&&summaryCo.length>1&&(
+          <div style={{borderRadius:22,overflow:"hidden",marginTop:14,boxShadow:"0 8px 24px rgba(120,30,10,.16)"}}>
+            <RunMap coords={summaryCo} active={false} fitBounds height="min(50vh, 300px)" />
+          </div>
+        )}
+
         {/* ── AT THIS PACE (race predictions — HONESTY RULE preserved: Reached = distance actually run,
              Projected = extrapolated; real 5.0/10.0km thresholds in the preamble). ─── */}
         {_racePreds.length>0&&(
@@ -3544,35 +3597,78 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           </div>
         )}
 
-        {/* ── SPLITS (own card) — GPS: lap-based bars (real per-mile derivation from runCoords is a Tier-3 TODO);
-             MANUAL: dashed "Splits need GPS" prompt (NEVER fabricate splits from total dist+time). ─── */}
+        {/* ── SPLITS CARD ── */}
         <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:22,marginTop:14,padding:"18px 18px",boxShadow:"0 8px 24px rgba(120,30,10,.13)"}}>
-          <div>
-            <div style={{fontFamily:_AF,fontSize:12,fontWeight:800,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.4)",marginBottom:14}}>Splits</div>
-            {lapTimes.length>0?lapTimes.map((lapTime,i)=>{
-              const isFastest=lapTime===fastestLap;
-              const isSlowest=lapTime===slowestLap&&lapTimes.length>1;
-              const barPct=70+30*((slowestLap-lapTime)/lapRange);
-              return(
-                <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:isFastest?13:8}}>
-                  <span style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:isFastest?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),.45)",width:30,flexShrink:0}}>
-                    {_distU.toUpperCase()} {i+1}
-                  </span>
-                  <div style={{flex:1,background:"rgba(var(--cm-ink-rgb,10,10,10),.08)",borderRadius:3,height:isFastest?11:7,overflow:"hidden"}}>
-                    <div style={{width:`${barPct}%`,height:"100%",borderRadius:3,background:isFastest?"var(--cm-red,#FF3B30)":isSlowest?"rgba(var(--cm-ink-rgb,10,10,10),.35)":"var(--cm-ink,#0A0A0A)",transition:"width 0.6s cubic-bezier(0.2,0.7,0.3,1)"}}/>
-                  </div>
-                  <span style={{fontFamily:isFastest?_AF:_MO,fontWeight:isFastest?800:400,fontSize:isFastest?15:11,color:isFastest?"var(--cm-red,#FF3B30)":isSlowest?"rgba(var(--cm-ink-rgb,10,10,10),.40)":"var(--cm-ink,#0A0A0A)",letterSpacing:isFastest?"-0.01em":"0",minWidth:44,textAlign:"right"}}>
-                    {fmtTime(lapTime)}
-                  </span>
-                </div>
-              );
-            }):(
-              <div style={{border:"1.5px dashed rgba(var(--cm-ink-rgb,10,10,10),.2)",borderRadius:16,padding:"18px 16px",textAlign:"center"}}>
-                <div style={{fontFamily:_AF,fontWeight:800,fontSize:14,color:"var(--cm-ink,#0A0A0A)",marginBottom:5}}>Splits need GPS</div>
-                <div style={{fontFamily:_AF,fontWeight:500,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),.5)",lineHeight:1.5,maxWidth:250,marginLeft:"auto",marginRight:"auto"}}>A manual log has total distance &amp; time. Start a GPS run to see per-mile pace.</div>
+          {/* Header row: eyebrow + interval segmented control */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+            <div style={{fontFamily:_AF,fontSize:12,fontWeight:800,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.4)"}}>Splits</div>
+            {_isGps&&(
+              <div style={{display:"flex",background:"rgba(var(--cm-ink-rgb,10,10,10),.06)",borderRadius:8,padding:2}}>
+                {[['0.25mi','¼ MI'],['0.5mi','½ MI'],['1mi','1 MI'],['1km','1 KM']].map(([key,label])=>(
+                  <button key={key} onClick={()=>{setSplitInterval(key);try{localStorage.setItem('cm_split_interval',key);}catch{}}} style={{padding:"5px 8px",border:"none",borderRadius:6,cursor:"pointer",fontFamily:_AF,fontWeight:700,fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",background:splitInterval===key?"var(--cm-paper,#fff)":"transparent",color:splitInterval===key?"var(--cm-ink,#0A0A0A)":"rgba(var(--cm-ink-rgb,10,10,10),.4)",boxShadow:splitInterval===key?"0 1px 3px rgba(0,0,0,.08)":"none",transition:"all 0.12s",WebkitTapHighlightColor:"transparent"}}>{label}</button>
+                ))}
               </div>
             )}
           </div>
+
+          {/* GPS: full splits */}
+          {_isGps&&displayLapTimes.length>0&&(
+            <>
+              {displayLapTimes.map((lapTime,i)=>{
+                const isFastest=lapTime===fastestLap;
+                const isSlowest=lapTime===slowestLap&&displayLapTimes.length>1;
+                const barPct=Math.max(8,20+80*((slowestLap-lapTime)/lapRange));
+                return(
+                  <div key={i} style={{marginBottom:i<displayLapTimes.length-1||(_partial&&_partialPaceSec>0)?16:0}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                      <div style={{display:"flex",alignItems:"center",gap:7}}>
+                        <span style={{fontFamily:_AF,fontWeight:700,fontSize:11,letterSpacing:"0.1em",textTransform:"uppercase",color:isFastest?"var(--cm-accent,#FF3B30)":isSlowest?"rgba(var(--cm-ink-rgb,10,10,10),.32)":"rgba(var(--cm-ink-rgb,10,10,10),.5)"}}>{_splitLabel} {i+1}</span>
+                        {isFastest&&<span style={{fontFamily:_AF,fontWeight:800,fontSize:7,letterSpacing:"0.1em",textTransform:"uppercase",padding:"2px 6px",borderRadius:4,background:"rgba(var(--cm-accent-rgb,255,59,48),.1)",color:"var(--cm-accent,#FF3B30)"}}>FASTEST</span>}
+                        {isSlowest&&<span style={{fontFamily:_AF,fontWeight:800,fontSize:7,letterSpacing:"0.1em",textTransform:"uppercase",padding:"2px 6px",borderRadius:4,background:"rgba(var(--cm-ink-rgb,10,10,10),.06)",color:"rgba(var(--cm-ink-rgb,10,10,10),.38)"}}>SLOWEST</span>}
+                      </div>
+                      <span style={{fontFamily:_MO,fontWeight:700,fontSize:isFastest?26:22,letterSpacing:"-0.03em",lineHeight:1,color:isFastest?"var(--cm-accent,#FF3B30)":isSlowest?"rgba(var(--cm-ink-rgb,10,10,10),.38)":"var(--cm-ink,#0A0A0A)"}}>{fmtTime(lapTime)}</span>
+                    </div>
+                    <div style={{background:"rgba(var(--cm-ink-rgb,10,10,10),.07)",borderRadius:3,height:5,overflow:"hidden"}}>
+                      <div style={{width:`${barPct}%`,height:"100%",borderRadius:3,background:isFastest?"var(--cm-accent,#FF3B30)":isSlowest?"rgba(var(--cm-ink-rgb,10,10,10),.15)":"rgba(var(--cm-ink-rgb,10,10,10),.28)",transition:"width 0.7s cubic-bezier(0.2,0.7,0.3,1)"}}/>
+                    </div>
+                  </div>
+                );
+              })}
+              {/* Partial final segment */}
+              {_partial&&_partialPaceSec>0&&(
+                <div style={{paddingTop:12,borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.06)"}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5}}>
+                    <span style={{fontFamily:_AF,fontWeight:700,fontSize:11,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.28)"}}>{_partialDistLabel}</span>
+                    <span style={{fontFamily:_MO,fontWeight:400,fontSize:18,letterSpacing:"-0.02em",color:"rgba(var(--cm-ink-rgb,10,10,10),.3)"}}>{fmtTime(_partialPaceSec)}</span>
+                  </div>
+                  <div style={{background:"rgba(var(--cm-ink-rgb,10,10,10),.05)",borderRadius:3,height:4,overflow:"hidden"}}>
+                    <div style={{width:`${Math.min(100,Math.max(8,20+80*((slowestLap-_partialPaceSec)/lapRange)))}%`,height:"100%",borderRadius:3,background:"rgba(var(--cm-ink-rgb,10,10,10),.13)",transition:"width 0.7s cubic-bezier(0.2,0.7,0.3,1)"}}/>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* GPS short run: only a partial, no full splits */}
+          {_isGps&&displayLapTimes.length===0&&_partial&&_partialPaceSec>0&&(
+            <div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                <span style={{fontFamily:_AF,fontWeight:700,fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.5)"}}>{_partialDistLabel}</span>
+                <span style={{fontFamily:_MO,fontWeight:700,fontSize:22,letterSpacing:"-0.03em",color:"var(--cm-ink,#0A0A0A)"}}>{fmtTime(_partialPaceSec)}<span style={{fontFamily:_AF,fontSize:9,fontWeight:700,color:"rgba(var(--cm-ink-rgb,10,10,10),.3)",marginLeft:4}}>/{splitInterval==='1km'?'KM':'MI'}</span></span>
+              </div>
+              <div style={{background:"rgba(var(--cm-ink-rgb,10,10,10),.07)",borderRadius:3,height:5,overflow:"hidden"}}>
+                <div style={{width:"82%",height:"100%",borderRadius:3,background:"rgba(var(--cm-ink-rgb,10,10,10),.28)"}}/>
+              </div>
+            </div>
+          )}
+
+          {/* Manual run only */}
+          {!_isGps&&(
+            <div style={{border:"1.5px dashed rgba(var(--cm-ink-rgb,10,10,10),.2)",borderRadius:16,padding:"18px 16px",textAlign:"center"}}>
+              <div style={{fontFamily:_AF,fontWeight:800,fontSize:14,color:"var(--cm-ink,#0A0A0A)",marginBottom:5}}>Splits need GPS</div>
+              <div style={{fontFamily:_AF,fontWeight:500,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),.5)",lineHeight:1.5,maxWidth:250,marginLeft:"auto",marginRight:"auto"}}>A manual log has total distance &amp; time. Start a GPS run to see per-mile pace.</div>
+            </div>
+          )}
         </div>
 
         {/* ── COACH (one card, two rows: Fuel + Next-up) — CardGlyph flat-emoji chips, hairline divider ─── */}

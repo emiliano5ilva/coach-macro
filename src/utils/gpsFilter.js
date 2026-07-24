@@ -55,7 +55,7 @@ export function createGpsFilter(opts = {}) {
     }
     const totalS = startTime != null ? (now - startTime) / 1000 : 0;
     const avgPaceSecPerKm = totalMeters > 5 && totalS > 0 ? totalS / (totalMeters / 1000) : null;
-    return { accepted, reason, addedMeters: added || 0, totalMeters, totalKm: totalMeters / 1000, currentPaceSecPerKm, avgPaceSecPerKm };
+    return { accepted, reason, addedMeters: added || 0, totalMeters, totalKm: totalMeters / 1000, currentPaceSecPerKm, avgPaceSecPerKm, smoothedLat: ema ? ema.lat : null, smoothedLon: ema ? ema.lon : null };
   };
 
   return {

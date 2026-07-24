@@ -86,8 +86,8 @@ export default function SorenessCheckIn({ userId, onComplete, onSkip, light = fa
 
   return (
     <div style={{marginTop:16,paddingTop:16,borderTop:`1px solid ${pal.divider}`}}>
-      <div style={{...mono,fontSize:9,color:'#e8341c',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:8}}>// HOW ARE YOU FEELING?</div>
-      <div style={{...cond,fontStyle:'italic',fontWeight:900,fontSize:18,color:pal.heading,lineHeight:0.95,marginBottom:14}}>Rate your soreness today.</div>
+      <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:10,color:'#e8341c',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:8}}>HOW ARE YOU FEELING?</div>
+      <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:18,color:pal.heading,lineHeight:1.1,marginBottom:14}}>Rate your soreness today.</div>
 
       {/* Score circles */}
       <div style={{display:'flex',gap:6,marginBottom:6}}>
