@@ -30,11 +30,12 @@ export default withLogging(async function handler(req, res) {
       + `&dataType=${encodeURIComponent('Survey (FNDDS)')}`
       + `&dataType=Foundation`
       + `&dataType=${encodeURIComponent('SR Legacy')}`
-      + `&pageSize=25`
+      + `&pageSize=50`
       + `&api_key=${apiKey}`;
     const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!r.ok) {
-      console.error('[food-search-usda] USDA responded', r.status);
+      const errBody = await r.text().catch(() => '');
+      console.error('[food-search-usda] USDA responded', r.status, errBody.slice(0, 300));
       return res.status(200).json({ foods: [] });
     }
     const data = await r.json();
