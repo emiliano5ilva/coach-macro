@@ -7635,7 +7635,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
 
 
   // ── Persist food log: single row per day, entries = full jsonb array ────────
-  async function saveFoodLog(uid,entries){
+  async function saveFoodLog(uid,entries,addedEntry=null){
     const today=new Date().toISOString().split("T")[0];
     const {error}=await sb.from("food_logs")
       .upsert({user_id:uid,date:today,entries},{onConflict:"user_id,date"});
@@ -7651,6 +7651,26 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     Object.entries(slotGroups).forEach(([slot,slotEntries])=>{
       saveMealToMemory(uid,today,parseInt(slot),slotEntries,sType).catch(()=>{});
     });
+    // Track to food_history for every log method (AI, barcode, search, memory).
+    // Reconstruct per-100g macros when grams is available (search path); otherwise
+    // store as-is (barcode entries are already per-100g; AI entries are serving-level).
+    if(addedEntry){
+      const _dn=addedEntry.food||addedEntry.name||"";
+      if(_dn){
+        const _fid=_dn.toLowerCase().replace(/[^a-z0-9]+/g,"_").slice(0,60);
+        const _g=addedEntry.grams;
+        const _fd={
+          id:_fid,name:_dn,source:addedEntry.source||"logged",
+          calories:_g?Math.round((addedEntry.calories||0)/_g*100):(addedEntry.calories||0),
+          protein:_g?Math.round((addedEntry.protein||0)/_g*1000)/10:(addedEntry.protein||0),
+          carbs:_g?Math.round((addedEntry.carbs||0)/_g*1000)/10:(addedEntry.carbs||0),
+          fat:_g?Math.round((addedEntry.fat||0)/_g*1000)/10:(addedEntry.fat||0),
+        };
+        sb.from("food_history").select("use_count").eq("user_id",uid).eq("food_id",_fid).maybeSingle()
+          .then(({data:_ex})=>sb.from("food_history").upsert({user_id:uid,food_id:_fid,food_name:_dn,food_data:_fd,last_used:new Date().toISOString(),use_count:(_ex?.use_count||0)+1},{onConflict:"user_id,food_id"}))
+          .catch(()=>{});
+      }
+    }
   }
 
   async function saveSkippedSlots(newSkipped){
@@ -8411,7 +8431,7 @@ Be specific and practical. Empathetic tone. No fluff.`,
       setLog(newLog);
       setLogMsg(`✓ ${p.food} — ${p.calories} kcal`);
       setFoodInput("");
-      if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"ai",calories:p.calories,protein:p.protein},user.id);}
+      if(user){saveFoodLog(user.id,newLog,entry);track(EVENTS.FOOD_LOGGED,{method:"ai",calories:p.calories,protein:p.protein},user.id);}
       if(isFirstMeal){const sl=wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner';showToast(getWin('first_meal',sl)?.headline||'FIRST MEAL LOGGED.');}
     }
     catch(e){console.error("[aiLog] error:",e);const m=getAIErrorMessage(e);if(m)setLogMsg("⚠️ "+m);}
@@ -8426,9 +8446,9 @@ Be specific and practical. Empathetic tone. No fluff.`,
   }
   function _getTimeBasedSlot(slots){const h=new Date().getHours(),n=slots.length;if(n<=0)return 1;const bounds=n===2?[13]:n===4?[10,13,18]:n===5?[9,12,15,19]:[8,10,13,16,19];const idx=bounds.findIndex(b=>h<b);return slots[idx===-1?n-1:Math.min(idx,n-1)]||slots[0]||1;}
   function _resolveTargetSlot(inferred,slots,locked){if(!(locked||[]).includes(inferred))return inferred;const first=slots.find(s=>!(locked||[]).includes(s));if(first!==undefined)return first;showToast("All meals are locked for today.","info");return inferred;}
-  function addBarcode(){if(!barcodeResult)return;const isFirstMeal=log.length===0;const _slots=getSlotsForFreq(profile?.mealFreq||"3");const _slot=_resolveTargetSlot(_getTimeBasedSlot(_slots),_slots,lockedSlots);const entry={...barcodeResult,id:Date.now(),method:"barcode",slot:_slot};const newLog=[entry,...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"barcode",calories:barcodeResult.calories,protein:barcodeResult.protein},user.id);}setBarcodeResult(null);setBarcodeInput("");setLogMsg(`✓ ${barcodeResult.name} added`);if(isFirstMeal){const sl=wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner';showToast(getWin('first_meal',sl)?.headline||'FIRST MEAL LOGGED.');}}
+  function addBarcode(){if(!barcodeResult)return;const isFirstMeal=log.length===0;const _slots=getSlotsForFreq(profile?.mealFreq||"3");const _slot=_resolveTargetSlot(_getTimeBasedSlot(_slots),_slots,lockedSlots);const entry={...barcodeResult,id:Date.now(),method:"barcode",slot:_slot};const newLog=[entry,...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog,entry);track(EVENTS.FOOD_LOGGED,{method:"barcode",calories:barcodeResult.calories,protein:barcodeResult.protein},user.id);}setBarcodeResult(null);setBarcodeInput("");setLogMsg(`✓ ${barcodeResult.name} added`);if(isFirstMeal){const sl=wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner';showToast(getWin('first_meal',sl)?.headline||'FIRST MEAL LOGGED.');}}
   function removeLog(id){const newLog=log.filter(i=>i.id!==id);setLog(newLog);if(user)saveFoodLog(user.id,newLog);}
-  function logEntry(entry){const entrySlot=typeof entry.slot==='number'?entry.slot:null;if(entrySlot&&(lockedSlots||[]).includes(entrySlot))return;const newLog=[{...entry,id:Date.now(),method:"memory"},...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"memory",calories:entry.calories,protein:entry.protein},user.id);}}
+  function logEntry(entry){const entrySlot=typeof entry.slot==='number'?entry.slot:null;if(entrySlot&&(lockedSlots||[]).includes(entrySlot))return;const newLog=[{...entry,id:Date.now(),method:"memory"},...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog,newLog[0]);track(EVENTS.FOOD_LOGGED,{method:"memory",calories:entry.calories,protein:entry.protein},user.id);}}
 
   async function fetchRecs(){
     if(recsLoading||!city.trim())return;

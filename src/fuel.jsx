@@ -34,7 +34,7 @@ import { getCyclePhase } from "./utils/ait.js";
 import { getCycleNutrition, PCOS_NOTE, PCOS_FOODS, PERI_NUTRITION, MENO_NUTRITION, isCalorieFreeMode } from "./utils/female.js";
 import {
   searchFoods, searchByBarcode,
-  saveFoodToHistory, getFrequentFoods, getRecentFoods,
+  getFrequentFoods, getRecentFoods,
   getSmartServings, getUsdaFoodDetail,
   updateUsualPortion, getMealTemplates, saveMealTemplate, deleteMealTemplate, incrementTemplateUse,
   addWaterLog, deleteWaterLog,
@@ -465,6 +465,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
   const [frequentFoods,setFrequentFoods]=useState([]);
   const [recentFoods,setRecentFoods]=useState([]);
   const [showBarcodeInSearch,setShowBarcodeInSearch]=useState(false);
+  const [_dbgText,_setDbgText]=useState("");
   const selectedFoodRef=useRef(null);   // guards the async household-measure fetch against tap races
   useEffect(()=>{
     if(!user)return;
@@ -473,22 +474,53 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
   },[user]);
 
   useEffect(()=>{
-    if(!query.trim()){setResults([]);return;}
+    const q=query.trim();
+    if(!q){setResults([]);return;}
+    let cancelled=false;
+    // Instant layer: prefix-match food_history — surfaces previously logged foods immediately,
+    // before the USDA/OFF network round-trip completes.
+    if(user&&!/^\d{8,14}$/.test(q)){
+      sb.from("food_history")
+        .select("food_name,food_data,use_count")
+        .eq("user_id",user.id)
+        .ilike("food_name",`${q}%`)
+        .order("use_count",{ascending:false})
+        .limit(5)
+        .then(({data})=>{
+          if(cancelled)return;
+          const hist=(data||[]).map(r=>({...(r.food_data||{}),name:r.food_name,id:`hist_${r.food_name}`,_hist:true}));
+          setResults(prev=>{const api=prev.filter(f=>!f._hist);return[...hist,...api];});
+        });
+    }
+    // Debounced layer: USDA + Open Food Facts.
+    // cancelled is checked after every await so a superseded keystroke's results
+    // never overwrite the current query's results or diagnostic pill.
     const t=setTimeout(async()=>{
       setSearching(true);
       try{
-        if(/^\d{8,14}$/.test(query.trim())){
-          const r=await searchByBarcode(query.trim());
-          setResults(r?[r]:[]);
+        if(/^\d{8,14}$/.test(q)){
+          const r=await searchByBarcode(q);
+          if(!cancelled)setResults(r?[r]:[]);
         }else{
-          const r=await searchFoods(query.trim());
-          setResults(r||[]);
+          const r=await searchFoods(q);
+          if(!cancelled){
+            if(import.meta.env.MODE!=="production"){
+              const d=r._diag;
+              if(d)_setDbgText(`USDA:${d.usda||"?"} | OFF:${d.off||"?"} | comb:${d.combined} | rank:${d.ranked}`);
+            }
+            setResults(prev=>{
+              const hist=prev.filter(f=>f._hist);
+              const seen=new Set(hist.map(f=>(f.name||"").toLowerCase()));
+              const deduped=(r||[]).filter(f=>!seen.has((f.name||"").toLowerCase()));
+              return[...hist,...deduped];
+            });
+          }
         }
-      }catch{setResults([]);}
-      setSearching(false);
+      }catch{if(!cancelled)setResults(prev=>prev.filter(f=>f._hist));}
+      if(!cancelled)setSearching(false);
     },300);
-    return()=>clearTimeout(t);
-  },[query]);
+    return()=>{cancelled=true;clearTimeout(t);};
+  },[query,user]);
 
   function calcMacros(food,grams){
     const f=grams/100;
@@ -538,7 +570,6 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
       icon:getFoodIcon(foodLabel),
     };
     logEntry(entry);
-    if(user)saveFoodToHistory(user.id,selectedFood).catch(()=>{});
     setToast(`${selectedFood.name} added!`);
     setTimeout(()=>setToast(""),2500);
     selectedFoodRef.current=null;setSelectedFood(null);setQuery("");setResults([]);
@@ -638,6 +669,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
         </button>
       </div>
       {searching&&<div style={{marginBottom:16}}><FoodSearchSkeleton/></div>}
+      {import.meta.env.MODE!=="production"&&_dbgText&&<div style={{fontSize:11,color:"#fff",padding:"6px 12px",background:"rgba(0,0,0,0.85)",borderRadius:8,marginBottom:8,fontFamily:"monospace",whiteSpace:"pre-wrap",wordBreak:"break-all",lineHeight:1.5}}>🔍 {_dbgText}</div>}
       {!searching&&results.length>0&&(
         <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
           {results.slice(0,12).map((food,i)=>{
@@ -923,6 +955,245 @@ function fitterDayToShape(fDay, dayName, sessionType) {
   };
 }
 
+// ── RecipeDetailSheet ──────────────────────────────────────────────────────────
+// Extracted from the inline IIFE. Used by the meal-plan flow (showSwap=true)
+// and the recipe browser (showSwap=false). Ingredient check-off is local state
+// so it resets automatically each time the sheet mounts for a new recipe.
+function RecipeDetailSheet({meal,day,sessFull,onClose,showSwap,onSwap,user}){
+  const [ingChecked,setIngChecked]=useState(new Set());
+  if(!meal)return null;
+  const cal=meal.calories||0,pro=meal.protein||0,carb=meal.carbs||0,fat=meal.fat||0;
+  const ings=meal.ingredients||meal.ing||[];
+  const inst=meal.instructions||null;
+  const dietTags=(meal.dietTags||[]).filter(t=>t&&t!=='none');
+  const allergenTags=meal.allergenTags||[];
+  const maxMacro=Math.max(pro,carb,fat)||1;
+  const fmtMin=(m)=>{m=Math.round(m||0);return m>=60?`${Math.floor(m/60)}h${m%60?` ${m%60}m`:''}`:`${m}m`;};
+  const MB=[{label:'Protein',value:pro,color:'var(--cm-red,#FF3B30)'},{label:'Carbs',value:carb,color:'#60a5fa'},{label:'Fat',value:fat,color:'#FEA020'}];
+  const stepMeta=(s)=>[s.type,s.duration_min?fmtMin(s.duration_min):null,s.appliance,s.temp?`${s.temp.value}°${s.temp.unit}`:null].filter(Boolean).join(' · ');
+  const card={background:'var(--cm-paper,#FFFFFF)',borderRadius:16,padding:'16px',marginBottom:14,boxShadow:'0 2px 12px rgba(0,0,0,.10)'};
+  const eyebrow={fontFamily:"'Archivo',sans-serif",fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase'};
+  const chip={fontFamily:"'Archivo',sans-serif",fontSize:10.5,fontWeight:600,color:'rgba(255,255,255,0.92)',background:'rgba(255,255,255,0.14)',borderRadius:999,padding:'5px 11px',textTransform:'capitalize'};
+  return(
+    <motion.div key="meal-detail-overlay" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.18}}
+      style={{position:'fixed',inset:0,zIndex:500,background:'var(--cm-red,#FF3B30)'}} onClick={()=>{_hL();onClose();}}>
+      <motion.div initial={{y:'100%'}} animate={{y:0}} exit={{y:'100%'}} transition={{type:'spring',damping:28,stiffness:290}}
+        style={{position:'absolute',inset:0,overflowY:'auto',WebkitOverflowScrolling:'touch'}} onClick={e=>e.stopPropagation()}>
+        <div style={{padding:'max(52px,env(safe-area-inset-top,48px)) 18px max(40px,env(safe-area-inset-bottom,28px))'}}>
+          <button onPointerDown={()=>_hL()} onClick={()=>{_hM();onClose();}}
+            style={{background:'rgba(255,255,255,0.16)',border:'none',borderRadius:999,padding:'8px 16px',display:'flex',alignItems:'center',gap:7,cursor:'pointer',marginBottom:22}}>
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M10 4l-4 4 4 4"/></svg>
+            <span style={{...eyebrow,fontSize:10,color:'#fff'}}>Close</span>
+          </button>
+          {day&&sessFull&&<div style={{...eyebrow,fontSize:10,color:'rgba(255,255,255,0.7)',marginBottom:6}}>{day.day?.slice(0,3)} · {sessFull}</div>}
+          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:30,letterSpacing:'-0.01em',color:'#fff',lineHeight:1.05,marginBottom:18}}>{meal.name}</div>
+          <div style={card}>
+            <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:14}}>
+              <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:30,letterSpacing:'-0.01em',color:'var(--cm-ink,#0A0A0A)',lineHeight:1}}>{cal}</span>
+              <span style={{...eyebrow,fontSize:11,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)'}}>kcal</span>
+            </div>
+            {MB.map(({label,value,color})=>(
+              <div key={label} style={{marginBottom:10}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}>
+                  <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.5)',letterSpacing:'0.04em'}}>{label}</span>
+                  <span style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,color}}>{value}g</span>
+                </div>
+                <div style={{height:6,background:'rgba(var(--cm-ink-rgb,10,10,10),0.07)',borderRadius:3,overflow:'hidden'}}>
+                  <motion.div style={{height:'100%',background:color,borderRadius:3}} initial={{width:0}} animate={{width:`${(value/maxMacro)*100}%`}} transition={{duration:0.7,ease:'easeOut'}}/>
+                </div>
+              </div>
+            ))}
+          </div>
+          {(inst||dietTags.length>0||allergenTags.length>0||meal.servings)&&(
+            <div style={{display:'flex',flexWrap:'wrap',gap:7,marginBottom:16}}>
+              {inst?.total_time_min!=null&&<span style={chip}>{fmtMin(inst.total_time_min)} total</span>}
+              {(inst?.yield_servings||meal.servings)&&<span style={chip}>serves {inst?.yield_servings||meal.servings}</span>}
+              {meal.recipe_kind&&<span style={chip}>{meal.recipe_kind}</span>}
+              {dietTags.map(t=><span key={'d'+t} style={chip}>{String(t).replace(/[_-]/g,' ')}</span>)}
+              {allergenTags.map(t=><span key={'a'+t} style={chip}>contains {String(t).replace(/[_-]/g,' ')}</span>)}
+            </div>
+          )}
+          {ings.length>0&&(
+            <div style={card}>
+              <div style={{...eyebrow,fontSize:10,color:'rgba(var(--cm-ink-rgb,10,10,10),0.42)',marginBottom:10}}>Ingredients</div>
+              {ings.map((ing,i)=>{
+                const nm=typeof ing==='object'?(ing?.item||''):String(ing);
+                const amt=typeof ing==='object'?(ing?.amount||''):'';
+                const checked=ingChecked.has(i);
+                return(
+                  <div key={i} onClick={()=>setIngChecked(prev=>{const n=new Set(prev);if(n.has(i))n.delete(i);else n.add(i);return n;})}
+                    style={{display:'flex',alignItems:'center',gap:11,padding:'9px 0',borderBottom:i<ings.length-1?'1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)':'none',cursor:'pointer'}}>
+                    <div style={{width:20,height:20,borderRadius:6,flexShrink:0,border:checked?'none':'1.5px solid rgba(var(--cm-ink-rgb,10,10,10),0.2)',background:checked?'var(--cm-red,#FF3B30)':'transparent',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                      {checked&&<svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M2 7l3.5 3.5 5.5-6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                    </div>
+                    <FoodIcon name={nm||String(ing)} size={28} userId={user?.id}/>
+                    <div style={{flex:1,minWidth:0,fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:14,color:checked?'rgba(var(--cm-ink-rgb,10,10,10),0.35)':'var(--cm-ink,#0A0A0A)',textDecoration:checked?'line-through':'none',textTransform:'capitalize',lineHeight:1.15,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{nm||String(ing)}</div>
+                    {amt&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,color:checked?'rgba(var(--cm-ink-rgb,10,10,10),0.3)':'rgba(var(--cm-ink-rgb,10,10,10),0.55)',flexShrink:0}}>{amt}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {inst?.sections?.length>0&&(
+            <div style={card}>
+              <div style={{...eyebrow,fontSize:10,color:'rgba(var(--cm-ink-rgb,10,10,10),0.42)',marginBottom:12}}>Steps</div>
+              {inst.sections.map((sec,si)=>(
+                <div key={si} style={{marginBottom:si<inst.sections.length-1?16:0}}>
+                  {inst.sections.length>1&&sec.title&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:800,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:9}}>{sec.title}</div>}
+                  {(sec.steps||[]).map((st,sti)=>(
+                    <div key={sti} style={{display:'flex',gap:11,marginBottom:11}}>
+                      <div style={{width:23,height:23,flexShrink:0,borderRadius:999,background:'rgba(var(--cm-red-rgb,255,59,48),0.1)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:800,color:'var(--cm-red,#FF3B30)',marginTop:1}}>{st.n}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontFamily:"'Archivo',sans-serif",fontSize:14,fontWeight:500,color:'var(--cm-ink,#0A0A0A)',lineHeight:1.5}}>{st.text}</div>
+                        {stepMeta(st)&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:600,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)',letterSpacing:'0.04em',textTransform:'uppercase',marginTop:3}}>{stepMeta(st)}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+          {inst&&(inst.make_ahead||inst.storage||inst.reheat)&&(
+            <div style={card}>
+              {[['Make ahead',inst.make_ahead],['Storage',inst.storage],['Reheat',inst.reheat]].filter(([,v])=>v).map(([k,v],ri,arr)=>(
+                <div key={k} style={{marginBottom:ri<arr.length-1?12:0}}>
+                  <div style={{...eyebrow,fontSize:9,color:'var(--cm-red,#FF3B30)',marginBottom:3}}>{k}</div>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.7)',lineHeight:1.5}}>{v}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {showSwap&&(
+            <motion.button whileTap={{scale:0.97}} onPointerDown={()=>_hL()}
+              onClick={()=>{_hM();if(onSwap)onSwap();}}
+              style={{width:'100%',background:'rgba(255,255,255,0.14)',border:'none',borderRadius:14,padding:15,fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,color:'#fff',letterSpacing:'0.02em',cursor:'pointer',marginTop:4}}>
+              Swap this meal
+            </motion.button>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ── RecipeBrowserScreen ────────────────────────────────────────────────────────
+// Browses the 339 curated recipes (user_id IS NULL). Instant Supabase query on
+// every keystroke/filter change — no debounce needed for a local DB read.
+const _RB_COLS='id,name,meal_slot,diet_tags,allergen_tags,calories_per_serving,protein_per_serving,carbs_per_serving,fat_per_serving,servings_count,ingredients,instructions,recipe_kind';
+const _RB_SLOT_OPTS=['All','Breakfast','Lunch','Dinner','Snack'];
+const _RB_DIET_OPTS=['All','Balanced','Vegan','Vegetarian','Pescatarian','Mediterranean','Keto','Paleo','Low Carb','Carnivore'];
+const _RB_DIET_TAG={Vegan:'vegan',Vegetarian:'vegetarian',Pescatarian:'pescatarian',Mediterranean:'mediterranean',Keto:'keto',Paleo:'paleo','Low Carb':'low-carb',Carnivore:'carnivore'};
+
+function RecipeBrowserScreen({user,onOpenRecipe}){
+  const [query,setQuery]=useState('');
+  const [slotFilter,setSlotFilter]=useState('All');
+  const [dietFilter,setDietFilter]=useState('All');
+  const [recipes,setRecipes]=useState([]);
+  const [loading,setLoading]=useState(true);
+  useEffect(()=>{
+    let cancelled=false;
+    setLoading(true);
+    (async()=>{
+      try{
+        let q=sb.from('recipes').select(_RB_COLS).is('user_id',null).order('name');
+        if(query.trim())q=q.ilike('name',`%${query.trim()}%`);
+        if(slotFilter!=='All')q=q.eq('meal_slot',slotFilter.toLowerCase());
+        const dietTag=_RB_DIET_TAG[dietFilter];
+        if(dietFilter!=='All'&&dietTag)q=q.overlaps('diet_tags',[dietTag]);
+        const {data}=await q;
+        if(!cancelled){setRecipes(data||[]);setLoading(false);}
+      }catch{if(!cancelled)setLoading(false);}
+    })();
+    return()=>{cancelled=true;};
+  },[query,slotFilter,dietFilter]);
+  function toMealShape(r){
+    return{
+      name:r.name,
+      calories:Math.round(r.calories_per_serving||0),
+      protein:Math.round((r.protein_per_serving||0)*10)/10,
+      carbs:Math.round((r.carbs_per_serving||0)*10)/10,
+      fat:Math.round((r.fat_per_serving||0)*10)/10,
+      ingredients:r.ingredients||[],
+      instructions:r.instructions||null,
+      recipe_kind:r.recipe_kind||null,
+      dietTags:r.diet_tags||[],
+      allergenTags:r.allergen_tags||[],
+      slot:r.meal_slot,
+      servings:r.servings_count||1,
+      _recipeId:r.id,
+      unfillable:false,
+    };
+  }
+  const _chip=(active)=>({
+    height:36,padding:'0 16px',borderRadius:18,border:'none',
+    background:active?'var(--cm-red,#FF3B30)':'rgba(255,255,255,0.14)',
+    color:active?'#fff':'rgba(255,255,255,0.8)',
+    fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',
+    whiteSpace:'nowrap',flexShrink:0,display:'inline-flex',alignItems:'center',
+    WebkitTapHighlightColor:'transparent',transition:'background 150ms,color 150ms',
+  });
+  const _filterRow={
+    display:'flex',gap:6,flexWrap:'nowrap',overflowX:'scroll',
+    WebkitOverflowScrolling:'touch',scrollbarWidth:'none',
+    marginLeft:-18,marginRight:-18,paddingLeft:18,paddingRight:18,paddingBottom:2,marginBottom:10,
+  };
+  const fmtMin=(m)=>{m=Math.round(m||0);return m>=60?`${Math.floor(m/60)}h${m%60?` ${m%60}m`:''}`:`${m}m`;};
+  return(
+    <div>
+      <div style={{position:'relative',marginBottom:14}}>
+        <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search recipes…"
+          style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.14)',border:'1px solid rgba(255,255,255,0.22)',borderRadius:12,padding:'12px 36px 12px 14px',color:'#fff',fontSize:14,outline:'none',fontFamily:"'Archivo',sans-serif"}}/>
+        {query&&<button onClick={()=>setQuery('')}
+          style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',fontSize:18,color:'rgba(255,255,255,0.5)',cursor:'pointer',lineHeight:1,padding:'0 2px'}}>×</button>}
+      </div>
+      <div style={_filterRow}>
+        {_RB_SLOT_OPTS.map(s=>(
+          <button key={s} style={_chip(slotFilter===s)} onPointerDown={()=>_hL()} onClick={()=>setSlotFilter(s)}>{s}</button>
+        ))}
+      </div>
+      <div style={{..._filterRow,marginBottom:16}}>
+        {_RB_DIET_OPTS.map(d=>(
+          <button key={d} style={_chip(dietFilter===d)} onPointerDown={()=>_hL()} onClick={()=>setDietFilter(d)}>{d}</button>
+        ))}
+      </div>
+      {!loading&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.45)',letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:12}}>{recipes.length} recipe{recipes.length!==1?'s':''}</div>}
+      {loading&&<div style={{display:'flex',flexDirection:'column',gap:10}}>{[1,2,3,4].map(i=>(
+        <div key={i} style={{background:'rgba(255,255,255,0.10)',borderRadius:14,height:72,opacity:0.3+i*0.15}}/>
+      ))}</div>}
+      {!loading&&recipes.length===0&&(
+        <div style={{textAlign:'center',padding:'40px 0',fontFamily:"'Archivo',sans-serif",fontSize:14,color:'rgba(255,255,255,0.5)'}}>No recipes match your filters.</div>
+      )}
+      {!loading&&recipes.length>0&&(
+        <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:40}}>
+          {recipes.map(r=>{
+            const cal=Math.round(r.calories_per_serving||0);
+            const pro=Math.round((r.protein_per_serving||0)*10)/10;
+            const carb=Math.round((r.carbs_per_serving||0)*10)/10;
+            const fat=Math.round((r.fat_per_serving||0)*10)/10;
+            const slot=r.meal_slot?r.meal_slot.charAt(0).toUpperCase()+r.meal_slot.slice(1):'';
+            const time=r.instructions?.total_time_min;
+            return(
+              <button key={r.id} onClick={()=>{_hM();onOpenRecipe(toMealShape(r));}}
+                style={{width:'100%',background:'var(--cm-paper,#FFFFFF)',border:'none',borderRadius:14,padding:'14px 16px',boxShadow:'0 2px 10px rgba(0,0,0,.12)',cursor:'pointer',textAlign:'left',fontFamily:"'Archivo',sans-serif",WebkitTapHighlightColor:'transparent'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:8,marginBottom:5}}>
+                  <div style={{fontWeight:800,fontSize:15,color:'var(--cm-ink,#0A0A0A)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{r.name}</div>
+                  <div style={{fontWeight:800,fontSize:14,color:'var(--cm-red,#FF3B30)',flexShrink:0}}>{cal}<span style={{fontSize:10,fontWeight:600,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)'}}> kcal</span></div>
+                </div>
+                <div style={{display:'flex',gap:10,fontSize:11,fontWeight:600,color:'rgba(var(--cm-ink-rgb,10,10,10),0.55)',alignItems:'center'}}>
+                  <span style={{color:'var(--cm-red,#FF3B30)'}}>P {pro}g</span>
+                  <span>C {carb}g</span>
+                  <span>F {fat}g</span>
+                  <span style={{marginLeft:'auto',color:'rgba(var(--cm-ink-rgb,10,10,10),0.38)',fontSize:10}}>{[slot,time!=null?fmtMin(time):null].filter(Boolean).join(' · ')}</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,removeLog,recs,recsLoading,fetchRecs,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,metabolicProtocol,onOpenPhotoLogger,skippedSlots,onSkipSlots,slotOverages={},onSlotOverage,lockedSlots=[],onLockSlots,resetSignal=0,todayProtocol=null}) {
 
   const FUEL_TABS=[{id:"home",label:"Home"},{id:"kitchen",label:"Kitchen"}];
@@ -1022,7 +1293,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   }
   const useBudgetView=wPrefs?.fuelView==="budget";
   const [ringExpanded,setRingExpanded]=useState(false);
-  const [kitchenCard,setKitchenCard]=useState(0);
+  const [kitchenSection,setKitchenSection]=useState('mealprep'); // 'mealprep' | 'recipes'
 
   // ── Meal Slots ─────────────────────────────────────────────────────────────
   // Returns the array index of the most likely current meal based on hour of day.
@@ -1605,7 +1876,7 @@ Reply with ONLY a valid JSON object, no markdown:
   const [dietExpanded,setDietExpanded]=useState(false); // setup: show all 10 diet styles vs the 2 popular
   const [activeMealDetail,setActiveMealDetail]=useState(null); // {day, meal, dayIndex, mealIndex}
   const [detailFrom,setDetailFrom]=useState('plan'); // where the meal detail was opened from → where Close returns
-  const [mealIngChecked,setMealIngChecked]=useState(new Set()); // per-open ingredient check-off (reset on open)
+  const [browseDetail,setBrowseDetail]=useState(null); // recipe tapped from library browser (no swap button)
   const closeMealDetail=()=>{setActiveMealDetail(null);if(detailFrom==='kitchen')setFuelScreen('kitchen');};
   const [showGroceryList,setShowGroceryList]=useState(false);
   const [groceryFrom,setGroceryFrom]=useState('plan'); // where grocery was opened from → where the X returns
@@ -3169,15 +3440,28 @@ Reply with ONLY a valid JSON object, no markdown:
           </div>
         )}
 
-        {/* ── KITCHEN (Recipes + Meal Prep) ── */}
+        {/* ── KITCHEN (Meal Prep + Recipe Library) ── */}
         {fuelScreen==="kitchen"&&(
           <div style={{maxWidth:isMobile?"100%":700}}>
 
             {/* Home/Kitchen toggle — kept at top of Kitchen so users can switch back */}
             {GOCLUB_REDESIGN&&_fuelToggle}
 
+            {/* Meal Prep / Recipes section toggle — same stadium-pill style as Home/Kitchen */}
+            <div style={{display:'flex',gap:4,background:'rgba(255,255,255,0.15)',border:'1px solid rgba(255,255,255,0.22)',borderRadius:999,padding:4,marginBottom:18}}>
+              {[{id:'mealprep',label:'Meal Prep'},{id:'recipes',label:'Recipes'}].map(t=>{
+                const sel=kitchenSection===t.id;
+                return(
+                  <button key={t.id} onPointerDown={()=>_hL()} onClick={()=>setKitchenSection(t.id)}
+                    style={{flex:1,borderRadius:999,border:'none',cursor:'pointer',fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:'0.04em',textTransform:'uppercase',padding:'9px 0',whiteSpace:'nowrap',transition:'all .15s',WebkitTapHighlightColor:'transparent',background:sel?'#FFFFFF':'transparent',color:sel?'var(--cm-red,#FF3B30)':'rgba(255,255,255,0.7)'}}>
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Meal prep regenerate banner */}
-            {showRegenerateBanner&&(
+            {kitchenSection==='mealprep'&&showRegenerateBanner&&(
               <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)",borderRadius:12,padding:"14px 16px",marginBottom:16,display:"flex",alignItems:"flex-start",gap:12,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
                 <span style={{color:"var(--cm-red,#FF3B30)",fontSize:16,flexShrink:0,lineHeight:1.3}}>!</span>
                 <div style={{flex:1}}>
@@ -3192,7 +3476,7 @@ Reply with ONLY a valid JSON object, no markdown:
             )}
 
             {/* MEAL PREP — training-spine week (active plan) OR generate-your-week (empty) */}
-            {(()=>{
+            {kitchenSection==='mealprep'&&(()=>{
               const _pill={fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,letterSpacing:"0.04em",textTransform:"uppercase",borderRadius:999,padding:"9px 16px",cursor:"pointer",WebkitTapHighlightColor:"transparent"};
               if(!mealPrepPlan){
                 return(
@@ -3251,7 +3535,7 @@ Reply with ONLY a valid JSON object, no markdown:
                               <div style={{lineHeight:1.4}}>
                                 {meals.map((m,mi)=>(
                                   <span key={mi}>
-                                    <span onClick={()=>{_hM();setDetailFrom('kitchen');setMealIngChecked(new Set());setActiveMealDetail({day:d,meal:m,dayIndex,mealIndex:(d.meals||[]).indexOf(m)});setMealPrepScreen('plan');setFuelScreen('mealprep');}}
+                                    <span onClick={()=>{_hM();setDetailFrom('kitchen');setActiveMealDetail({day:d,meal:m,dayIndex,mealIndex:(d.meals||[]).indexOf(m)});setMealPrepScreen('plan');setFuelScreen('mealprep');}}
                                       style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:600,color:'var(--cm-red,#FF3B30)',cursor:'pointer'}}>{m.name}</span>
                                     {mi<meals.length-1&&<span style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.3)'}}> · </span>}
                                   </span>
@@ -3275,6 +3559,11 @@ Reply with ONLY a valid JSON object, no markdown:
                 </div>
               );
             })()}
+
+            {/* RECIPES section */}
+            {kitchenSection==='recipes'&&(
+              <RecipeBrowserScreen user={user} onOpenRecipe={r=>setBrowseDetail(r)}/>
+            )}
 
           </div>
         )}
@@ -3638,7 +3927,7 @@ Reply with ONLY a valid JSON object, no markdown:
                               transition={{delay:0.1+dayIndex*0.06+mealIndex*0.04}}
                               whileTap={{scale:0.97}}
                               onPointerDown={()=>_hL()}
-                              onClick={()=>{if(!isRegMeal){_hM();setDetailFrom('plan');setMealIngChecked(new Set());setActiveMealDetail({day,meal,dayIndex,mealIndex});}}}
+                              onClick={()=>{if(!isRegMeal){_hM();setDetailFrom('plan');setActiveMealDetail({day,meal,dayIndex,mealIndex});}}}
                               style={{
                                 background:'var(--cm-paper,#FFFFFF)',
                                 border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.14)',
@@ -3697,134 +3986,18 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* ── MEAL DETAIL SHEET ── */}
             <AnimatePresence>
-            {activeMealDetail&&(()=>{
-              const {meal,day}=activeMealDetail;
-              const cal=meal?.calories||0, pro=meal?.protein||0, carb=meal?.carbs||0, fat=meal?.fat||0;
-              const ings=meal?.ingredients||meal?.ing||[];
-              const inst=meal?.instructions||null;
-              const dietTags=(meal?.dietTags||[]).filter(t=>t&&t!=='none');
-              const allergenTags=(meal?.allergenTags||[]);
-              const maxMacro=Math.max(pro,carb,fat)||1;
-              const sessFull=day?_sessFull(day.day,day.sessionType):'';
-              const fmtMin=(m)=>{m=Math.round(m||0);return m>=60?`${Math.floor(m/60)}h${m%60?` ${m%60}m`:''}`:`${m}m`;};
-              const MB=[{label:'Protein',value:pro,color:'var(--cm-red,#FF3B30)'},{label:'Carbs',value:carb,color:'#60a5fa'},{label:'Fat',value:fat,color:'#FEA020'}];
-              const stepMeta=(s)=>[s.type,s.duration_min?fmtMin(s.duration_min):null,s.appliance,s.temp?`${s.temp.value}°${s.temp.unit}`:null].filter(Boolean).join(' · ');
-              const card={background:'var(--cm-paper,#FFFFFF)',borderRadius:16,padding:'16px',marginBottom:14,boxShadow:'0 2px 12px rgba(0,0,0,.10)'};
-              const eyebrow={fontFamily:"'Archivo',sans-serif",fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase'};
-              const chip={fontFamily:"'Archivo',sans-serif",fontSize:10.5,fontWeight:600,color:'rgba(255,255,255,0.92)',background:'rgba(255,255,255,0.14)',borderRadius:999,padding:'5px 11px',textTransform:'capitalize'};
-              return(
-                <motion.div key="meal-detail-overlay" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.18}}
-                  style={{position:'fixed',inset:0,zIndex:500,background:'var(--cm-red,#FF3B30)'}} onClick={()=>{_hL();closeMealDetail();}}>
-                  <motion.div initial={{y:'100%'}} animate={{y:0}} exit={{y:'100%'}} transition={{type:'spring',damping:28,stiffness:290}}
-                    style={{position:'absolute',inset:0,overflowY:'auto',WebkitOverflowScrolling:'touch'}} onClick={e=>e.stopPropagation()}>
-                    <div style={{padding:'max(52px,env(safe-area-inset-top,48px)) 18px max(40px,env(safe-area-inset-bottom,28px))'}}>
-                      {/* Close */}
-                      <button onPointerDown={()=>_hL()} onClick={()=>{_hM();closeMealDetail();}}
-                        style={{background:'rgba(255,255,255,0.16)',border:'none',borderRadius:999,padding:'8px 16px',display:'flex',alignItems:'center',gap:7,cursor:'pointer',marginBottom:22}}>
-                        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M10 4l-4 4 4 4"/></svg>
-                        <span style={{...eyebrow,fontSize:10,color:'#fff'}}>Close</span>
-                      </button>
-                      {/* Title + session */}
-                      {day&&<div style={{...eyebrow,fontSize:10,color:'rgba(255,255,255,0.7)',marginBottom:6}}>{day.day?.slice(0,3)} · {sessFull}</div>}
-                      <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:30,letterSpacing:'-0.01em',color:'#fff',lineHeight:1.05,marginBottom:18}}>{meal?.name}</div>
-
-                      {/* Macros */}
-                      <div style={card}>
-                        <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:14}}>
-                          <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:30,letterSpacing:'-0.01em',color:'var(--cm-ink,#0A0A0A)',lineHeight:1}}>{cal}</span>
-                          <span style={{...eyebrow,fontSize:11,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)'}}>kcal</span>
-                        </div>
-                        {MB.map(({label,value,color})=>(
-                          <div key={label} style={{marginBottom:10}}>
-                            <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}>
-                              <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.5)',letterSpacing:'0.04em'}}>{label}</span>
-                              <span style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,color}}>{value}g</span>
-                            </div>
-                            <div style={{height:6,background:'rgba(var(--cm-ink-rgb,10,10,10),0.07)',borderRadius:3,overflow:'hidden'}}>
-                              <motion.div style={{height:'100%',background:color,borderRadius:3}} initial={{width:0}} animate={{width:`${(value/maxMacro)*100}%`}} transition={{duration:0.7,ease:'easeOut'}}/>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Time · servings · tags */}
-                      {(inst||dietTags.length>0||allergenTags.length>0||meal?.servings)&&(
-                        <div style={{display:'flex',flexWrap:'wrap',gap:7,marginBottom:16}}>
-                          {inst?.total_time_min!=null&&<span style={chip}>{fmtMin(inst.total_time_min)} total</span>}
-                          {(inst?.yield_servings||meal?.servings)&&<span style={chip}>serves {inst?.yield_servings||meal?.servings}</span>}
-                          {meal?.recipe_kind&&<span style={chip}>{meal.recipe_kind}</span>}
-                          {dietTags.map(t=><span key={'d'+t} style={chip}>{String(t).replace(/[_-]/g,' ')}</span>)}
-                          {allergenTags.map(t=><span key={'a'+t} style={chip}>contains {String(t).replace(/[_-]/g,' ')}</span>)}
-                        </div>
-                      )}
-
-                      {/* Ingredients — scaled, checkable */}
-                      {ings.length>0&&(
-                        <div style={card}>
-                          <div style={{...eyebrow,fontSize:10,color:'rgba(var(--cm-ink-rgb,10,10,10),0.42)',marginBottom:10}}>Ingredients</div>
-                          {ings.map((ing,i)=>{
-                            const nm=typeof ing==='object'?(ing?.item||''):String(ing);
-                            const amt=typeof ing==='object'?(ing?.amount||''):'';
-                            const checked=mealIngChecked.has(i);
-                            return(
-                              <div key={i} onClick={()=>setMealIngChecked(prev=>{const n=new Set(prev);if(n.has(i))n.delete(i);else n.add(i);return n;})}
-                                style={{display:'flex',alignItems:'center',gap:11,padding:'9px 0',borderBottom:i<ings.length-1?'1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)':'none',cursor:'pointer'}}>
-                                <div style={{width:20,height:20,borderRadius:6,flexShrink:0,border:checked?'none':'1.5px solid rgba(var(--cm-ink-rgb,10,10,10),0.2)',background:checked?'var(--cm-red,#FF3B30)':'transparent',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                                  {checked&&<svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M2 7l3.5 3.5 5.5-6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                                </div>
-                                <FoodIcon name={nm||String(ing)} size={28} userId={user?.id}/>
-                                <div style={{flex:1,minWidth:0,fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:14,color:checked?'rgba(var(--cm-ink-rgb,10,10,10),0.35)':'var(--cm-ink,#0A0A0A)',textDecoration:checked?'line-through':'none',textTransform:'capitalize',lineHeight:1.15,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{nm||String(ing)}</div>
-                                {amt&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,color:checked?'rgba(var(--cm-ink-rgb,10,10,10),0.3)':'rgba(var(--cm-ink-rgb,10,10,10),0.55)',flexShrink:0}}>{amt}</div>}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* Steps — only when authored */}
-                      {inst?.sections?.length>0&&(
-                        <div style={card}>
-                          <div style={{...eyebrow,fontSize:10,color:'rgba(var(--cm-ink-rgb,10,10,10),0.42)',marginBottom:12}}>Steps</div>
-                          {inst.sections.map((sec,si)=>(
-                            <div key={si} style={{marginBottom:si<inst.sections.length-1?16:0}}>
-                              {inst.sections.length>1&&sec.title&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:800,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:9}}>{sec.title}</div>}
-                              {(sec.steps||[]).map((st,sti)=>(
-                                <div key={sti} style={{display:'flex',gap:11,marginBottom:11}}>
-                                  <div style={{width:23,height:23,flexShrink:0,borderRadius:999,background:'rgba(var(--cm-red-rgb,255,59,48),0.1)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:800,color:'var(--cm-red,#FF3B30)',marginTop:1}}>{st.n}</div>
-                                  <div style={{flex:1,minWidth:0}}>
-                                    <div style={{fontFamily:"'Archivo',sans-serif",fontSize:14,fontWeight:500,color:'var(--cm-ink,#0A0A0A)',lineHeight:1.5}}>{st.text}</div>
-                                    {stepMeta(st)&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:600,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)',letterSpacing:'0.04em',textTransform:'uppercase',marginTop:3}}>{stepMeta(st)}</div>}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Make ahead / storage / reheat */}
-                      {inst&&(inst.make_ahead||inst.storage||inst.reheat)&&(
-                        <div style={card}>
-                          {[['Make ahead',inst.make_ahead],['Storage',inst.storage],['Reheat',inst.reheat]].filter(([,v])=>v).map(([k,v],ri,arr)=>(
-                            <div key={k} style={{marginBottom:ri<arr.length-1?12:0}}>
-                              <div style={{...eyebrow,fontSize:9,color:'var(--cm-red,#FF3B30)',marginBottom:3}}>{k}</div>
-                              <div style={{fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.7)',lineHeight:1.5}}>{v}</div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Swap */}
-                      <motion.button whileTap={{scale:0.97}} onPointerDown={()=>_hL()}
-                        onClick={()=>{_hM();const from=detailFrom;const di=activeMealDetail.dayIndex,mi=activeMealDetail.mealIndex;setActiveMealDetail(null);if(from==='kitchen')setFuelScreen('kitchen');regenerateMeal(di,mi);}}
-                        style={{width:'100%',background:'rgba(255,255,255,0.14)',border:'none',borderRadius:14,padding:15,fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,color:'#fff',letterSpacing:'0.02em',cursor:'pointer',marginTop:4}}>
-                        Swap this meal
-                      </motion.button>
-                    </div>
-                  </motion.div>
-                </motion.div>
-              );
-            })()}
+              {activeMealDetail&&(
+                <RecipeDetailSheet
+                  key={activeMealDetail.meal?._recipeId||'plan-detail'}
+                  meal={activeMealDetail.meal}
+                  day={activeMealDetail.day}
+                  sessFull={activeMealDetail.day?_sessFull(activeMealDetail.day.day,activeMealDetail.day.sessionType):''}
+                  onClose={closeMealDetail}
+                  showSwap={true}
+                  onSwap={()=>{const from=detailFrom;const di=activeMealDetail.dayIndex,mi=activeMealDetail.mealIndex;setActiveMealDetail(null);if(from==='kitchen')setFuelScreen('kitchen');regenerateMeal(di,mi);}}
+                  user={user}
+                />
+              )}
             </AnimatePresence>
 
             {/* ── GROCERY LIST BOTTOM SHEET (aisle-grouped · merged qty · check-off) ── */}
@@ -4226,6 +4399,20 @@ Reply with ONLY a valid JSON object, no markdown:
           </div>
         )}
 
+        {/* ── RECIPE BROWSE DETAIL (overlays over Kitchen / anywhere) ── */}
+        <AnimatePresence>
+          {browseDetail&&(
+            <RecipeDetailSheet
+              key={browseDetail._recipeId||'browse-detail'}
+              meal={browseDetail}
+              day={null}
+              sessFull=""
+              onClose={()=>setBrowseDetail(null)}
+              showSwap={false}
+              user={user}
+            />
+          )}
+        </AnimatePresence>
 
       </div>
     </div>
