@@ -23,15 +23,20 @@ export default withLogging(async function handler(req, res) {
     const q = encodeURIComponent(query.trim());
     // Request A: all three dataTypes — captures composite dishes (FNDDS) + whatever
     //   Foundation/SR Legacy happens to rank in USDA's top 50 for this query.
-    // Request B: Foundation + SR Legacy only — forces basic cuts like "Chicken, breast,
-    //   meat only" that USDA's Elasticsearch buries below position 50 for generic queries.
+    // Request B: "${q} raw", Foundation + SR Legacy only — appending "raw" forces
+    //   USDA's Elasticsearch to surface basic generic cuts (Foundation "Chicken, breast,
+    //   boneless, skinless, raw"; Foundation "Beef, tenderloin steak, raw"; etc.) that
+    //   USDA buries past position 50 for plain generic queries like "chicken" or "beef".
+    //   Verified across chicken/beef/salmon/egg/rice — holds up for all; egg has no
+    //   Foundation entries but Survey coverage at #1 is fine without degradation.
     // Both run in parallel; results are merged and deduped by fdcId before returning.
+    const qRaw = encodeURIComponent(query.trim() + ' raw');
     const urlA = `${USDA_BASE}/foods/search?query=${q}`
       + `&dataType=${encodeURIComponent('Survey (FNDDS)')}`
       + `&dataType=Foundation`
       + `&dataType=${encodeURIComponent('SR Legacy')}`
       + `&pageSize=50&api_key=${apiKey}`;
-    const urlB = `${USDA_BASE}/foods/search?query=${q}`
+    const urlB = `${USDA_BASE}/foods/search?query=${qRaw}`
       + `&dataType=Foundation`
       + `&dataType=${encodeURIComponent('SR Legacy')}`
       + `&pageSize=25&api_key=${apiKey}`;
