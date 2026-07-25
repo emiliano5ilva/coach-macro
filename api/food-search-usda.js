@@ -20,26 +20,54 @@ export default withLogging(async function handler(req, res) {
   }
 
   try {
-    // Include Survey (FNDDS) — the dataset that covers prepared/mixed dishes
-    // (e.g. "fettuccine alfredo"); Foundation + SR Legacy are mostly raw ingredients.
-    // Use repeated dataType params (USDA spec: array[string], collectionFormat:multi).
-    // Build with encodeURIComponent so spaces are %20 (not +) and api_key is passed raw
-    // to avoid URLSearchParams encoding base64 chars (+/=) in the key.
-    const url = `${USDA_BASE}/foods/search`
-      + `?query=${encodeURIComponent(query.trim())}`
+    const q = encodeURIComponent(query.trim());
+    // Request A: all three dataTypes — captures composite dishes (FNDDS) + whatever
+    //   Foundation/SR Legacy happens to rank in USDA's top 50 for this query.
+    // Request B: Foundation + SR Legacy only — forces basic cuts like "Chicken, breast,
+    //   meat only" that USDA's Elasticsearch buries below position 50 for generic queries.
+    // Both run in parallel; results are merged and deduped by fdcId before returning.
+    const urlA = `${USDA_BASE}/foods/search?query=${q}`
       + `&dataType=${encodeURIComponent('Survey (FNDDS)')}`
       + `&dataType=Foundation`
       + `&dataType=${encodeURIComponent('SR Legacy')}`
-      + `&pageSize=50`
-      + `&api_key=${apiKey}`;
-    const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (!r.ok) {
-      const errBody = await r.text().catch(() => '');
-      console.error('[food-search-usda] USDA responded', r.status, errBody.slice(0, 300));
-      return res.status(200).json({ foods: [] });
+      + `&pageSize=50&api_key=${apiKey}`;
+    const urlB = `${USDA_BASE}/foods/search?query=${q}`
+      + `&dataType=Foundation`
+      + `&dataType=${encodeURIComponent('SR Legacy')}`
+      + `&pageSize=25&api_key=${apiKey}`;
+
+    const [resA, resB] = await Promise.allSettled([
+      fetch(urlA, { signal: AbortSignal.timeout(5000) }),
+      fetch(urlB, { signal: AbortSignal.timeout(5000) }),
+    ]);
+
+    const seen = new Set();
+    const foods = [];
+
+    const merge = (items) => {
+      for (const f of (items || [])) {
+        if (f.fdcId && !seen.has(f.fdcId)) {
+          seen.add(f.fdcId);
+          foods.push(f);
+        }
+      }
+    };
+
+    for (const [label, result] of [['A', resA], ['B', resB]]) {
+      if (result.status !== 'fulfilled') {
+        console.error(`[food-search-usda] request ${label} threw:`, result.reason?.message);
+        continue;
+      }
+      if (!result.value.ok) {
+        const body = await result.value.text().catch(() => '');
+        console.error(`[food-search-usda] request ${label} USDA responded`, result.value.status, body.slice(0, 200));
+        continue;
+      }
+      const data = await result.value.json().catch(() => null);
+      merge(data?.foods);
     }
-    const data = await r.json();
-    return res.status(200).json({ foods: data.foods || [] });
+
+    return res.status(200).json({ foods });
   } catch (e) {
     console.error('[food-search-usda] fetch error:', e.message);
     return res.status(200).json({ foods: [] });
