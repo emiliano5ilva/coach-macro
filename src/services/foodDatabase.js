@@ -147,19 +147,27 @@ const getNutrient = (nutrients, nutrientId) => {
   return Math.round((n?.value || 0) * 10) / 10;
 };
 
-const searchUSDA = async (query) => {
+const searchUSDA = async (query, diag) => {
   try {
     // Static `import.meta.env.VITE_API_BASE` (no `?.`) so Vite replaces just these keys at build
     // time instead of materializing the whole import.meta.env object into the bundle (which would
     // dump every VITE_* var — secrets included). Outer typeof guard covers non-ESM contexts.
     // Fall back to VITE_API_BASE_URL (what client.js uses) — .env.local only sets the _URL variant.
     const API_BASE = typeof import.meta !== "undefined" ? (import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_BASE_URL || "") : "";
-    const res = await fetch(`${API_BASE}/api/food-search-usda?query=${encodeURIComponent(query)}`, {
-      signal: AbortSignal.timeout(6000),
-    });
-    if (!res.ok) return [];
+    const _usdaCtrl = new AbortController();
+    const _usdaTimer = setTimeout(() => _usdaCtrl.abort(), 6000);
+    let res;
+    try { res = await fetch(`${API_BASE}/api/food-search-usda?query=${encodeURIComponent(query)}`, { signal: _usdaCtrl.signal }); }
+    finally { clearTimeout(_usdaTimer); }
+    if (!res.ok) {
+      if (import.meta.env.MODE !== "production" && diag) diag.usda = `HTTP:${res.status}`;
+      return [];
+    }
     const data = await res.json();
-    if (!Array.isArray(data.foods)) return [];
+    if (!Array.isArray(data.foods)) {
+      if (import.meta.env.MODE !== "production" && diag) diag.usda = "no foods array";
+      return [];
+    }
     return data.foods
       .filter(f => f.foodNutrients?.length > 0)
       .map(food => ({
@@ -168,6 +176,7 @@ const searchUSDA = async (query) => {
         fdcId: food.fdcId,                                       // raw id → on-tap detail fetch for household measures
         name: food.description,
         brand: food.brandOwner || null,
+        dataType: food.dataType || null,                         // preserved for ranking boost (Foundation > SR Legacy > Survey)
         servingSize: 100,
         servingUnit: "g",
         servingQuantity: null,                                   // USDA search has no household serving
@@ -182,7 +191,11 @@ const searchUSDA = async (query) => {
         sodium: getNutrient(food.foodNutrients, 1093),
       }))
       .filter(f => f.calories > 0 || f.protein > 0);
-  } catch {
+  } catch(e) {
+    if (import.meta.env.MODE !== "production") {
+      console.error('[food-search][usda]', e?.name, e?.message);
+      if (diag) diag.usda = `ERR:${e?.name}:${e?.message}`;
+    }
     return [];
   }
 };
@@ -196,9 +209,11 @@ export const getUsdaFoodDetail = async (fdcId) => {
   if (!fdcId) return [];
   try {
     const API_BASE = typeof import.meta !== "undefined" ? (import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_BASE_URL || "") : "";
-    const res = await fetch(`${API_BASE}/api/food-detail-usda?fdcId=${encodeURIComponent(fdcId)}`, {
-      signal: AbortSignal.timeout(5000),
-    });
+    const _detCtrl = new AbortController();
+    const _detTimer = setTimeout(() => _detCtrl.abort(), 5000);
+    let res;
+    try { res = await fetch(`${API_BASE}/api/food-detail-usda?fdcId=${encodeURIComponent(fdcId)}`, { signal: _detCtrl.signal }); }
+    finally { clearTimeout(_detTimer); }
     if (!res.ok) return [];
     const data = await res.json();
     return Array.isArray(data.portions) ? data.portions : [];
@@ -209,12 +224,19 @@ export const getUsdaFoodDetail = async (fdcId) => {
 
 // ── Open Food Facts ───────────────────────────────────────────────────────────
 
-const searchOpenFoodFacts = async (query) => {
+const searchOpenFoodFacts = async (query, diag) => {
   try {
     // lc=en → prefer English product names (cuts foreign-language noise at the source).
     const url = `${OFF_BASE}/cgi/search.pl?search_terms=${encodeURIComponent(query)}&json=1&page_size=20&lc=en&fields=product_name,brands,serving_size,serving_quantity,categories_tags,nutriments,id`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(2500) }); // OFF is flaky (503s) — fail fast, don't stall the search
-    if (!res.ok) return [];
+    const _offCtrl = new AbortController();
+    const _offTimer = setTimeout(() => _offCtrl.abort(), 2500); // OFF is flaky (503s) — fail fast, don't stall the search
+    let res;
+    try { res = await fetch(url, { signal: _offCtrl.signal }); }
+    finally { clearTimeout(_offTimer); }
+    if (!res.ok) {
+      if (import.meta.env.MODE !== "production" && diag) diag.off = `HTTP:${res.status}`;
+      return [];
+    }
     const data = await res.json();
     if (!data.products) return [];
     return data.products
@@ -244,7 +266,11 @@ const searchOpenFoodFacts = async (query) => {
       };
       })
       .filter(f => f.calories > 0 || f.protein > 0);
-  } catch {
+  } catch(e) {
+    if (import.meta.env.MODE !== "production") {
+      console.error('[food-search][off]', e?.name, e?.message);
+      if (diag) diag.off = `ERR:${e?.name}:${e?.message}`;
+    }
     return [];
   }
 };
@@ -259,10 +285,26 @@ const deduplicateFoods = (foods) => {
   });
 };
 
+// Common cuts/forms that should surface above unusual anatomical parts when the
+// query is generic (e.g. "chicken" → breast before feet).
+const _COMMON_CUTS = /\b(breast|thigh|drumstick|wing|leg|tenderloin|loin|sirloin|ribeye|chuck|round|brisket|shank|shoulder|belly|strip|chop|cutlet|patty|fillet|roast|ground|mince|whole|boneless|skinless)\b/;
+// Unusual anatomical parts — deprioritise unless the user explicitly typed them.
+const _UNUSUAL_PARTS = /\b(feet|foot|skin|gizzard|liver|heart|neck|back|tail|giblet|tripe|tongue|kidney|lung|blood|intestine|oxtail|snout|jowl|cheek|marrow|sweetbread)\b/;
+// USDA dataType quality tiers — Foundation is the highest-quality curated dataset.
+const _DATATYPE_BONUS = { Foundation: 20, 'SR Legacy': 10 };
+// USDA internal lab/survey descriptors — not recognizable consumer food names.
+// Confirmed from scans of chicken/beef/pork/turkey/salmon/shrimp/egg result sets.
+const _LAB_QUALIFIERS = /\bNFS\b|with additives|\(may contain|all classes|\bbabyfood\b|\bns as to\b/i;
+// Recognisable cooked preparation states.
+const _COOKED_STATES = /\b(roasted|grilled|baked|braised|stewed|boiled|cooked|fried|sauteed|sautéed|rotisserie|smoked|poached|broiled)\b/;
+// Queries where raw IS the expected form — skip cooked/raw adjustment entirely.
+const _RAW_OK_QUERY = /\b(raw|tartare|sashimi|ceviche|crudo|carpaccio|poke|sushi|oyster|clam|lox|gravlax)\b/;
+
 // Relevance score of a food name vs the query. Returns -1 to DROP (no meaningful
 // match — kills tangential/foreign garbage like Danish jam for "fettuccine alfredo").
 // Higher = better; exact/prefix/full-phrase matches rank above loose token matches.
-const scoreRelevance = (name, query) => {
+// dataType: USDA dataset string ("Foundation", "SR Legacy", "Survey (FNDDS)") or undefined.
+const scoreRelevance = (name, query, dataType) => {
   const n = (name || "").toLowerCase().trim();
   if (!n) return -1;
   const q = query.toLowerCase().trim();
@@ -279,6 +321,19 @@ const scoreRelevance = (name, query) => {
   const nTokens = n.split(/[\s,()]+/).filter(Boolean);
   for (const t of check) if (nTokens.includes(t)) score += 6;   // whole-word (not substring) bonus
   score -= Math.min(n.length, 80) * 0.05;        // prefer concise names on ties
+  // Common cuts surface above unusual parts for generic queries like "chicken".
+  if (_COMMON_CUTS.test(n)) score += 25;
+  if (_UNUSUAL_PARTS.test(n) && !_UNUSUAL_PARTS.test(q)) score -= 60;
+  // USDA internal lab descriptors — not recognisable consumer food names.
+  if (_LAB_QUALIFIERS.test(n) && !_LAB_QUALIFIERS.test(q)) score -= 80;
+  // Cooked vs raw default preference — prefer recognisable cooked preparations
+  // unless the query itself signals raw is intended (tartare/sashimi/poke/raw/etc.).
+  if (!_RAW_OK_QUERY.test(q)) {
+    if (_COOKED_STATES.test(n)) score += 15;    // boost cooked preparation states
+    else if (/\braw\b/.test(n)) score -= 10;   // slight depriority for bare "raw" entries
+  }
+  // Foundation > SR Legacy > Survey (FNDDS) for equal text relevance.
+  score += _DATATYPE_BONUS[dataType] || 0;
   return score;
 };
 
@@ -287,7 +342,12 @@ const scoreRelevance = (name, query) => {
 const FOOD_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 export const searchFoods = async (query) => {
   if (!query || query.length < 2) return [];
-  const cacheKey = `food_search_v2_${query.toLowerCase().trim()}`;  // v2 → invalidates pre-ranking cache
+  // Per-call diagnostic object — isolated so concurrent in-flight searches can't
+  // interleave writes. Attached to the returned array; only visible in dev builds.
+  const diag = import.meta.env.MODE !== "production"
+    ? { usda: null, off: null, combined: 0, ranked: 0 }
+    : null;
+  const cacheKey = `food_search_v5_${query.toLowerCase().trim()}`;  // v5 → orphans v4 (cooked-boost + lab-qualifier fix)
   try {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
@@ -298,21 +358,27 @@ export const searchFoods = async (query) => {
   try {
     // USDA first (English, curated, covers prepared dishes via FNDDS); OFF second (branded/global).
     const settled = await Promise.allSettled([
-      searchUSDA(query),
-      searchOpenFoodFacts(query),
+      searchUSDA(query, diag),
+      searchOpenFoodFacts(query, diag),
     ]);
     settled.forEach((r, i) => {
       if (r.status === "rejected") console.warn(`[searchFoods] source ${i} failed:`, r.reason);
     });
+    if (diag) {
+      // Sources that succeeded without an error write set usda/off null → fill in count.
+      if (diag.usda === null) diag.usda = `OK:${settled[0].value?.length ?? 0}`;
+      if (diag.off === null) diag.off = `OK:${settled[1].value?.length ?? 0}`;
+    }
     const combined = settled.flatMap(r =>
       r.status === "fulfilled" && Array.isArray(r.value) ? r.value : []
     );
     // Relevance rank: drop non-matching junk, sort best-match first, USDA wins ties.
     const ranked = combined
-      .map(f => ({ f, s: scoreRelevance(f.name, query), usda: f.source === "usda" ? 1 : 0 }))
+      .map(f => ({ f, s: scoreRelevance(f.name, query, f.dataType), usda: f.source === "usda" ? 1 : 0 }))
       .filter(x => x.s >= 0)
       .sort((a, b) => (b.s - a.s) || (b.usda - a.usda))
       .map(x => x.f);
+    if (diag) { diag.combined = combined.length; diag.ranked = ranked.length; }
     // Fallback: if the strict substring filter dropped EVERYTHING (e.g. a typo/partial
     // like "Fetuc" that USDA/OFF fuzzy-matched to "Fettuccine…" but our rule didn't),
     // show the raw source results (USDA first) instead of a blank "no results".
@@ -320,7 +386,10 @@ export const searchFoods = async (query) => {
       ? ranked
       : combined.slice().sort((a, b) => ((b.source === "usda") - (a.source === "usda")));
     const results = deduplicateFoods(finalList).slice(0, 20);
-    try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: results })); } catch {}
+    if (diag) results._diag = diag;  // attach per-call snapshot; not JSON-serialised so safe to cache
+    if (results.length > 0) {
+      try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: results })); } catch {}
+    }
     return results;
   } catch {
     return [];
@@ -330,7 +399,11 @@ export const searchFoods = async (query) => {
 export const searchByBarcode = async (barcode) => {
   try {
     const url = `${OFF_BASE}/api/v0/product/${barcode}.json`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const _bcCtrl = new AbortController();
+    const _bcTimer = setTimeout(() => _bcCtrl.abort(), 5000);
+    let res;
+    try { res = await fetch(url, { signal: _bcCtrl.signal }); }
+    finally { clearTimeout(_bcTimer); }
     const data = await res.json();
     if (data.status !== 1 || !data.product) return null;
     const p = data.product;

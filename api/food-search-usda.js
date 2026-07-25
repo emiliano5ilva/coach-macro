@@ -20,30 +20,30 @@ export default withLogging(async function handler(req, res) {
   }
 
   try {
-    const q = encodeURIComponent(query.trim());
-    // Request A: all three dataTypes — captures composite dishes (FNDDS) + whatever
-    //   Foundation/SR Legacy happens to rank in USDA's top 50 for this query.
-    // Request B: "${q} raw", Foundation + SR Legacy only — appending "raw" forces
-    //   USDA's Elasticsearch to surface basic generic cuts (Foundation "Chicken, breast,
-    //   boneless, skinless, raw"; Foundation "Beef, tenderloin steak, raw"; etc.) that
-    //   USDA buries past position 50 for plain generic queries like "chicken" or "beef".
-    //   Verified across chicken/beef/salmon/egg/rice — holds up for all; egg has no
-    //   Foundation entries but Survey coverage at #1 is fine without degradation.
-    // Both run in parallel; results are merged and deduped by fdcId before returning.
-    const qRaw = encodeURIComponent(query.trim() + ' raw');
+    const q      = encodeURIComponent(query.trim());
+    const qCooked = encodeURIComponent(query.trim() + ' cooked');
+    const baseFilt = `&dataType=Foundation&dataType=${encodeURIComponent('SR Legacy')}`;
+
+    // Request A: all three dataTypes, plain query — composite dishes + any
+    //   Foundation/SR Legacy that ranks naturally in USDA's top 50.
+    // Request B: Foundation + SR Legacy, plain query — basic cuts/forms that
+    //   USDA buries past position 50 for generic single-word queries.
+    // Request C: Foundation + SR Legacy, "${q} cooked" — forces cooked
+    //   Foundation/SR Legacy basics (roasted breast, grilled fillet, etc.) that
+    //   neither A nor B surface reliably for generic queries.
+    // All three run in parallel; results merged and deduped by fdcId.
     const urlA = `${USDA_BASE}/foods/search?query=${q}`
       + `&dataType=${encodeURIComponent('Survey (FNDDS)')}`
       + `&dataType=Foundation`
       + `&dataType=${encodeURIComponent('SR Legacy')}`
       + `&pageSize=50&api_key=${apiKey}`;
-    const urlB = `${USDA_BASE}/foods/search?query=${qRaw}`
-      + `&dataType=Foundation`
-      + `&dataType=${encodeURIComponent('SR Legacy')}`
-      + `&pageSize=25&api_key=${apiKey}`;
+    const urlB = `${USDA_BASE}/foods/search?query=${q}${baseFilt}&pageSize=25&api_key=${apiKey}`;
+    const urlC = `${USDA_BASE}/foods/search?query=${qCooked}${baseFilt}&pageSize=25&api_key=${apiKey}`;
 
-    const [resA, resB] = await Promise.allSettled([
+    const [resA, resB, resC] = await Promise.allSettled([
       fetch(urlA, { signal: AbortSignal.timeout(5000) }),
       fetch(urlB, { signal: AbortSignal.timeout(5000) }),
+      fetch(urlC, { signal: AbortSignal.timeout(5000) }),
     ]);
 
     const seen = new Set();
@@ -58,7 +58,7 @@ export default withLogging(async function handler(req, res) {
       }
     };
 
-    for (const [label, result] of [['A', resA], ['B', resB]]) {
+    for (const [label, result] of [['A', resA], ['B', resB], ['C', resC]]) {
       if (result.status !== 'fulfilled') {
         console.error(`[food-search-usda] request ${label} threw:`, result.reason?.message);
         continue;
