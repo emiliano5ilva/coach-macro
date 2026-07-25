@@ -4,7 +4,7 @@ const USDA_BASE = 'https://api.nal.usda.gov/fdc/v1';
 
 // Targeted cut terms for enrichment of single-word generic queries.
 // Each is appended to the bare query ("chicken breast", "chicken thigh", etc.)
-// and fetched Foundation+SR Legacy only, pageSize=10.
+// and fetched Foundation+SR Legacy only, pageSize=25.
 // "breast"  — surfaces "meat only, cooked, roasted" SR Legacy basics for poultry
 // "thigh"   — surfaces thigh basics for poultry
 // "fillet"  — surfaces fish fillet basics (salmon, tilapia, cod, etc.)
@@ -43,7 +43,7 @@ export default withLogging(async function handler(req, res) {
     //   Foundation/SR Legacy basics (whole-bird roasted, etc.).
     // D/E/F: enrichment cuts (breast/thigh/fillet) — only for single-word
     //   generic queries (no spaces). Each is "${q} <cut>" Foundation+SR Legacy,
-    //   pageSize=10. Surfaces "Chicken, breast, meat only, cooked, roasted" etc.
+    //   pageSize=25. Surfaces "Chicken, breast, meat only, cooked, roasted" etc.
     //   that USDA buries past position 25 even in the cooked-filtered pool.
     //   Degrades gracefully: inapplicable terms return empty or irrelevant
     //   entries that scoreRelevance drops at -1 (e.g. "salmon breast").
@@ -63,7 +63,7 @@ export default withLogging(async function handler(req, res) {
       ['B', urlB],
       ['C', urlC],
       ...(isGenericWord
-        ? ENRICH_CUTS.map(cut => [cut, `${USDA_BASE}/foods/search?query=${encodeURIComponent(raw + ' ' + cut)}${baseFilt}&pageSize=10&api_key=${apiKey}`])
+        ? ENRICH_CUTS.map(cut => [cut, `${USDA_BASE}/foods/search?query=${encodeURIComponent(raw + ' ' + cut)}${baseFilt}&pageSize=25&api_key=${apiKey}`])
         : []),
     ];
 
