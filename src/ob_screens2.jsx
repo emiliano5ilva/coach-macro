@@ -7224,6 +7224,19 @@ const ProgressSection = React.memo(function ProgressSection({
     );
 });
 
+// Module-level constant — identical on every render, no reason to recreate.
+// Index 1–8 maps to cycleWeek (1-indexed, 8-week block).
+const _PERIO_PHASES = [null,
+  {phase:"Building",   wks:"1–3", cal:+200, carbPct:.50, protMult:1.0, note:"Building phase — fuel muscle growth"},
+  {phase:"Building",   wks:"1–3", cal:+200, carbPct:.50, protMult:1.0, note:"Building phase — fuel muscle growth"},
+  {phase:"Building",   wks:"1–3", cal:+200, carbPct:.50, protMult:1.0, note:"Building phase — fuel muscle growth"},
+  {phase:"Deload",     wks:"4",   cal:-150, carbPct:.40, protMult:1.0, note:"Deload week — body resets and recovers"},
+  {phase:"Performance",wks:"5–7", cal:0,    carbPct:null,protMult:1.1, note:"Performance phase — carbs fuel training"},
+  {phase:"Performance",wks:"5–7", cal:0,    carbPct:null,protMult:1.1, note:"Performance phase — carbs fuel training"},
+  {phase:"Performance",wks:"5–7", cal:0,    carbPct:null,protMult:1.1, note:"Performance phase — carbs fuel training"},
+  {phase:"Mini Cut",   wks:"8",   cal:-400, carbPct:.35, protMult:1.2, note:"Mini cut — shed any fat gained this cycle"},
+];
+
 export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user,onProfileUpdate}) {
   const [section,setSection]=useState("today"); // today | train | fuel | progress | me
   // Deferred-mount flags: Train and Fuel mount on first visit then stay alive (display:none
@@ -8243,17 +8256,7 @@ Be specific and practical. Empathetic tone. No fluff.`,
   const _daysSince=Math.max(0,Math.floor((new Date()-_startD)/86400000));
   const programWeek=programCurrentWeek||(Math.floor(_daysSince/7)+1);
   const cycleWeek=((programWeek-1)%8)+1;
-  const PERIO_PHASES=[null,
-    {phase:"Building",   wks:"1–3", cal:+200, carbPct:.50, protMult:1.0, note:"Building phase — fuel muscle growth"},
-    {phase:"Building",   wks:"1–3", cal:+200, carbPct:.50, protMult:1.0, note:"Building phase — fuel muscle growth"},
-    {phase:"Building",   wks:"1–3", cal:+200, carbPct:.50, protMult:1.0, note:"Building phase — fuel muscle growth"},
-    {phase:"Deload",     wks:"4",   cal:-150, carbPct:.40, protMult:1.0, note:"Deload week — body resets and recovers"},
-    {phase:"Performance",wks:"5–7", cal:0,    carbPct:null,protMult:1.1, note:"Performance phase — carbs fuel training"},
-    {phase:"Performance",wks:"5–7", cal:0,    carbPct:null,protMult:1.1, note:"Performance phase — carbs fuel training"},
-    {phase:"Performance",wks:"5–7", cal:0,    carbPct:null,protMult:1.1, note:"Performance phase — carbs fuel training"},
-    {phase:"Mini Cut",   wks:"8",   cal:-400, carbPct:.35, protMult:1.2, note:"Mini cut — shed any fat gained this cycle"},
-  ];
-  const _phase=PERIO_PHASES[cycleWeek];
+  const _phase=_PERIO_PHASES[cycleWeek];
   const _baseTDEE=profile?.baseTDEE||profile?.goalCals||2000;
   const _wLbs=profile?.wUnit==="kg"?(parseFloat(profile?.weight||70)*2.205):parseFloat(profile?.weight||160);
   const _bodyweightKg=profile?.wUnit==="lbs"?parseFloat(profile?.weight||160)*0.4536:parseFloat(profile?.weight||70);

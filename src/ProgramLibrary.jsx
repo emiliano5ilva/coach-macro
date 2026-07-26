@@ -810,7 +810,7 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
             <div key={prog.id} className={`plib-card${isCurrent?" current":""}`} onClick={() => setDetailProg(prog)} style={{overflow:"hidden", opacity: equipOk ? 1 : 0.75}}>
               {(()=>{ const img=getProgramImage(prog.id); return img?(
                 <div style={{position:"relative",width:"calc(100% + 32px)",height:100,margin:"-16px -16px 12px -16px",borderRadius:"12px 12px 0 0",overflow:"hidden"}}>
-                  <img src={img} alt={prog.name} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center",display:"block"}} onError={e=>{e.target.parentElement.style.display="none";}}/>
+                  <img src={img} alt={prog.name} loading="lazy" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center",display:"block"}} onError={e=>{e.target.parentElement.style.display="none";}}/>
                   <div style={{position:"absolute",bottom:0,left:0,right:0,height:50,background:"linear-gradient(transparent,rgba(9,11,17,0.97))",pointerEvents:"none"}}/>
                 </div>
               ):null; })()}
