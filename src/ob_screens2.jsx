@@ -7693,26 +7693,26 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     }
   }
 
-  async function saveSkippedSlots(newSkipped){
+  const saveSkippedSlots=useCallback(async (newSkipped)=>{
     if(!user)return;
     setSkippedSlots(newSkipped);
     const today=new Date().toISOString().split("T")[0];
     await sb.from("food_logs").upsert({user_id:user.id,date:today,skipped_slots:newSkipped},{onConflict:"user_id,date"});
-  }
+  },[user]);
 
-  async function saveSlotOverages(newOverages){
+  const saveSlotOverages=useCallback(async (newOverages)=>{
     if(!user)return;
     setSlotOverages(newOverages);
     const today=new Date().toISOString().split("T")[0];
     await sb.from("food_logs").upsert({user_id:user.id,date:today,slot_overages:newOverages},{onConflict:"user_id,date"});
-  }
+  },[user]);
 
-  async function saveLockedSlots(newLocked){
+  const saveLockedSlots=useCallback(async (newLocked)=>{
     if(!user)return;
     setLockedSlots(newLocked);
     const today=new Date().toISOString().split("T")[0];
     await sb.from("food_logs").upsert({user_id:user.id,date:today,locked_slots:newLocked},{onConflict:"user_id,date"});
-  }
+  },[user]);
 
   function handlePhotoLog(entries){
     const isFirstMeal=log.length===0;
@@ -8223,7 +8223,12 @@ Be specific and practical. Empathetic tone. No fluff.`,
   // Run / hyrox focus detection — canonical mode via resolveProgram, the SAME source
   // TrainSection uses (sections.jsx:2531), so Today and Train classify identically and
   // can't diverge on the stale-sticky profile.run_race_type field.
-  const _todayMode = resolveProgram(wPrefs, profile).mode;
+  // Memoised: only re-resolves when program-identity fields change (not on timer ticks,
+  // log updates, or any other unrelated state). hybridTemplate/hyroxProgram intentionally
+  // excluded — they affect displayName only, never mode.
+  const _todayMode = useMemo(()=>resolveProgram(wPrefs,profile).mode,[
+    wPrefs?._libraryId,wPrefs?.isHyrox,wPrefs?.isHybrid,wPrefs?.splitType,wPrefs?.runPlan,profile?.run_race_type
+  ]);
   const _prescIsRun = (_todayMode === 'running');
   const _hybridRunDayHome = wPrefs?.isHybrid && !!(wPrefs?.dayPlan?.[todayKey]?.run) && !wPrefs?.dayPlan?.[todayKey]?.lift;
   const todayIsRunDay = _prescIsRun || _hybridRunDayHome;
@@ -8346,7 +8351,7 @@ Be specific and practical. Empathetic tone. No fluff.`,
   const waterLoggedOz=waterLogs.reduce((s,l)=>s+Number(l.amount_oz),0);
   const hydrationBonus=getHydrationBonus(waterLoggedOz,waterTarget);
 
-  async function handleAddWater(oz){
+  const handleAddWater=useCallback(async (oz)=>{
     const today=new Date().toISOString().split("T")[0];
     // Optimistic update — both Today and Fuel see the change immediately
     const tempId=`tmp_${Date.now()}`;
@@ -8361,11 +8366,11 @@ Be specific and practical. Empathetic tone. No fluff.`,
     }catch{
       setWaterLogs(prev=>prev.filter(l=>l.id!==tempId));
     }
-  }
-  async function handleDeleteWater(id){
+  },[user]);
+  const handleDeleteWater=useCallback(async (id)=>{
     await deleteWaterLog(id);
     setWaterLogs(prev=>prev.filter(l=>l.id!==id));
-  }
+  },[]);
 
   // ── Comeback Protocol ────────────────────────────────────────────────────────
   const lastWorkoutDate=workoutLogsRaw.length>0?workoutLogsRaw[0].date:null;
@@ -8427,6 +8432,9 @@ Be specific and practical. Empathetic tone. No fluff.`,
   const handleStartLocalRest=useCallback((secs)=>{setLocalRestSecs(secs||90);setShowLocalRest(true);},[]);
   const handleSkipLocalRest=useCallback(()=>{setShowLocalRest(false);setLocalRestSecs(90);},[]);
   const handleReduceLocalRest=useCallback(()=>setLocalRestSecs(s=>Math.max(0,s-30)),[]);
+  // ── Stable callbacks for FuelSection inline-arrow props ─────────────────────
+  const handleOpenPhotoLogger=useCallback(()=>setShowPhotoLogger(true),[]);
+  const handleClearPendingTodaySlot=useCallback(()=>setPendingTodaySlot(null),[]);
 
   useEffect(()=>{
     if(!showLocalRest)return;
@@ -8437,7 +8445,7 @@ Be specific and practical. Empathetic tone. No fluff.`,
 
   useEffect(()=>()=>{clearInterval(restInterval.current);clearTimeout(notifTimeoutRef.current);},[]);
 
-  async function aiLog(){
+  const aiLog=useCallback(async ()=>{
     if(!foodInput.trim())return;setLogging(true);setLogMsg("");
     try{
       const raw=await ai(`Estimate macros for: "${foodInput}". Reply ONLY valid JSON no markdown: {"food":"short name","calories":0,"protein":0,"carbs":0,"fat":0}`);
@@ -8453,21 +8461,23 @@ Be specific and practical. Empathetic tone. No fluff.`,
     }
     catch(e){console.error("[aiLog] error:",e);const m=getAIErrorMessage(e);if(m)setLogMsg("⚠️ "+m);}
     setLogging(false);
-  }
-  async function scanBarcode(code){
+  },[foodInput,log,user,wPrefs,profile]);
+  const scanBarcode=useCallback(async (code)=>{
     const barcode=(code||barcodeInput).trim();
     if(!barcode)return null;
     setBarcodeLoading(true);setBarcodeResult(null);
     const result=await lookupBarcode(barcode);setBarcodeResult(result);setBarcodeLoading(false);
     return result;
-  }
+  },[barcodeInput]);
   function _getTimeBasedSlot(slots){const h=new Date().getHours(),n=slots.length;if(n<=0)return 1;const bounds=n===2?[13]:n===4?[10,13,18]:n===5?[9,12,15,19]:[8,10,13,16,19];const idx=bounds.findIndex(b=>h<b);return slots[idx===-1?n-1:Math.min(idx,n-1)]||slots[0]||1;}
   function _resolveTargetSlot(inferred,slots,locked){if(!(locked||[]).includes(inferred))return inferred;const first=slots.find(s=>!(locked||[]).includes(s));if(first!==undefined)return first;showToast("All meals are locked for today.","info");return inferred;}
-  function addBarcode(){if(!barcodeResult)return;const isFirstMeal=log.length===0;const _slots=getSlotsForFreq(profile?.mealFreq||"3");const _slot=_resolveTargetSlot(_getTimeBasedSlot(_slots),_slots,lockedSlots);const entry={...barcodeResult,id:Date.now(),method:"barcode",slot:_slot};const newLog=[entry,...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog,entry);track(EVENTS.FOOD_LOGGED,{method:"barcode",calories:barcodeResult.calories,protein:barcodeResult.protein},user.id);}setBarcodeResult(null);setBarcodeInput("");setLogMsg(`✓ ${barcodeResult.name} added`);if(isFirstMeal){const sl=wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner';showToast(getWin('first_meal',sl)?.headline||'FIRST MEAL LOGGED.');}}
-  function removeLog(id){const newLog=log.filter(i=>i.id!==id);setLog(newLog);if(user)saveFoodLog(user.id,newLog);}
-  function logEntry(entry){const entrySlot=typeof entry.slot==='number'?entry.slot:null;if(entrySlot&&(lockedSlots||[]).includes(entrySlot))return;const newLog=[{...entry,id:Date.now(),method:"memory"},...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog,newLog[0]);track(EVENTS.FOOD_LOGGED,{method:"memory",calories:entry.calories,protein:entry.protein},user.id);}}
+  const addBarcode=useCallback(()=>{if(!barcodeResult)return;const isFirstMeal=log.length===0;const _slots=getSlotsForFreq(profile?.mealFreq||"3");const _slot=_resolveTargetSlot(_getTimeBasedSlot(_slots),_slots,lockedSlots);const entry={...barcodeResult,id:Date.now(),method:"barcode",slot:_slot};const newLog=[entry,...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog,entry);track(EVENTS.FOOD_LOGGED,{method:"barcode",calories:barcodeResult.calories,protein:barcodeResult.protein},user.id);}setBarcodeResult(null);setBarcodeInput("");setLogMsg(`✓ ${barcodeResult.name} added`);if(isFirstMeal){const sl=wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner';showToast(getWin('first_meal',sl)?.headline||'FIRST MEAL LOGGED.');}},[barcodeResult,log,profile,lockedSlots,user,wPrefs]);
+  const removeLog=useCallback((id)=>{const newLog=log.filter(i=>i.id!==id);setLog(newLog);if(user)saveFoodLog(user.id,newLog);},[log,user]);
+  const logEntry=useCallback((entry)=>{const entrySlot=typeof entry.slot==='number'?entry.slot:null;if(entrySlot&&(lockedSlots||[]).includes(entrySlot))return;const newLog=[{...entry,id:Date.now(),method:"memory"},...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog,newLog[0]);track(EVENTS.FOOD_LOGGED,{method:"memory",calories:entry.calories,protein:entry.protein},user.id);}},[lockedSlots,log,user]);
 
-  async function fetchRecs(){
+  // macros/remaining are plain object literals recreated every render, so use scalar
+  // deps (numbers) rather than the object refs — primitives compare by value.
+  const fetchRecs=useCallback(async ()=>{
     if(recsLoading||!city.trim())return;
     setRecsLoading(true);setRecs("");
     const dietaryCtx=(profile?.dietary||[]).filter(d=>d!=="none");
@@ -8496,7 +8506,7 @@ Be specific and practical. Empathetic tone. No fluff.`,
       }
     }catch(e){console.error("[fetchRecs] error:",e);const m=getAIErrorMessage(e);if(m)setRecs("⚠️ "+m+" Tap 'Get Recommendations' to retry.");if(user)trackError(e,"restaurant_ai",user.id);setRecsLoading(false);}
     setRecsLoading(false);
-  }
+  },[recsLoading,city,profile,log,macros?.calories,macros?.protein,skippedSlots,remaining?.calories,remaining?.protein,remaining?.carbs,remaining?.fat,todayType,user]);
 
 
   const generateWorkout=useCallback(async (type="lifting",split="",runPlan="",hybridTemplate="")=>{
@@ -11697,7 +11707,7 @@ Rules:
         {/* Train — deferred mount (first visit), then kept alive; display:none when inactive */}
         {trainMounted&&<div style={{display:section==="train"?"block":"none"}}><ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={handleSetTrainScreen} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} pauseWorkout={pauseWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} runDistancePrompt={runDistancePrompt} onRunDistanceChange={handleRunDistanceChange} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} workoutLogsRaw={workoutLogsRaw} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={handleStartLocalRest} onSkipLocalRest={handleSkipLocalRest} onReduceLocalRest={handleReduceLocalRest} onProfileUpdate={handleProfileUpdate}/></ErrorBoundary></div>}
         {/* Fuel — deferred mount (first visit), then kept alive; display:none when inactive */}
-        {fuelMounted&&<div style={{display:section==="fuel"?"block":"none"}}><ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} lockedSlots={lockedSlots} onLockSlots={saveLockedSlots} resetSignal={fuelResetSignal} todayProtocol={todayProtocol} pendingTodaySlot={pendingTodaySlot} onClearPendingTodaySlot={()=>setPendingTodaySlot(null)}/></ErrorBoundary></div>}
+        {fuelMounted&&<div style={{display:section==="fuel"?"block":"none"}}><ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={handleOpenPhotoLogger} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} lockedSlots={lockedSlots} onLockSlots={saveLockedSlots} resetSignal={fuelResetSignal} todayProtocol={todayProtocol} pendingTodaySlot={pendingTodaySlot} onClearPendingTodaySlot={handleClearPendingTodaySlot}/></ErrorBoundary></div>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
         {section==="progress"&&<ErrorBoundary><ProgressSection
           coachScore={coachScore}
