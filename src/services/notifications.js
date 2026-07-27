@@ -10,10 +10,10 @@ async function getLocal() {
 
 export async function initPushNotifications(userId) {
   if (!userId) return;
-  const Push = await getPush();
-  if (!Push) return;
-
   try {
+    const Push = await getPush();
+    if (!Push) return;
+
     const { receive } = await Push.checkPermissions();
     let status = receive;
     if (status === 'prompt') {

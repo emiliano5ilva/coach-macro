@@ -504,7 +504,7 @@ export default function NativeApp() {
         if(data.wprefs)setWPrefs(data.wprefs);
         loadAndApplyTheme(data.wprefs);
         setAnalyticsEnabled(data.analytics_enabled!==false);
-        initPushNotifications(uid);
+        initPushNotifications(uid).catch(()=>{});
         setPhase(expired?"expired":"app");
       }else{
         setPhase("onboarding");

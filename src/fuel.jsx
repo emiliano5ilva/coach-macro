@@ -786,16 +786,20 @@ const ALLERGEN_CHIP_TO_TAG = {
 
 // Diet expansion: a chosen diet pulls its compatible sub-diets so the pool
 // includes all dishes the user can eat, not just the exact-tagged subset.
-// 'balanced' is omitted — stays unfiltered (whole library).
+// 'balanced' is absent — loadMealPool (below) already skips the diet filter
+// entirely when diet==='balanced', giving the full unfiltered library.
+// 'high-protein' is explicit here so its intent is clear; the diet_tags
+// overlap on ['high-protein'] surfaces all recipes tagged protein-forward.
 const DIET_INCLUDES = {
-  vegan:         ['vegan'],
-  vegetarian:    ['vegetarian','vegan'],
-  pescatarian:   ['pescatarian','vegetarian','vegan'],
-  mediterranean: ['mediterranean'],
-  keto:          ['keto'],
-  paleo:         ['paleo'],
-  'low-carb':    ['low-carb'],
-  carnivore:     ['carnivore'],
+  vegan:            ['vegan'],
+  vegetarian:       ['vegetarian','vegan'],
+  pescatarian:      ['pescatarian','vegetarian','vegan'],
+  mediterranean:    ['mediterranean'],
+  keto:             ['keto'],
+  paleo:            ['paleo'],
+  'low-carb':       ['low-carb'],
+  carnivore:        ['carnivore'],
+  'high-protein':   ['high-protein'],
 };
 
 // Format a scaled ingredient quantity for display: "200g", "1.5 cups", etc.
@@ -1630,7 +1634,6 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
     if(!resetSignal)return;
     setRestaurantAI(null);
     setRestaurantStandalone(false);
-    setShowRecipeBuilder(false);
   },[resetSignal]);
 
   // ── Day Type Nutrition ────────────────────────────────────────────────────────
@@ -2349,7 +2352,7 @@ Reply with ONLY a valid JSON object, no markdown:
                         <div ref={_calNumRef} style={{..._cnd,fontSize:70,lineHeight:1,letterSpacing:'-0.02em',display:_calActive?'block':'none',background:_calGrad(0),WebkitBackgroundClip:'text',backgroundClip:'text',WebkitTextFillColor:'transparent',color:'transparent'}}>{Math.round(consumed.calories).toLocaleString()}</div>
                         {/* NumberFlow REMAINING — shown at rest */}
                         <div style={{..._cnd,fontSize:70,color:'#FFFFFF',lineHeight:1,letterSpacing:'-0.02em',textShadow:'none',display:_calActive?'none':'block'}}>
-                          {_calOver?<MN value={Math.abs(remaining.calories)} format={{useGrouping:true}} prefix="+"/>:<MN value={_calRem} format={{useGrouping:true}}/>}
+                          {_calOver?<MN key={resetSignal} value={Math.abs(remaining.calories)} format={{useGrouping:true}} prefix="+"/>:<MN key={resetSignal} value={_calRem} format={{useGrouping:true}}/>}
                         </div>
                       </div>
                       {/* sub-line BELOW the number */}
@@ -2358,7 +2361,7 @@ Reply with ONLY a valid JSON object, no markdown:
                           <span style={{fontWeight:600}}>of {Math.round(macros.calories).toLocaleString()} cal</span>
                         ):(<>
                           <span style={{fontWeight:500,textTransform:'none',letterSpacing:'0.02em'}}>hold to break down</span>
-                          {calDelta!==null&&<span style={{marginLeft:'auto',fontWeight:600,color:calDelta>0?'#9BF6B0':'rgba(255,255,255,0.55)'}}><MN value={calDelta} format={{signDisplay:'exceptZero'}}/> vs yest.</span>}
+                          {calDelta!==null&&<span style={{marginLeft:'auto',fontWeight:600,color:calDelta>0?'#9BF6B0':'rgba(255,255,255,0.55)'}}><MN key={resetSignal} value={calDelta} format={{signDisplay:'exceptZero'}}/> vs yest.</span>}
                         </>)}
                       </div>
                     </div>

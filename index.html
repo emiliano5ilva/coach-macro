@@ -12,6 +12,34 @@
   <link rel="icon" href="/favicon.ico" sizes="any"/>
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"/>
   <style>*{margin:0;padding:0;box-sizing:border-box}html,body,#root{height:100%;background:#080808;color-scheme:dark}</style>
+  <!-- Diagnostic error bar: non-blocking, shows timing + stack, lets React render underneath -->
+  <script>
+  window.__reactMounted=false;
+  window.__errLog=[];
+  window.__cmErr=function(type,msg,stack){
+    window.__errLog.push({type:type,msg:msg,stack:stack,reactWasUp:window.__reactMounted,t:Date.now()});
+    var d=document.getElementById('cm-dbg-bar');
+    if(!d){d=document.createElement('div');d.id='cm-dbg-bar';
+      d.style.cssText='position:fixed;top:0;left:0;right:0;max-height:40vh;background:rgba(5,8,16,0.97);color:#f5f5f0;padding:10px 14px;font:11px monospace;z-index:99999;overflow:auto;white-space:pre-wrap;word-break:break-all;border-bottom:2px solid #FF3B30';
+      document.body.appendChild(d);}
+    var entry=window.__errLog[window.__errLog.length-1];
+    d.textContent+=(entry.reactWasUp?'[AFTER React]':'[BEFORE React]')+' '+type+': '+msg+'\n'+(stack?stack.slice(0,500)+'\n':'');
+  };
+  window.onerror=function(msg,src,line,col,err){window.__cmErr('JS ERROR',msg+(err&&err.stack?'\n'+err.stack:'at '+src+':'+line));return false;};
+  window.addEventListener('unhandledrejection',function(e){
+    var r=e.reason;
+    var msg=(r&&r.message)||String(r);
+    var stk=(r&&r.stack)||'';
+    // Suppress known-benign Capacitor plugin-proxy + Vite dynamic-import rejections on iOS:
+    // LocalNotifications/PushNotifications ".then() is not implemented on iOS" — confirmed harmless,
+    // app functions normally. Only suppress when BOTH conditions match so real future bugs are not hidden.
+    if(/not implemented on ios/i.test(msg)&&/(LocalNotifications|PushNotifications)/i.test(msg+stk)){
+      e.preventDefault();
+      return;
+    }
+    window.__cmErr('UNHANDLED REJECTION',msg,stk);
+  });
+  </script>
 </head>
 <body>
   <div id="root"></div>

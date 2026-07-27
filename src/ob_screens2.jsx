@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from "react";
 import ReactDOM from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { MN, SlotNumber, MotionArc, StaggerItem } from './motion-layer.jsx';
@@ -7314,10 +7314,10 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   },[profile?.program_current_week]);
   // Extended profile-update handler: intercepts program_current_week so a Library
   // program switch can reset the week counter in React state without a full reload.
-  function handleProfileUpdate(patch) {
+  const handleProfileUpdate=useCallback((patch)=>{
     onProfileUpdate(patch);
     if ('program_current_week' in patch) setProgramCurrentWeek(patch.program_current_week ?? null);
-  }
+  },[onProfileUpdate]);
   const [recentAdjustments,setRecentAdjustments]=useState([]);
   const [weekAdjustment,setWeekAdjustment]=useState(null);
   const [adjSnooze,setAdjSnooze]=useState(()=>localStorage.getItem("adj_snooze")||null);
@@ -7626,7 +7626,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
 
   // Fire the deferred run-day HealthKit write EXACTLY once (any trigger — close/hide). km>0 also
   // backfills the DB row's distance_km. DB row already wrote first; this preserves that ordering.
-  async function flushRunHK(distanceKm){
+  const flushRunHK=useCallback(async (distanceKm)=>{
     const p=_pendingRunHK.current;
     if(!p)return;                     // nothing pending or already flushed → single-fire guard
     _pendingRunHK.current=null;
@@ -7635,7 +7635,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     if(km>0&&p.logId&&p.userId){ try{ await sb.from("workout_logs").update({workout:{...p.workoutObj,distance_km:km}}).eq("id",p.logId).eq("user_id",p.userId); }catch{} }
     if(!healthConnected)return;
     try{ const{saveWorkoutToHealth}=await import("./services/appleHealth.js"); await saveWorkoutToHealth({durationMinutes:p.durationMinutes,activeCalories:p.activeCalories,workoutType:p.workoutType,userId:p.userId,tier:p.tier,bmr:p.bmr,distanceMeters:Math.round(km*1000)}); }catch{}
-  }
+  },[healthConnected]);
   _flushRef.current=flushRunHK;
 
   // Fallback: if the user backgrounds/force-quits with a pending run-day write, flush it on hide so
@@ -8388,7 +8388,7 @@ Be specific and practical. Empathetic tone. No fluff.`,
     return{secs:90,reason:"90 sec rest"};
   }
 
-  function scheduleRestNotification(secs){
+  const scheduleRestNotification=useCallback((secs)=>{
     clearTimeout(notifTimeoutRef.current);
     if(typeof window==="undefined"||!window.Notification)return;
     const doSchedule=()=>{
@@ -8398,28 +8398,35 @@ Be specific and practical. Empathetic tone. No fluff.`,
     };
     if(window.Notification.permission==="granted")doSchedule();
     else if(window.Notification.permission!=="denied")window.Notification.requestPermission().then(p=>{if(p==="granted")doSchedule();});
-  }
+  },[]);
 
-  function startRest(secs){
+  const startRest=useCallback((secs)=>{
     clearTimeout(notifTimeoutRef.current);
     clearInterval(restInterval.current);setRestTimer(secs);setRestActive(true);
     scheduleRestNotification(secs);
     restInterval.current=setInterval(()=>setRestTimer(prev=>{if(prev<=1){clearInterval(restInterval.current);setRestActive(false);hap();return 0;}if(prev===11)hap();return prev-1;}),1000);
-  }
+  },[scheduleRestNotification]);
 
-  function skipRest(){
+  const skipRest=useCallback(()=>{
     clearTimeout(notifTimeoutRef.current);
     clearInterval(restInterval.current);setRestActive(false);setRestTimer(0);setLastLoggedSet(null);
     setShowLocalRest(false);setLocalRestSecs(90);
-  }
+  },[]);
 
-  function adjustRest(delta){
+  const adjustRest=useCallback((delta)=>{
     setRestTimer(prev=>{
       const nv=Math.max(5,prev+delta);
       clearTimeout(notifTimeoutRef.current);scheduleRestNotification(nv);
       return nv;
     });
-  }
+  },[scheduleRestNotification]);
+
+  // ── Stable callbacks for TrainSection inline-arrow props ────────────────────
+  const handleSetTrainScreen=useCallback((s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");},[]);
+  const handleRunDistanceChange=useCallback((km)=>{_enteredRunKm.current=km;},[]);
+  const handleStartLocalRest=useCallback((secs)=>{setLocalRestSecs(secs||90);setShowLocalRest(true);},[]);
+  const handleSkipLocalRest=useCallback(()=>{setShowLocalRest(false);setLocalRestSecs(90);},[]);
+  const handleReduceLocalRest=useCallback(()=>setLocalRestSecs(s=>Math.max(0,s-30)),[]);
 
   useEffect(()=>{
     if(!showLocalRest)return;
@@ -8492,7 +8499,7 @@ Be specific and practical. Empathetic tone. No fluff.`,
   }
 
 
-  async function generateWorkout(type="lifting",split="",runPlan="",hybridTemplate=""){
+  const generateWorkout=useCallback(async (type="lifting",split="",runPlan="",hybridTemplate="")=>{
     setWorkoutLoading(true);setWorkout("");
     const coverage=MUSCLE_COVERAGE[todayFocus]||"Full coverage of all muscles";
     const actCtx=todayActs.length>0?`\nNOTE: Already completed: ${todayActs.map(a=>`${a.type} (${a.calories} kcal)`).join(", ")}. Adjust accordingly.`:"";
@@ -8512,9 +8519,9 @@ Be specific and practical. Empathetic tone. No fluff.`,
       ?`REST DAY recovery for ${profile.goal} athlete. Mobility, stretching, foam rolling, recovery nutrition. Equipment: ${wPrefs.equipment}. Clear sections.`
       :`Complete ${todayFocus} session.\nATHLETE: Goal: ${profile.goal} | Equipment: ${wPrefs.equipment} | Split: ${wPrefs.splitType} | Exp: ${profile.liftExp||"intermediate"} | Session: ${sessionLen}min${healthCtx}${terrainCtx}${compCtx}${isRunPrompt?runCtx:""}${isRunPrompt?cardioExpCtx:""}${actCtx}${deloadCtx}\nMUSCLE COVERAGE: ${coverage}\nFORMAT: Exercise | Sets×Reps | Rest | Form cue | Overload note\n1.Warm-up 2.Heavy compounds 3.Secondary 4.Isolation (ALL sub-muscles) 5.Finisher/Core${planMode==="hybrid"&&hybridMix.run?"\n═══ RUN BLOCK ═══\nType / Distance / Pace zone":""  }${planMode==="hybrid"&&hybridMix.hyrox||planMode==="hyrox"?`\n═══ HYROX ═══\n${todayType==="cardio"?"8 stations + 1km runs":"3-4 station finisher <20min"}`:""}\nSpecific. Clear headers. No fluff.`;
     try{const txt=await ai(prompt,1000);setWorkout(txt);}catch(e){console.error("[generateWorkout] AI error:",e);const m=getAIErrorMessage(e);if(m)setWorkout("⚠️ "+m+" Tap 'Build Workout' to retry.");}setWorkoutLoading(false);
-  }
+  },[todayFocus,todayActs,profile,wPrefs,deloadActive,planMode,hybridMix,todayType]);
 
-  async function startStructured(splitName="",runPlanName="",hybridName=""){
+  const startStructured=useCallback(async (splitName="",runPlanName="",hybridName="")=>{
     setWorkoutLoading(true);
     try{
       const splitInfo=splitName?`Training split: ${splitName}.`:`Training split: ${wPrefs.splitType}.`;
@@ -8606,9 +8613,9 @@ Rules:
       }catch(fe){setWorkout("⚠️ AI unavailable. Use the Today tab → Start Workout to begin.");}
     }
     setWorkoutLoading(false);
-  }
+  },[wPrefs,profile,todayFocus,deloadActive,balanceCorrections,schedule]);
 
-  function logSet(ei,si,reps,weight){
+  const logSet=useCallback((ei,si,reps,weight)=>{
     setActiveWorkout(prev=>{if(!prev)return prev;const u={...prev};u.exercises=prev.exercises.map((ex,i)=>i!==ei?ex:{...ex,sets:ex.sets.map((s,j)=>j!==si?s:{...s,reps,weight,done:true})});return u;});
     const ex=activeWorkout?.exercises[ei];
     const{secs,reason}=getRestDuration(ex?.tier,reps,ex?.restSecs,ex?.restReason);
@@ -8667,9 +8674,9 @@ Rules:
 
     // Persist workout state for resume
     try { localStorage.setItem("cm_active_workout", JSON.stringify({...activeWorkout, ts: Date.now()})); } catch {}
-  }
+  },[activeWorkout,history,profile,startRest]);
 
-  async function finishWorkout(){
+  const finishWorkout=useCallback(async ()=>{
     if(activeWorkout){
       const nh={...history};
       const setsLogged=[];
@@ -8887,18 +8894,18 @@ Rules:
       try { localStorage.removeItem("cm_active_workout"); } catch {}
       setTrainScreen("progress");setActiveSessionOpen(false);
     }
-  }
+  },[activeWorkout,history,workoutStartTime,todayIsRunDay,todayIsHyrox,todayType,todayFocus,profile,user,healthConnected,onEarnedCals,wPrefs,sessionPrediction,healthSnap,workoutLogsRaw,skipRest]);
 
-  function pauseWorkout(){
+  const pauseWorkout=useCallback(()=>{
     skipRest();
     setActiveWorkout(null);
     setActiveSessionOpen(false);
     setTrainScreen("today");
     // localStorage already holds the latest state from logSet's auto-persist.
     // resumePrompt is fed by the TrainSection wrapper before this runs.
-  }
+  },[skipRest]);
 
-  function clearWorkoutSummary(){
+  const clearWorkoutSummary=useCallback(()=>{
     // Flush any deferred run-day HealthKit write on close (X or DONE) with whatever distance was
     // entered — single-fire, so if the app-hide fallback already fired this is a no-op.
     flushRunHK(_enteredRunKm.current||0);
@@ -8910,11 +8917,9 @@ Rules:
     setActiveSessionOpen(false);
     setSection("today");
     try { localStorage.removeItem("cm_active_workout"); } catch {}
-    // Show first-workout win screen after summary dismissed
-    if(showWinScreen?._afterSummary){
-      setShowWinScreen(prev=>prev?{...prev,_afterSummary:false}:null);
-    }
-  }
+    // Show first-workout win screen after summary dismissed (functional setter avoids stale closure)
+    setShowWinScreen(prev=>prev?._afterSummary?{...prev,_afterSummary:false}:prev);
+  },[flushRunHK]);
 
   async function startDeload(){
     const now=new Date().toISOString();
@@ -9200,7 +9205,7 @@ Rules:
     [acwrRisks]
   );
 
-  async function handleLogPain({painLevel,painRegions,painType}){
+  const handleLogPain=useCallback(async ({painLevel,painRegions,painType})=>{
     if(!user||!painRegions?.length)return;
     const severity=painLevel==="significant"?3:2;
     try{
@@ -9212,9 +9217,9 @@ Rules:
       if(newLogs.length)setInjuryLogs(prev=>[...newLogs,...prev]);
       showToast(`Pain logged — ${painRegions.length} region${painRegions.length>1?"s":""} noted`,"info");
     }catch(e){console.error("[handleLogPain]",e);}
-  }
+  },[user]);
 
-  function getSuggestion(name){
+  const getSuggestion=useCallback((name)=>{
     const k=name.toLowerCase().replace(/\s+/g,"_");const prev=history[k];if(!prev||!prev.length)return null;
     const last=prev[prev.length-1];const lastSet=last.sets[last.sets.length-1];if(!lastSet)return null;
     const {reps,weight}=lastSet;
@@ -9226,7 +9231,7 @@ Rules:
       return{weight:(w+inc).toFixed(0),reps:"8-10",note:"Weight ↑"};
     }
     return{weight,reps:String(parseInt(reps)+1),note:"Add a rep"};
-  }
+  },[history,wPrefs?.trainingAge,profile?.wUnit]);
 
   async function connectStrava(){
     if(!stravaToken.trim())return;setStravaStatus("connecting");
@@ -9423,7 +9428,10 @@ Rules:
   // mount with correct dimensions (not while hidden via display:none).
   useEffect(()=>{
     if(section==="train") setTrainMounted(true);
-    if(section==="fuel")  setFuelMounted(true);
+    if(section==="fuel"){
+      setFuelMounted(true);
+      setFuelResetSignal(s=>s+1);
+    }
   },[section]);
 
   function TabIcon({name, size=22}) {
@@ -11687,7 +11695,7 @@ Rules:
         {/* Plan — stays conditional (onboarding flow, must remount fresh each time) */}
         {section==="plan"&&GOCLUB_REDESIGN&&<ErrorBoundary><PlanOnboarding profile={profile} wPrefs={wPrefs} user={user} setWPrefs={setWPrefs} setSchedule={setSchedule} setSection={setSection} setPlanBuilt={setPlanBuilt} onProfileUpdate={onProfileUpdate} onProtocolRefetch={()=>{const _d=new Date().toISOString().split("T")[0];sb.from("nutrition_protocols").delete().eq("user_id",user.id).eq("protocol_date",_d).then(()=>{},()=>{});getTodayNutritionProtocol(user.id).then(p=>setTodayProtocol(p||null)).catch(()=>{});}}/></ErrorBoundary>}
         {/* Train — deferred mount (first visit), then kept alive; display:none when inactive */}
-        {trainMounted&&<div style={{display:section==="train"?"block":"none"}}><ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} pauseWorkout={pauseWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} runDistancePrompt={runDistancePrompt} onRunDistanceChange={(km)=>{_enteredRunKm.current=km;}} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} workoutLogsRaw={workoutLogsRaw} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={(secs)=>{setLocalRestSecs(secs||90);setShowLocalRest(true);}} onSkipLocalRest={()=>{setShowLocalRest(false);setLocalRestSecs(90);}} onReduceLocalRest={()=>setLocalRestSecs(s=>Math.max(0,s-30))} onProfileUpdate={handleProfileUpdate}/></ErrorBoundary></div>}
+        {trainMounted&&<div style={{display:section==="train"?"block":"none"}}><ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={handleSetTrainScreen} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} pauseWorkout={pauseWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} runDistancePrompt={runDistancePrompt} onRunDistanceChange={handleRunDistanceChange} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} workoutLogsRaw={workoutLogsRaw} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={handleStartLocalRest} onSkipLocalRest={handleSkipLocalRest} onReduceLocalRest={handleReduceLocalRest} onProfileUpdate={handleProfileUpdate}/></ErrorBoundary></div>}
         {/* Fuel — deferred mount (first visit), then kept alive; display:none when inactive */}
         {fuelMounted&&<div style={{display:section==="fuel"?"block":"none"}}><ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} lockedSlots={lockedSlots} onLockSlots={saveLockedSlots} resetSignal={fuelResetSignal} todayProtocol={todayProtocol} pendingTodaySlot={pendingTodaySlot} onClearPendingTodaySlot={()=>setPendingTodaySlot(null)}/></ErrorBoundary></div>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
