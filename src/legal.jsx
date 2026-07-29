@@ -138,6 +138,7 @@ export function PrivacyPolicy() {
             <li><strong>Apple Health</strong> (optional integration) — reads sleep, heart rate, HRV, and steps when user grants permission</li>
             <li><strong>Vercel</strong> — application hosting, web infrastructure, and content delivery network</li>
             <li><strong>Sentry</strong> (error monitoring and performance tracing) — receives error and diagnostic data, including stack traces, request URLs, and device context, to help us diagnose crashes and bugs. US-based.</li>
+            <li><strong>Mapbox</strong> (map display and GPS route matching) — receives precise location coordinates during GPS-tracked runs to display your route on a map and snap it to roads. Location data sent to Mapbox is used only to render your run map and is not used for advertising or profiling.</li>
             <li><strong>ExerciseDB via RapidAPI</strong> — provides exercise demonstration data</li>
             <li><strong>Open Food Facts</strong> (food database) — open source food nutrition data</li>
             <li><strong>USDA FoodData Central</strong> — US government food nutrition database</li>
