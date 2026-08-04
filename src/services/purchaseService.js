@@ -27,12 +27,13 @@ async function setTier(userId, tier) {
 
 // DEV-ONLY visible unlock — lets us test the post-paywall flow on a dev/sim
 // build where no RevenueCat offering exists (so a real IAP can never complete).
-// MODE-gated exactly like NativeApp's dev-skip: `vite build` (production) folds
-// this to `return false` and terser strips it, so it can NEVER grant entitlement
-// in an App Store build. `build:sim` (--mode development) runs it. Writes the same
-// paid-tier fields handleDevSkip does, so loadProfile sees is_pro on reload.
+// TWO independent guards:
+//   (1) MODE !== 'production'  → strips this call in any `vite build` (no --mode flag)
+//   (2) VITE_DEV_IAP_BYPASS=1 → must be explicitly set in .env.development.local
+// Both must be true, so the bypass is IMPOSSIBLE in an App Store archive even if
+// build:sim is accidentally used as the web build step before archiving in Xcode.
 export async function devUnlockEntitlement(userId) {
-  if (import.meta.env.MODE === 'production') return false;
+  if (import.meta.env.MODE === 'production' || import.meta.env.VITE_DEV_IAP_BYPASS !== '1') return false;
   await setTier(userId, 'annual');
   return true;
 }

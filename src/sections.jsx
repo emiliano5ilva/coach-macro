@@ -1126,7 +1126,7 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
           {PAIN_LOCATIONS.map(loc=>(
             <button key={loc.id} onClick={()=>handleInjuryLocationSelect(loc.id)}
-              style={{background:painLocation===loc.id?"rgba(var(--accent-rgb),0.1)":"rgba(245,245,240,0.04)",border:`1px solid ${painLocation===loc.id?"rgba(var(--accent-rgb),0.3)":"rgba(245,245,240,0.08)"}`,borderRadius:10,padding:"10px",textAlign:"center",cursor:"pointer",fontFamily:"var(--mono)",fontSize:9,color:painLocation===loc.id?"var(--accent)":"#f5f5f0",fontWeight:700,letterSpacing:"0.06em",transition:"all .15s"}}>
+              style={{background:painLocation===loc.id?"rgba(var(--accent-rgb),0.1)":"rgba(245,245,240,0.04)",border:`1px solid ${painLocation===loc.id?"rgba(var(--accent-rgb),0.3)":"rgba(245,245,240,0.08)"}`,borderRadius:10,padding:"10px",textAlign:"center",cursor:"pointer",fontFamily:"var(--mono)",fontSize:9,color:painLocation===loc.id?"var(--accent)":"#f5f5f0",fontWeight:500,letterSpacing:"0.06em",transition:"all .15s"}}>
               {loc.label}
             </button>
           ))}
@@ -1155,7 +1155,7 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
         ].map(s=>(
           <button key={s.id} onClick={()=>handleSeveritySelect(s.id)}
             style={{background:s.bg,border:`1px solid ${s.border}`,borderRadius:12,padding:14,cursor:"pointer",textAlign:"left",fontFamily:"inherit",transition:"all .15s"}}>
-            <div style={{fontFamily:"var(--mono)",fontSize:10,color:s.accent,fontWeight:700,marginBottom:4}}>{s.rating}</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:10,color:s.accent,fontWeight:500,marginBottom:4}}>{s.rating}</div>
             <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",marginBottom:4}}>{s.headline}</div>
             <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>{s.sub}</div>
           </button>
@@ -1186,7 +1186,7 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
             <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#22c55e",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>// WHAT TO DO</div>
             {(card.fix||[]).map((step,si)=>(
               <div key={si} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:8}}>
-                <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(var(--accent-rgb),0.8)",fontWeight:700,flexShrink:0,lineHeight:1.5}}>{String(si+1).padStart(2,'0')}</span>
+                <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(var(--accent-rgb),0.8)",fontWeight:500,flexShrink:0,lineHeight:1.5}}>{String(si+1).padStart(2,'0')}</span>
                 <span style={{fontFamily:"var(--body)",fontSize:13,color:"#f5f5f0",lineHeight:1.5}}>{step}</span>
               </div>
             ))}
@@ -1465,7 +1465,7 @@ function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, 
             {lls.weight ? `${lls.weight} ${wUnit} × ` : ""}{lls.reps} reps
           </div>
           {badge && (
-            <div style={{display:"inline-flex",alignItems:"center",gap:5,marginTop:8,padding:"4px 14px",borderRadius:20,background:badge.bg,border:`1px solid ${badge.border}`,fontFamily:"var(--mono)",fontSize:11,color:badge.color,fontWeight:700,letterSpacing:"0.05em"}}>
+            <div style={{display:"inline-flex",alignItems:"center",gap:5,marginTop:8,padding:"4px 14px",borderRadius:20,background:badge.bg,border:`1px solid ${badge.border}`,fontFamily:"var(--mono)",fontSize:11,color:badge.color,fontWeight:500,letterSpacing:"0.05em"}}>
               {badge.icon}{badge.text}
             </div>
           )}
@@ -1546,7 +1546,7 @@ function MomentumBar({ activeWorkout, history }) {
     <div style={{padding:"10px 14px",background:"var(--cm-paper,#fff)",border:"none",borderRadius:12,marginBottom:12,boxShadow:"0 2px 12px rgba(0,0,0,.12)"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
         <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",letterSpacing:"0.18em",textTransform:"uppercase"}}>Workout Momentum</div>
-        <div style={{fontFamily:"var(--mono)",fontSize:11,color:barColor,fontWeight:700}}>{score}% — {label}</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:11,color:barColor,fontWeight:500}}>{score}% — {label}</div>
       </div>
       <div style={{height:4,background:"rgba(var(--cm-ink-rgb,10,10,10),.10)",borderRadius:2,overflow:"hidden"}}>
         <div style={{height:"100%",width:`${score}%`,background:barColor,borderRadius:2,transition:"width 0.6s ease"}}/>
@@ -1794,7 +1794,7 @@ function CoolDownSection({ summary }) {
               <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 0",borderBottom:i<coolProtocol.length-1?"1px solid rgba(var(--accent-rgb),0.05)":"none"}}>
                 <div style={{width:22,height:22,borderRadius:"50%",background:"rgba(52,211,153,0.15)",border:"1px solid rgba(52,211,153,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:T.green,flexShrink:0,marginTop:1}}>{i+1}</div>
                 <div>
-                  <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:2}}>{step.name} <span style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(0,201,167,0.7)",fontWeight:400}}>· {step.duration}</span></div>
+                  <div style={{fontSize:13,fontWeight:500,color:"#fff",marginBottom:2}}>{step.name} <span style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(0,201,167,0.7)",fontWeight:400}}>· {step.duration}</span></div>
                   <div style={{fontSize:11,color:"rgba(245,245,240,.55)",lineHeight:1.6}}>{step.detail}</div>
                 </div>
               </div>
@@ -2054,7 +2054,7 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
               background:rowBg,
               borderBottom: idx < 6 ? `1px solid ${dividerColor}` : "none",
             }}>
-              <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--mono)",fontSize:GOCLUB_REDESIGN?11:9,fontWeight:GOCLUB_REDESIGN?600:700,letterSpacing:GOCLUB_REDESIGN?"0.04em":"0.12em",textTransform:"uppercase",color:dayCol,width:30,flexShrink:0}}>
+              <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--mono)",fontSize:GOCLUB_REDESIGN?11:9,fontWeight:GOCLUB_REDESIGN?600:500,letterSpacing:GOCLUB_REDESIGN?"0.04em":"0.12em",textTransform:"uppercase",color:dayCol,width:30,flexShrink:0}}>
                 {day.toUpperCase()}
               </div>
               <div style={{flex:1,fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:GOCLUB_REDESIGN?700:900,fontSize:GOCLUB_REDESIGN?13:16,textTransform:"uppercase",color:labelCol,lineHeight:1}}>
@@ -2069,7 +2069,7 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
       </div>
       {weeklyMi!=null&&(
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 10px 2px",marginTop:2,borderTop:lightSurface?"1px solid rgba(10,10,10,0.10)":"1px solid rgba(245,245,240,0.10)"}}>
-          <span style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--mono)",fontSize:GOCLUB_REDESIGN?10:9,fontWeight:700,letterSpacing:GOCLUB_REDESIGN?"0.14em":"0.16em",textTransform:"uppercase",color:lightSurface?"rgba(var(--cm-ink-rgb),0.55)":"rgba(245,245,240,0.45)"}}>WEEKLY</span>
+          <span style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--mono)",fontSize:GOCLUB_REDESIGN?10:9,fontWeight:500,letterSpacing:GOCLUB_REDESIGN?"0.14em":"0.16em",textTransform:"uppercase",color:lightSurface?"rgba(var(--cm-ink-rgb),0.55)":"rgba(245,245,240,0.45)"}}>WEEKLY</span>
           <span style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontWeight:800,fontSize:13,color:lightSurface?"#FF3B30":"var(--accent)"}}>{Math.round(weeklyMi)} MI</span>
         </div>
       )}
@@ -2606,6 +2606,20 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
   const runDistBaseRef=useRef(0);      // distance carried across a resume (filter measures distance since resume)
   const [runResumePrompt,setRunResumePrompt]=useState(null); // in-progress GPS run recovered after force-close
   const RUN_KEY="cm_active_run";       // localStorage key for the persisted in-progress GPS run
+  const [showPacePrompt,setShowPacePrompt]=useState(false);
+  const [pacePromptMin,setPacePromptMin]=useState('');
+  const [pacePromptMax,setPacePromptMax]=useState('');
+  const [runPaceAlert,setRunPaceAlert]=useState(null); // 'speedup' | 'slowdown' | null
+  const runTargetMinSpkRef=useRef(null); // sec/unit, fastest allowed pace
+  const runTargetMaxSpkRef=useRef(null); // sec/unit, slowest allowed pace
+  const runMapRef=useRef(null);          // imperative handle for full-bleed RunMap (recenter)
+  const [runMapOffCenter,setRunMapOffCenter]=useState(false); // true after user pans off live position
+  // ── DEV-ONLY computed-style probe ──────────────────────────────────────────
+  const _dbgNumRef=useRef(null);
+  const [_dbgText,_setDbgText]=useState('');
+  const paceAlertTimerRef=useRef(null);
+  const paceAlertDismissTimerRef=useRef(null);
+  const paceAlertFiredRef=useRef(false);
   const [hyroxType,setHyroxType]=useState(null);
   const [hyroxTotalElapsed,setHyroxTotalElapsed]=useState(0);
   const [hyroxSegElapsed,setHyroxSegElapsed]=useState(0);
@@ -3053,6 +3067,10 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
     gpsStoppedRef.current=true;
     if(gpsWatchRef.current!=null){ BackgroundGeolocation.removeWatcher({id:gpsWatchRef.current}).catch(()=>{}); gpsWatchRef.current=null; }
     if(clearSaved){ try{localStorage.removeItem(RUN_KEY);}catch{} }
+    clearTimeout(paceAlertTimerRef.current); paceAlertTimerRef.current=null;
+    clearTimeout(paceAlertDismissTimerRef.current); paceAlertDismissTimerRef.current=null;
+    paceAlertFiredRef.current=false;
+    setRunPaceAlert(null);
   }
 
   function startGPSRun(resume=null){
@@ -3104,6 +3122,34 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
             setRunDistance(_dist);
             setRunCurrentPace(_fmtSpk(r.currentPaceSecPerKm==null?null:r.currentPaceSecPerKm*paceMult));
             setRunAvgPace(_fmtSpk(r.avgPaceSecPerKm==null?null:r.avgPaceSecPerKm*paceMult));
+            // Pace alert: sustained outside target range for ~17 s → haptic + banner.
+            if(r.currentPaceSecPerKm!=null&&runTargetMinSpkRef.current!=null&&runTargetMaxSpkRef.current!=null){
+              const _spk=r.currentPaceSecPerKm*paceMult;
+              const _dir=_spk<runTargetMinSpkRef.current?'slowdown':_spk>runTargetMaxSpkRef.current?'speedup':null;
+              if(_dir){
+                if(!paceAlertTimerRef.current&&!paceAlertFiredRef.current){
+                  const _d=_dir;
+                  paceAlertTimerRef.current=setTimeout(()=>{
+                    paceAlertTimerRef.current=null;
+                    paceAlertFiredRef.current=true;
+                    setRunPaceAlert(_d);
+                    _hM();
+                    paceAlertDismissTimerRef.current=setTimeout(()=>{
+                      paceAlertDismissTimerRef.current=null;
+                      paceAlertFiredRef.current=false;
+                      setRunPaceAlert(null);
+                    },5000);
+                  },17000);
+                }
+              }else{
+                if(paceAlertTimerRef.current){clearTimeout(paceAlertTimerRef.current);paceAlertTimerRef.current=null;}
+                if(paceAlertFiredRef.current){
+                  paceAlertFiredRef.current=false;
+                  if(paceAlertDismissTimerRef.current){clearTimeout(paceAlertDismissTimerRef.current);paceAlertDismissTimerRef.current=null;}
+                  setRunPaceAlert(null);
+                }
+              }
+            }
             // Persist for resume-after-force-close (throttled naturally by distanceFilter).
             try{localStorage.setItem(RUN_KEY,JSON.stringify({mode:'gps',elapsed:_el,distance:_dist,ts:Date.now()}));}catch{}
           }
@@ -3313,16 +3359,99 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
 
   function renderRunPicker(){
     const _MO="'DM Mono',monospace";
+    const _AF="'Archivo',sans-serif";
     const _BC="'Barlow Condensed',sans-serif";
     const todayRun=todayPrescription;
     const headline=(todayRun?.label||todayRun?.type||'RUN').toUpperCase();
     const target=todayRun?.duration?`TARGET: ${todayRun.duration} min`:todayRun?.distance?`TARGET: ${todayRun.distance} km`:'';
+    const _isImp=(profile?.wUnit||wPrefs?.wUnit)==='lbs';
+    const _unitLbl=_isImp?'mi':'km';
+    if(showPacePrompt){
+      const _pp=(s)=>{if(!s||!s.includes(':'))return null;const[m,sec]=s.split(':').map(Number);if(isNaN(m)||isNaN(sec))return null;return m*60+Math.min(sec,59);};
+      const _confirmStart=()=>{
+        const _tMin=_pp(pacePromptMin.trim());
+        const _tMax=_pp(pacePromptMax.trim());
+        // auto-swap silently if user typed a reversed range
+        const[_lo,_hi]=(_tMin&&_tMax&&_tMin>_tMax)?[_tMax,_tMin]:[_tMin,_tMax];
+        const _valid=_lo&&_hi&&_lo<_hi;
+        runTargetMinSpkRef.current=_valid?_lo:null;
+        runTargetMaxSpkRef.current=_valid?_hi:null;
+        setShowPacePrompt(false);
+        startGPSRun();
+      };
+      const _skip=()=>{
+        runTargetMinSpkRef.current=null;
+        runTargetMaxSpkRef.current=null;
+        setPacePromptMin('');setPacePromptMax('');
+        setShowPacePrompt(false);
+        startGPSRun();
+      };
+      return(
+        <div style={{padding:"24px 0"}}>
+          <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Today's Run</div>
+          <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:36,lineHeight:0.9,marginBottom:20,textTransform:"uppercase",color:"#fff"}}>{headline}</div>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:16,padding:20,boxShadow:"0 2px 12px rgba(0,0,0,.10)"}}>
+            <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--cm-ink,#0A0A0A)",marginBottom:4,textTransform:"uppercase"}}>Set Pace Target</div>
+            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",marginBottom:16,lineHeight:1.4}}>{pacePromptMin?'Suggested from your training paces — adjust freely or skip.':'Optional — leave blank to run without alerts.'}</div>
+            {/* Three-segment zone bar */}
+            <div style={{display:"flex",borderRadius:7,overflow:"hidden",height:14,marginBottom:5}}>
+              <div style={{flex:1,background:"rgba(var(--cm-ink-rgb,10,10,10),0.10)"}}/>
+              <div style={{flex:2.2,background:"var(--cm-good,#2E9E6B)"}}/>
+              <div style={{flex:1,background:"var(--cm-bad,#E5533B)"}}/>
+            </div>
+            {/* Zone labels */}
+            <div style={{display:"flex",marginBottom:18}}>
+              <div style={{flex:1,fontFamily:_MO,fontSize:9,fontWeight:500,color:"rgba(var(--cm-ink-rgb,10,10,10),0.30)",textTransform:"uppercase",letterSpacing:"0.08em"}}>SLOW</div>
+              <div style={{flex:2.2,fontFamily:_MO,fontSize:9,fontWeight:500,color:"var(--cm-good,#2E9E6B)",textTransform:"uppercase",letterSpacing:"0.08em",textAlign:"center"}}>TARGET ZONE</div>
+              <div style={{flex:1,fontFamily:_MO,fontSize:9,fontWeight:500,color:"var(--cm-bad,#E5533B)",textTransform:"uppercase",letterSpacing:"0.08em",textAlign:"right"}}>FAST</div>
+            </div>
+            {/* MIN / MAX — large stat numbers, tap-to-edit */}
+            <div style={{display:"flex",alignItems:"flex-end",marginBottom:4}}>
+              <div style={{flex:1,textAlign:"center"}}>
+                <div style={{fontFamily:_MO,fontSize:10,fontWeight:500,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:2}}>MIN</div>
+                <input value={pacePromptMin} onChange={e=>setPacePromptMin(e.target.value)} placeholder="–:––" inputMode="text"
+                  style={{fontFamily:_MO,fontFamily:"'Archivo',sans-serif",fontSize:30,fontWeight:800,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"-0.02em",textAlign:"center",background:"none",border:"none",outline:"none",width:"100%",padding:"0",boxSizing:"border-box",caretColor:"var(--cm-red,#FF3B30)"}}/>
+              </div>
+              <div style={{fontFamily:_MO,fontSize:22,fontWeight:300,color:"rgba(var(--cm-ink-rgb,10,10,10),0.18)",flexShrink:0,paddingBottom:5,lineHeight:1,userSelect:"none"}}>—</div>
+              <div style={{flex:1,textAlign:"center"}}>
+                <div style={{fontFamily:_MO,fontSize:10,fontWeight:500,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:2}}>MAX</div>
+                <input value={pacePromptMax} onChange={e=>setPacePromptMax(e.target.value)} placeholder="–:––" inputMode="text"
+                  style={{fontFamily:_MO,fontFamily:"'Archivo',sans-serif",fontSize:30,fontWeight:800,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"-0.02em",textAlign:"center",background:"none",border:"none",outline:"none",width:"100%",padding:"0",boxSizing:"border-box",caretColor:"var(--cm-red,#FF3B30)"}}/>
+              </div>
+            </div>
+            <div style={{fontFamily:_MO,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.30)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:18,textAlign:"center"}}>min:sec /{_unitLbl} · flat/rolling routes only</div>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={_skip} style={{flex:1,padding:"13px 0",background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",border:"none",borderRadius:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontFamily:_MO,fontWeight:500,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>SKIP</button>
+              <button onClick={_confirmStart} style={{flex:2,padding:"13px 0",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:12,color:"#fff",fontFamily:_MO,fontWeight:500,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>START RUN →</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return(
       <div style={{padding:"24px 0"}}>
-        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Today's Run</div>
+        <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Today's Run</div>
         <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:36,lineHeight:0.9,marginBottom:16,textTransform:"uppercase",color:"#fff"}}>{headline}</div>
         {target&&<div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:"0.1em",marginBottom:24,textTransform:"uppercase"}}>{target}</div>}
-        <div onClick={startGPSRun} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:16,padding:18,marginBottom:10,display:"flex",gap:14,cursor:"pointer",alignItems:"flex-start",boxShadow:"0 2px 12px rgba(0,0,0,.10)",WebkitTapHighlightColor:"transparent"}}>
+        <div onClick={()=>{
+          const _5k=wPrefs?.current5KTime||profile?.current5KTime||profile?.profile_data?.current5KTime;
+          const _rp=getPacesFromTime(_5k);
+          if(_rp&&todayPrescription?.type){
+            const _ZONE={'easy':'easy','long run':'longRun','tempo':'tempo','interval':'interval5K','maintenance':'maintenance'};
+            const _BAND={'easy':12,'long run':12,'maintenance':12,'tempo':6,'interval':6};
+            const _zk=_ZONE[todayPrescription.type];
+            const _zone=_zk?_rp[_zk]:null;
+            if(_zone){
+              // zone.secs is sec/mi; convert to user's display unit for the input
+              const _ctr=_isImp?_zone.secs:_zone.secs/1.609344;
+              const _bnd=_isImp?(_BAND[todayPrescription.type]||12):(_BAND[todayPrescription.type]||12)/1.609344;
+              const _fmt=(s)=>{const m=Math.floor(s/60);const sec=Math.round(s%60);return `${m}:${String(sec).padStart(2,'0')}`;};
+              setPacePromptMin(_fmt(_ctr-_bnd));
+              setPacePromptMax(_fmt(_ctr+_bnd));
+            }
+          }
+          setShowPacePrompt(true);
+        }} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:16,padding:18,marginBottom:10,display:"flex",gap:14,cursor:"pointer",alignItems:"flex-start",boxShadow:"0 2px 12px rgba(0,0,0,.10)",WebkitTapHighlightColor:"transparent"}}>
           <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",borderRadius:10,padding:12,flexShrink:0}}>
             <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth={2} strokeLinecap="round"><circle cx={12} cy={12} r={3}/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
           </div>
@@ -3344,37 +3473,188 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
     );
   }
 
+  // ── DEV-ONLY: probe computed style after GPS run screen is live ──────────────
+  // Two triggers: sessionMode change (mount) + first elapsed tick (confirms element
+  // is painted and fonts have had a chance to load).
+  useEffect(()=>{
+    if(import.meta.env.MODE==='production') return;
+    if(sessionMode!=='run-gps') return;
+    // Small delay so the element is in the DOM and fonts have resolved.
+    const t=setTimeout(()=>{
+      const el=_dbgNumRef.current;
+      if(!el) { _setDbgText('ref not mounted'); return; }
+      const cs=window.getComputedStyle(el);
+      _setDbgText(`family:${cs.fontFamily} | weight:${cs.fontWeight} | style:${cs.fontStyle} | size:${cs.fontSize}`);
+    },400);
+    return ()=>clearTimeout(t);
+  },[sessionMode,runElapsed<5?runElapsed:5]); // re-run on first few elapsed ticks so we catch post-load font swap
+
   function renderGPSRunScreen(){
     const _MO="'DM Mono',monospace";
-    const _BC="'Barlow Condensed',sans-serif";
+    const _AF="'Archivo',sans-serif";
+    const _isImp=(profile?.wUnit||wPrefs?.wUnit)==='lbs';
+    const _unit=_isImp?'mi':'km';
+    // Distance remaining — only when today's plan has a real target (running-plan days only).
+    // todayPrescription.distance is always in miles (distanceMi from runEngine).
+    const _rxDistMi=(todayPrescription?.distance>0)?todayPrescription.distance:null;
+    const _targetDist=_rxDistMi!=null?(_isImp?_rxDistMi:_rxDistMi*1.60934):null;
+    const _currDist=_isImp?runDistance*0.621371:runDistance;
+    const _remaining=_targetDist!=null?Math.max(0,_targetDist-_currDist):null;
+    const _goalReached=_remaining===0&&_currDist>0.05;
     return(
-      <div style={{textAlign:"center",paddingTop:20,position:"relative"}}>
-        {runGpsError&&<div style={{fontFamily:_MO,fontSize:10,color:"#fff",marginBottom:12,padding:"6px 12px",background:"rgba(255,255,255,0.16)",borderRadius:8,display:"inline-block"}}>GPS unavailable — tracking time only</div>}
-        <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:64,color:"#fff",lineHeight:1,marginBottom:16,fontVariantNumeric:"tabular-nums"}}>{fmtTime(runElapsed)}</div>
-        <div style={{display:"flex",justifyContent:"center",gap:32,marginBottom:32}}>
-          <div>
-            <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:26,color:"#fff"}}>{runCurrentPace}</div>
-            <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.1em"}}>pace /{(profile?.wUnit||wPrefs?.wUnit)==='lbs'?'mi':'km'}</div>
+      <>
+        {/* ── Base layer: full-bleed map ──────────────────────────────── */}
+        <RunMap ref={runMapRef} coords={runCoords} active={!runGpsError} fullBleed onOffCenter={setRunMapOffCenter} />
+
+        {/* ── Top overlay: dark scrim + live stats ───────────────────── */}
+        <div style={{
+          position:'fixed',top:0,left:0,right:0,zIndex:501,
+          background:'linear-gradient(to bottom,rgba(0,0,0,0.85) 0%,rgba(0,0,0,0.85) calc(100% - 44px),rgba(0,0,0,0) 100%)',
+          paddingTop:'calc(env(safe-area-inset-top,0px) + 12px)',
+          paddingLeft:20,paddingRight:20,paddingBottom:44,
+        }}>
+          {/* GPS LIVE pill / error */}
+          <div style={{marginBottom:6}}>
+            {!runGpsError
+              ?<div style={{display:'inline-flex',alignItems:'center',gap:7,background:'rgba(0,0,0,0.55)',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',borderRadius:20,padding:'6px 13px 6px 10px'}}>
+                  <span style={{width:8,height:8,borderRadius:'50%',background:'#FF3B30',display:'inline-block',flexShrink:0,animation:'_cmLiveBlink 1.4s ease-in-out infinite'}}/>
+                  <span style={{fontFamily:_MO,fontSize:10,fontWeight:500,color:'#fff',letterSpacing:'0.12em',textTransform:'uppercase'}}>GPS LIVE</span>
+                </div>
+              :<div style={{fontFamily:_MO,fontSize:10,color:'#fff',padding:'6px 12px',background:'rgba(255,255,255,0.16)',borderRadius:8,display:'inline-block'}}>GPS unavailable — tracking time only</div>
+            }
           </div>
-          <div>
-            <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:26,color:"#fff"}}>{((profile?.wUnit||wPrefs?.wUnit)==='lbs'?runDistance*0.621371:runDistance).toFixed(2)}</div>
-            <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{(profile?.wUnit||wPrefs?.wUnit)==='lbs'?'mi':'km'}</div>
-          </div>
-        </div>
-        <div style={{display:"flex",gap:8,marginBottom:28}}>
-          {[{l:"AVG PACE",v:runAvgPace},{l:"CALORIES",v:estimateActiveKcal({hkType:"running",durationMin:Math.round(runElapsed/60),profile}).kcal},{l:"LAPS",v:runLaps.length}].map(({l,v})=>(
-            <div key={l} style={{flex:1,background:"rgba(255,255,255,0.14)",borderRadius:12,padding:"11px 6px",textAlign:"center"}}>
-              <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:5}}>{l}</div>
-              <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:18,color:"#fff"}}>{v}</div>
+
+          {/* Pace alert banner */}
+          {runPaceAlert&&<div style={{fontFamily:_MO,fontSize:13,fontWeight:500,color:'#fff',marginBottom:6,padding:'9px 18px',background:'rgba(255,59,48,0.88)',borderRadius:8,display:'inline-block',letterSpacing:'0.08em',textTransform:'uppercase'}}>{runPaceAlert==='speedup'?'↑ Speed up':'↓ Slow down'}</div>}
+
+          {/* AVG PACE + PACE/MI stacked left | big timer | LAPS + last-lap time right */}
+          <div style={{display:'flex',alignItems:'center',marginBottom:10}}>
+            <div style={{flex:1}}>
+              <div style={{marginBottom:6}}>
+                <div style={{fontFamily:_MO,fontSize:7,color:'rgba(255,255,255,0.50)',textTransform:'uppercase',letterSpacing:'0.10em',marginBottom:2}}>Avg Pace</div>
+                <div style={{fontFamily:_AF,fontWeight:800,fontSize:18,color:'rgba(255,255,255,0.80)',letterSpacing:'-0.02em'}}>{runAvgPace}</div>
+              </div>
+              <div>
+                <div style={{fontFamily:_MO,fontSize:7,color:'rgba(255,255,255,0.50)',textTransform:'uppercase',letterSpacing:'0.10em',marginBottom:2}}>Pace /{_unit}</div>
+                <div style={{fontFamily:_AF,fontWeight:800,fontSize:18,color:'rgba(255,255,255,0.80)',letterSpacing:'-0.02em'}}>{runCurrentPace}</div>
+              </div>
             </div>
-          ))}
+            <div ref={_dbgNumRef} style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:'#fff',lineHeight:1,letterSpacing:'-0.02em',textAlign:'center',paddingLeft:8,paddingRight:8,flexShrink:0}}>
+              {fmtTime(runElapsed)}
+            </div>
+            <div style={{flex:1,textAlign:'right'}}>
+              <div style={{fontFamily:_MO,fontSize:7,color:'rgba(255,255,255,0.50)',textTransform:'uppercase',letterSpacing:'0.10em',marginBottom:2}}>Laps</div>
+              <div style={{fontFamily:_AF,fontWeight:800,fontSize:18,color:'rgba(255,255,255,0.80)',letterSpacing:'-0.02em'}}>{runLaps.length}</div>
+              {runLaps.length>0&&(()=>{const _ll=runLaps[runLaps.length-1];const _pl=runLaps.length>=2?runLaps[runLaps.length-2]:null;return<div style={{fontFamily:_MO,fontSize:9,color:'rgba(255,255,255,0.40)',marginTop:2}}>{fmtTime(_ll.time-(_pl?.time??0))}</div>;})()}
+            </div>
+          </div>
+
+          {/* TO GO (left, prominent) + DISTANCE (right) — or just distance centered when no target */}
+          {_targetDist!=null?(
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+              {_goalReached
+                ?<div style={{fontFamily:_AF,fontWeight:800,fontSize:22,color:'#22c55e',letterSpacing:'-0.02em'}}>Goal ✓</div>
+                :<div>
+                   <span style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:'var(--cm-accent,#FF3B30)',letterSpacing:'-0.02em'}}>{_remaining.toFixed(2)}</span>
+                   <span style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:'rgba(255,255,255,0.55)',textTransform:'uppercase',letterSpacing:'0.10em',marginLeft:5}}>{_unit} to go</span>
+                 </div>
+              }
+              <div style={{textAlign:'right'}}>
+                <div style={{fontFamily:_AF,fontWeight:800,fontSize:22,color:'#fff',letterSpacing:'-0.02em'}}>{_currDist.toFixed(2)}</div>
+                <div style={{fontFamily:_MO,fontSize:8,color:'rgba(255,255,255,0.55)',textTransform:'uppercase',letterSpacing:'0.1em'}}>{_unit}</div>
+              </div>
+            </div>
+          ):(
+            <div style={{textAlign:'center',marginBottom:8}}>
+              <div style={{fontFamily:_AF,fontWeight:800,fontSize:22,color:'#fff',letterSpacing:'-0.02em'}}>{_currDist.toFixed(2)}</div>
+              <div style={{fontFamily:_MO,fontSize:8,color:'rgba(255,255,255,0.55)',textTransform:'uppercase',letterSpacing:'0.1em'}}>{_unit}</div>
+            </div>
+          )}
+
+          {/* Calories — tiny tertiary */}
+          <div style={{fontFamily:_MO,fontSize:9,color:'rgba(255,255,255,0.30)',letterSpacing:'0.06em',textAlign:'center'}}>
+            {estimateActiveKcal({hkType:'running',durationMin:Math.round(runElapsed/60),profile}).kcal} kcal
+          </div>
         </div>
-        <RunMap coords={runCoords} active={!runGpsError} />
-        <div style={{display:"flex",gap:10}}>
-          <button onClick={()=>{setRunLaps(p=>[...p,{km:runLaps.length+1,time:runElapsed,dist:runDistance}]);}} style={{width:64,height:64,borderRadius:"50%",background:"rgba(255,255,255,0.16)",border:"1px solid rgba(255,255,255,0.25)",color:"#fff",fontFamily:_MO,fontSize:10,fontWeight:700,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"}}>LAP</button>
-          <button onClick={finishGPSRun} style={{flex:1,padding:"16px 24px",background:"var(--cm-paper,#FFFFFF)",border:"none",borderRadius:14,color:"var(--cm-red,#FF3B30)",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>FINISH RUN →</button>
+
+        {/* ── Recenter button: appears after user pans off live position ── */}
+        {runMapOffCenter&&(
+          <button
+            onClick={()=>runMapRef.current?.recenter()}
+            style={{
+              position:'fixed',right:16,bottom:'calc(env(safe-area-inset-bottom,0px) + 108px)',
+              zIndex:502,width:44,height:44,borderRadius:'50%',
+              background:'rgba(255,255,255,0.92)',border:'none',
+              display:'flex',alignItems:'center',justifyContent:'center',
+              boxShadow:'0 2px 12px rgba(0,0,0,0.40)',cursor:'pointer',
+              WebkitTapHighlightColor:'transparent',
+            }}
+            aria-label="Recenter map"
+          >
+            {/* crosshair / locate icon */}
+            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+            </svg>
+          </button>
+        )}
+
+        {/* ── Bottom overlay: dark scrim + pace bar + LAP / FINISH ─────── */}
+        <div style={{
+          position:'fixed',bottom:0,left:0,right:0,zIndex:501,
+          background:'linear-gradient(to top,rgba(0,0,0,0.85) 0%,rgba(0,0,0,0.85) calc(100% - 48px),rgba(0,0,0,0) 100%)',
+          paddingLeft:20,paddingRight:20,paddingTop:48,
+          paddingBottom:'calc(env(safe-area-inset-bottom,0px) + 16px)',
+        }}>
+          {/* Live pace zone bar — Watch-style: bold flanking numbers, bold status word, coral both edges */}
+          {(()=>{
+            const _minSpk=runTargetMinSpkRef.current;
+            const _maxSpk=runTargetMaxSpkRef.current;
+            if(!_minSpk||!_maxSpk) return null;
+            const _parts=runCurrentPace.split(':');
+            const _curSpk=(_parts.length===2&&!isNaN(+_parts[0])&&!isNaN(+_parts[1]))?+_parts[0]*60+ +_parts[1]:null;
+            const _zone=_curSpk==null?null:_curSpk<_minSpk?'fast':_curSpk>_maxSpk?'slow':'target';
+            const _buf=(_maxSpk-_minSpk)*0.40;
+            const _dispMin=_minSpk-_buf, _dispMax=_maxSpk+_buf;
+            const _pct=_curSpk==null?null:Math.max(0,Math.min(100,(_curSpk-_dispMin)/(_dispMax-_dispMin)*100));
+            const _fmt=(s)=>`${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}`;
+            const _statusLabel=_zone==='fast'?'TOO FAST':_zone==='slow'?'TOO SLOW':'GOOD PACE';
+            const _statusColor=_zone==='target'?'#22C55E':'#FF4422';
+            return(
+              <div style={{marginBottom:14}}>
+                {/* Bold uppercase status word — Watch-style prominent */}
+                <div style={{fontFamily:_AF,fontWeight:800,fontSize:14,color:_statusColor,textTransform:'uppercase',letterSpacing:'0.10em',textAlign:'center',marginBottom:8}}>{_statusLabel}</div>
+                {/* Bar with large flanking pace numbers */}
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  <div style={{fontFamily:_AF,fontWeight:800,fontSize:17,color:'rgba(255,255,255,0.80)',letterSpacing:'-0.02em',flexShrink:0,minWidth:38}}>{_fmt(_minSpk)}</div>
+                  <div style={{flex:1,position:'relative'}}>
+                    <div style={{display:'flex',borderRadius:6,overflow:'hidden',height:10}}>
+                      <div style={{flex:1,background:'#FF4422'}}/>
+                      <div style={{flex:2.2,background:'#22C55E'}}/>
+                      <div style={{flex:1,background:'#FF4422'}}/>
+                    </div>
+                    {_pct!=null&&(
+                      <div style={{
+                        position:'absolute',top:'50%',left:`${_pct}%`,
+                        transform:'translate(-50%,-50%)',
+                        width:16,height:16,borderRadius:'50%',
+                        background:'#fff',border:'2.5px solid #1a1a1a',
+                        boxShadow:'0 1px 6px rgba(0,0,0,0.50)',
+                        pointerEvents:'none',
+                      }}/>
+                    )}
+                  </div>
+                  <div style={{fontFamily:_AF,fontWeight:800,fontSize:17,color:'rgba(255,255,255,0.80)',letterSpacing:'-0.02em',flexShrink:0,minWidth:38,textAlign:'right'}}>{_fmt(_maxSpk)}</div>
+                </div>
+              </div>
+            );
+          })()}
+          <div style={{display:'flex',gap:10}}>
+            <button onClick={()=>{setRunLaps(p=>[...p,{km:runLaps.length+1,time:runElapsed,dist:runDistance}]);}} style={{flex:1,padding:'14px 0',background:'rgba(255,255,255,0.14)',border:'none',borderRadius:12,color:'#fff',fontFamily:_MO,fontWeight:500,fontSize:11,letterSpacing:'0.08em',textTransform:'uppercase',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>LAP</button>
+            <button onClick={finishGPSRun} style={{flex:2,padding:'14px 0',background:'var(--cm-red,#FF3B30)',border:'none',borderRadius:12,color:'#fff',fontFamily:_MO,fontWeight:500,fontSize:11,letterSpacing:'0.08em',textTransform:'uppercase',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>FINISH RUN →</button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -3383,10 +3663,10 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
     const _BC="'Barlow Condensed',sans-serif";
     return(
       <div style={{paddingTop:20}}>
-        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>// MANUAL RUN</div>
+        <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>// MANUAL RUN</div>
         <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:48,color:"#fff",lineHeight:1,marginBottom:8,textAlign:"center",fontVariantNumeric:"tabular-nums"}}>{fmtTime(runElapsed)}</div>
         <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.45)",textAlign:"center",marginBottom:32}}>ELAPSED TIME</div>
-        <button onClick={stopManualRunAndShowForm} style={{width:"100%",padding:"16px",background:"var(--cm-paper,#FFFFFF)",border:"none",borderRadius:14,color:"var(--cm-red,#FF3B30)",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>FINISH RUN →</button>
+        <button onClick={stopManualRunAndShowForm} style={{width:"100%",padding:"16px",background:"var(--cm-paper,#FFFFFF)",border:"none",borderRadius:14,color:"var(--cm-red,#FF3B30)",fontFamily:_MO,fontWeight:500,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>FINISH RUN →</button>
       </div>
     );
   }
@@ -3399,7 +3679,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
     const _totalSec=(parseInt(runManualMin,10)||0)*60+(parseInt(runManualSec,10)||0);
     return(
       <div style={{paddingTop:20}}>
-        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>// LOG YOUR RUN</div>
+        <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>// LOG YOUR RUN</div>
         <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:32,color:"#fff",marginBottom:24}}>HOW FAR DID YOU GO<span style={{color:"rgba(255,255,255,0.5)"}}>?</span></div>
         <div style={{marginBottom:16}}>
           <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>DISTANCE ({(profile?.wUnit||wPrefs?.wUnit)==='lbs'?'mi':'km'})</div>
@@ -3416,7 +3696,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
           <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>EFFORT LEVEL</div>
           <div style={{display:"flex",gap:8}}>
             {[{v:1,l:"Easy"},{v:2,l:"Moderate"},{v:3,l:"Hard"},{v:4,l:"Max"}].map(({v,l})=>(
-              <button key={v} onClick={()=>setRunEffort(v)} style={{flex:1,padding:"10px 4px",background:runEffort===v?"rgba(255,255,255,0.22)":"rgba(255,255,255,0.10)",border:`1.5px solid ${runEffort===v?"rgba(255,255,255,0.8)":"rgba(255,255,255,0.18)"}`,borderRadius:10,color:runEffort===v?"#fff":"rgba(255,255,255,0.55)",fontFamily:_MO,fontSize:9,fontWeight:700,cursor:"pointer",textTransform:"uppercase",WebkitTapHighlightColor:"transparent"}}>{l}</button>
+              <button key={v} onClick={()=>setRunEffort(v)} style={{flex:1,padding:"10px 4px",background:runEffort===v?"rgba(255,255,255,0.22)":"rgba(255,255,255,0.10)",border:`1.5px solid ${runEffort===v?"rgba(255,255,255,0.8)":"rgba(255,255,255,0.18)"}`,borderRadius:10,color:runEffort===v?"#fff":"rgba(255,255,255,0.55)",fontFamily:_MO,fontSize:9,fontWeight:500,cursor:"pointer",textTransform:"uppercase",WebkitTapHighlightColor:"transparent"}}>{l}</button>
             ))}
           </div>
         </div>
@@ -3425,16 +3705,16 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
           {/* Bounded MIN/SEC wheels — no colon to type, seconds physically 0–59, minutes capped 600. */}
           <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:12,border:"1.5px solid rgba(var(--cm-red-rgb,255,59,48),0.4)",padding:"8px 8px 12px",display:"flex",alignItems:"center",justifyContent:"center",gap:0}}>
             <Rolodex items={_minItems} sel={runManualMin} onChange={setRunManualMin} itemH={44} bgColor="var(--cm-paper,#FFFFFF)" selectedColor="var(--cm-ink,#0A0A0A)" adjacentColor="rgba(var(--cm-ink-rgb,10,10,10),0.35)" farColor="rgba(var(--cm-ink-rgb,10,10,10),0.12)"/>
-            <span style={{fontFamily:_MO,fontWeight:700,fontSize:22,color:"var(--cm-ink,#0A0A0A)",flexShrink:0,padding:"0 2px"}}>:</span>
+            <span style={{fontFamily:_MO,fontWeight:500,fontSize:22,color:"var(--cm-ink,#0A0A0A)",flexShrink:0,padding:"0 2px"}}>:</span>
             <Rolodex items={_secItems} sel={runManualSec} onChange={setRunManualSec} itemH={44} bgColor="var(--cm-paper,#FFFFFF)" selectedColor="var(--cm-ink,#0A0A0A)" adjacentColor="rgba(var(--cm-ink-rgb,10,10,10),0.35)" farColor="rgba(var(--cm-ink-rgb,10,10,10),0.12)"/>
           </div>
           <div style={{display:"flex",justifyContent:"space-between",padding:"6px 12px 0"}}>
             <span style={{fontFamily:"'Archivo',sans-serif",fontSize:8.5,fontWeight:700,color:"rgba(255,255,255,0.45)",letterSpacing:"0.12em",textTransform:"uppercase"}}>Minutes</span>
             <span style={{fontFamily:"'Archivo',sans-serif",fontSize:8.5,fontWeight:700,color:"rgba(255,255,255,0.45)",letterSpacing:"0.12em",textTransform:"uppercase"}}>Seconds</span>
           </div>
-          <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.55)",marginTop:8,textAlign:"center"}}>Run time <span style={{fontFamily:_MO,fontWeight:700,color:"#fff"}}>{runManualMin}:{runManualSec}</span></div>
+          <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.55)",marginTop:8,textAlign:"center"}}>Run time <span style={{fontFamily:_MO,fontWeight:500,color:"#fff"}}>{runManualMin}:{runManualSec}</span></div>
         </div>
-        <button onClick={_totalSec>0?finishManualRun:undefined} disabled={_totalSec<=0} style={{width:"100%",padding:"16px",background:"var(--cm-paper,#FFFFFF)",border:"none",borderRadius:14,color:"var(--cm-red,#FF3B30)",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:_totalSec>0?"pointer":"not-allowed",opacity:_totalSec>0?1:0.5,WebkitTapHighlightColor:"transparent"}}>{_totalSec>0?"SAVE RUN →":"SET A DURATION"}</button>
+        <button onClick={_totalSec>0?finishManualRun:undefined} disabled={_totalSec<=0} style={{width:"100%",padding:"16px",background:"var(--cm-paper,#FFFFFF)",border:"none",borderRadius:14,color:"var(--cm-red,#FF3B30)",fontFamily:_MO,fontWeight:500,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:_totalSec>0?"pointer":"not-allowed",opacity:_totalSec>0?1:0.5,WebkitTapHighlightColor:"transparent"}}>{_totalSec>0?"SAVE RUN →":"SET A DURATION"}</button>
       </div>
     );
   }
@@ -3529,7 +3809,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
           </div>
           {/* Distance — MONO numeral, sans unit baseline-aligned (not floating mid-height) */}
           <div style={{display:"flex",alignItems:"baseline",gap:10,marginTop:14,marginBottom:8}}>
-            <div style={{fontFamily:_MO,fontWeight:700,fontSize:76,lineHeight:0.86,color:"#fff",letterSpacing:"-0.04em"}}>
+            <div style={{fontFamily:_MO,fontWeight:500,fontSize:76,lineHeight:0.86,color:"#fff",letterSpacing:"-0.04em"}}>
               {distance>0?_convD(distance).toFixed(2):"—"}
             </div>
             {distance>0&&<div style={{fontFamily:_AF,fontWeight:800,fontSize:26,lineHeight:1,color:"rgba(255,255,255,0.9)"}}>{_distU}</div>}
@@ -3552,9 +3832,9 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
           ].map(({l,v,suf,mono},i)=>(
             <div key={l} style={{flex:1,textAlign:"center",borderLeft:i>0?"1px solid rgba(var(--cm-ink-rgb,10,10,10),.07)":"none"}}>
               <div style={{fontFamily:_AF,fontWeight:700,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",letterSpacing:"0.1em",textTransform:"uppercase"}}>{l}</div>
-              <div style={{fontFamily:mono?_MO:_AF,fontWeight:mono?700:800,fontSize:mono?30:23,color:"var(--cm-ink,#0A0A0A)",lineHeight:1,letterSpacing:"-0.02em",marginTop:7,display:"flex",alignItems:"baseline",justifyContent:"center",gap:2}}>
+              <div style={{fontFamily:_AF,fontWeight:800,fontSize:mono?30:23,color:"var(--cm-ink,#0A0A0A)",lineHeight:1,letterSpacing:"-0.02em",marginTop:7,display:"flex",alignItems:"baseline",justifyContent:"center",gap:2}}>
                 {v}
-                {suf&&<span style={{fontFamily:_MO,fontSize:14,fontWeight:700,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)"}}>{suf}</span>}
+                {suf&&<span style={{fontFamily:_MO,fontSize:14,fontWeight:500,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)"}}>{suf}</span>}
               </div>
             </div>
           ))}
@@ -3582,7 +3862,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                     <span style={{display:"inline-block",fontFamily:_AF,fontSize:10,fontWeight:800,letterSpacing:"0.06em",textTransform:"uppercase",padding:"3px 8px",borderRadius:6,marginTop:7,background:_rch?"rgba(var(--cm-accent-rgb,255,59,48),0.12)":"rgba(var(--cm-ink-rgb,10,10,10),0.06)",color:_rch?"var(--cm-accent-deep,#C2321F)":"rgba(var(--cm-ink-rgb,10,10,10),0.45)"}}>{_rch?"Reached":"Projected"}</span>
                     <div style={{fontFamily:_AF,fontWeight:500,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",marginTop:8}}>{p.note}</div>
                   </div>
-                  <span style={{fontFamily:_MO,fontWeight:700,fontSize:30,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"-0.02em",fontVariantNumeric:"tabular-nums",flexShrink:0}}>{p.time}</span>
+                  <span style={{fontFamily:_AF,fontWeight:800,fontSize:30,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"-0.02em",flexShrink:0}}>{p.time}</span>
                 </div>
               );
             })}
@@ -3593,7 +3873,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
         {!_isGps&&(
           <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:22,marginTop:14,padding:"16px 18px",boxShadow:"0 8px 24px rgba(120,30,10,.13)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <span style={{fontFamily:_AF,fontWeight:600,fontSize:14,color:"rgba(var(--cm-ink-rgb,10,10,10),.55)"}}>Calories (est.)</span>
-            <span style={{fontFamily:_MO,fontWeight:700,fontSize:19,color:"var(--cm-ink,#0A0A0A)",display:"flex",alignItems:"baseline",gap:4}}>{calories}<span style={{fontFamily:_AF,fontSize:11,fontWeight:600,color:"rgba(var(--cm-ink-rgb,10,10,10),.5)"}}>kcal</span></span>
+            <span style={{fontFamily:_MO,fontWeight:500,fontSize:19,color:"var(--cm-ink,#0A0A0A)",display:"flex",alignItems:"baseline",gap:4}}>{calories}<span style={{fontFamily:_AF,fontSize:11,fontWeight:600,color:"rgba(var(--cm-ink-rgb,10,10,10),.5)"}}>kcal</span></span>
           </div>
         )}
 
@@ -3626,7 +3906,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                         {isFastest&&<span style={{fontFamily:_AF,fontWeight:800,fontSize:7,letterSpacing:"0.1em",textTransform:"uppercase",padding:"2px 6px",borderRadius:4,background:"rgba(var(--cm-accent-rgb,255,59,48),.1)",color:"var(--cm-accent,#FF3B30)"}}>FASTEST</span>}
                         {isSlowest&&<span style={{fontFamily:_AF,fontWeight:800,fontSize:7,letterSpacing:"0.1em",textTransform:"uppercase",padding:"2px 6px",borderRadius:4,background:"rgba(var(--cm-ink-rgb,10,10,10),.06)",color:"rgba(var(--cm-ink-rgb,10,10,10),.38)"}}>SLOWEST</span>}
                       </div>
-                      <span style={{fontFamily:_MO,fontWeight:700,fontSize:isFastest?26:22,letterSpacing:"-0.03em",lineHeight:1,color:isFastest?"var(--cm-accent,#FF3B30)":isSlowest?"rgba(var(--cm-ink-rgb,10,10,10),.38)":"var(--cm-ink,#0A0A0A)"}}>{fmtTime(lapTime)}</span>
+                      <span style={{fontFamily:_MO,fontWeight:500,fontSize:isFastest?26:22,letterSpacing:"-0.03em",lineHeight:1,color:isFastest?"var(--cm-accent,#FF3B30)":isSlowest?"rgba(var(--cm-ink-rgb,10,10,10),.38)":"var(--cm-ink,#0A0A0A)"}}>{fmtTime(lapTime)}</span>
                     </div>
                     <div style={{background:"rgba(var(--cm-ink-rgb,10,10,10),.07)",borderRadius:3,height:5,overflow:"hidden"}}>
                       <div style={{width:`${barPct}%`,height:"100%",borderRadius:3,background:isFastest?"var(--cm-accent,#FF3B30)":isSlowest?"rgba(var(--cm-ink-rgb,10,10,10),.15)":"rgba(var(--cm-ink-rgb,10,10,10),.28)",transition:"width 0.7s cubic-bezier(0.2,0.7,0.3,1)"}}/>
@@ -3654,7 +3934,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
             <div>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
                 <span style={{fontFamily:_AF,fontWeight:700,fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.5)"}}>{_partialDistLabel}</span>
-                <span style={{fontFamily:_MO,fontWeight:700,fontSize:22,letterSpacing:"-0.03em",color:"var(--cm-ink,#0A0A0A)"}}>{fmtTime(_partialPaceSec)}<span style={{fontFamily:_AF,fontSize:9,fontWeight:700,color:"rgba(var(--cm-ink-rgb,10,10,10),.3)",marginLeft:4}}>/{splitInterval==='1km'?'KM':'MI'}</span></span>
+                <span style={{fontFamily:_MO,fontWeight:500,fontSize:22,letterSpacing:"-0.03em",color:"var(--cm-ink,#0A0A0A)"}}>{fmtTime(_partialPaceSec)}<span style={{fontFamily:_AF,fontSize:9,fontWeight:500,color:"rgba(var(--cm-ink-rgb,10,10,10),.3)",marginLeft:4}}>/{splitInterval==='1km'?'KM':'MI'}</span></span>
               </div>
               <div style={{background:"rgba(var(--cm-ink-rgb,10,10,10),.07)",borderRadius:3,height:5,overflow:"hidden"}}>
                 <div style={{width:"82%",height:"100%",borderRadius:3,background:"rgba(var(--cm-ink-rgb,10,10,10),.28)"}}/>
@@ -3711,7 +3991,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
     const _BC="'Barlow Condensed',sans-serif";
     return(
       <div style={{paddingTop:20}}>
-        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Hyrox Session</div>
+        <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Hyrox Session</div>
         <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:34,lineHeight:0.9,color:"#fff",textTransform:"uppercase",marginBottom:24}}>
           What type of<br/>session?
         </div>
@@ -3742,7 +4022,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
       <div style={{paddingTop:20}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:18}}>
           <div>
-            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:4}}>Race Simulation</div>
+            <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:4}}>Race Simulation</div>
             <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:40,lineHeight:1,color:"#fff",fontVariantNumeric:"tabular-nums"}}>{fmtTime(hyroxTotalElapsed)}</div>
             <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>total time</div>
           </div>
@@ -3761,13 +4041,13 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
             return(
               <div key={i} style={{flex:1,textAlign:"center"}}>
                 <div style={{width:"100%",height:active?8:6,borderRadius:4,background:done?"rgba(255,255,255,0.9)":active?"#fff":"rgba(255,255,255,0.25)",transition:"all 0.3s"}}/>
-                <div style={{fontFamily:_MO,fontSize:6,fontWeight:700,color:done?"rgba(255,255,255,0.7)":active?"#fff":"rgba(255,255,255,0.3)",marginTop:3,textTransform:"uppercase"}}>{i+1}</div>
+                <div style={{fontFamily:_MO,fontSize:6,fontWeight:500,color:done?"rgba(255,255,255,0.7)":active?"#fff":"rgba(255,255,255,0.3)",marginTop:3,textTransform:"uppercase"}}>{i+1}</div>
               </div>
             );
           })}
         </div>
         <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:16,padding:20,marginBottom:18,boxShadow:"0 4px 20px rgba(0,0,0,.12)"}}>
-          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>{isRun?`Run ${seg.index+1} of 8`:`Station ${seg.index+1} of 8`}</div>
+          <div style={{fontFamily:_MO,fontSize:8,fontWeight:500,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>{isRun?`Run ${seg.index+1} of 8`:`Station ${seg.index+1} of 8`}</div>
           <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:30,lineHeight:0.95,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",marginBottom:isRun?8:4}}>
             {isRun?"1KM Run":(seg.name||"Station")}
           </div>
@@ -3775,12 +4055,12 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
           {isRun&&<div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:8}}>Recover and pace</div>}
           {!isRun&&seg.tip&&<div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",fontStyle:"italic",lineHeight:1.5,marginBottom:14}}>{seg.tip}</div>}
           <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:52,color:"var(--cm-red,#FF3B30)",fontVariantNumeric:"tabular-nums",lineHeight:1,marginBottom:16}}>{fmtTime(hyroxSegElapsed)}</div>
-          <button onClick={completeHyroxSegment} style={{width:"100%",padding:"16px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+          <button onClick={completeHyroxSegment} style={{width:"100%",padding:"16px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:_MO,fontWeight:500,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
             {isRun?"Complete Run →":"Complete Station →"}
           </button>
         </div>
         {hyroxSegTimes.length>0&&<div style={{marginBottom:16}}>
-          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:8}}>Completed</div>
+          <div style={{fontFamily:_MO,fontSize:8,fontWeight:500,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:8}}>Completed</div>
           {hyroxSegTimes.slice(-3).map((s,i)=>(
             <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid rgba(255,255,255,0.12)"}}>
               <span style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.7)",textTransform:"uppercase",letterSpacing:"0.04em"}}>{s.type==='run'?`Run ${s.index+1}`:s.name}</span>
@@ -3803,22 +4083,22 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
       <div style={{paddingTop:20}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:14}}>
           <div>
-            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:4}}>Station WOD</div>
+            <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:4}}>Station WOD</div>
             <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:1,color:"#fff",fontVariantNumeric:"tabular-nums"}}>{fmtTime(hyroxTotalElapsed)}</div>
           </div>
-          <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.75)",textTransform:"uppercase",letterSpacing:"0.06em"}}>Round {hyroxWodCurRound+1} of {hyroxWodRounds}</div>
+          <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:"rgba(255,255,255,0.75)",textTransform:"uppercase",letterSpacing:"0.06em"}}>Round {hyroxWodCurRound+1} of {hyroxWodRounds}</div>
         </div>
         <div style={{height:4,background:"rgba(255,255,255,0.2)",borderRadius:2,marginBottom:20,overflow:"hidden"}}>
           <div style={{height:"100%",background:"#fff",width:`${(doneSteps/totalSteps)*100}%`,transition:"width 0.4s"}}/>
         </div>
         <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:16,padding:20,marginBottom:18,boxShadow:"0 4px 20px rgba(0,0,0,.12)"}}>
-          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>Current Station</div>
+          <div style={{fontFamily:_MO,fontSize:8,fontWeight:500,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>Current Station</div>
           <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:30,lineHeight:0.95,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",marginBottom:4}}>{st.name||"Station"}</div>
-          {st.isSubstituted&&<div style={{marginBottom:8}}><span style={{display:"inline-block",background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)",borderRadius:6,padding:"3px 9px",fontFamily:_MO,fontSize:8,fontWeight:700,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.08em",textTransform:"uppercase"}}>Equipment Substitution</span></div>}
+          {st.isSubstituted&&<div style={{marginBottom:8}}><span style={{display:"inline-block",background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)",borderRadius:6,padding:"3px 9px",fontFamily:_MO,fontSize:8,fontWeight:500,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.08em",textTransform:"uppercase"}}>Equipment Substitution</span></div>}
           {(st.distance||st.reps)&&<div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:700,fontSize:18,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",textTransform:"uppercase",marginBottom:8}}>{st.distance||st.reps}</div>}
           {st.tip&&<div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",fontStyle:"italic",lineHeight:1.5,marginBottom:14}}>{st.tip}</div>}
           <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:52,color:"var(--cm-red,#FF3B30)",fontVariantNumeric:"tabular-nums",lineHeight:1,marginBottom:16}}>{fmtTime(hyroxSegElapsed)}</div>
-          <button onClick={completeWODStation} style={{width:"100%",padding:"16px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>Complete Station →</button>
+          <button onClick={completeWODStation} style={{width:"100%",padding:"16px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:_MO,fontWeight:500,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>Complete Station →</button>
         </div>
       </div>
     );
@@ -3829,7 +4109,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
     const _BC="'Barlow Condensed',sans-serif";
     return(
       <div style={{paddingTop:20}}>
-        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Weakness Focus</div>
+        <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Weakness Focus</div>
         <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:0.9,color:"#fff",textTransform:"uppercase",marginBottom:6}}>
           Pick your<br/>station
         </div>
@@ -3868,7 +4148,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
             startHyroxSegTimer();
           }}
           disabled={!hyroxWeaknessStation}
-          style={{width:"100%",padding:"16px",background:hyroxWeaknessStation?"var(--cm-red,#FF3B30)":"rgba(255,255,255,0.18)",border:"none",borderRadius:14,color:hyroxWeaknessStation?"#fff":"rgba(255,255,255,0.5)",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:hyroxWeaknessStation?"pointer":"not-allowed",transition:"all .2s"}}
+          style={{width:"100%",padding:"16px",background:hyroxWeaknessStation?"var(--cm-red,#FF3B30)":"rgba(255,255,255,0.18)",border:"none",borderRadius:14,color:hyroxWeaknessStation?"#fff":"rgba(255,255,255,0.5)",fontFamily:_MO,fontWeight:500,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:hyroxWeaknessStation?"pointer":"not-allowed",transition:"all .2s"}}
         >Start Focus Session →</button>
       </div>
     );
@@ -3922,23 +4202,23 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
           <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M5 13l6 6 10-10" stroke="var(--cm-red,#FF3B30)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
         <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:60,color:'#fff',lineHeight:0.9,textTransform:'uppercase',marginBottom:8,letterSpacing:'-0.01em'}}>SESSION<br/>COMPLETE</div>
-        <div style={{fontFamily:_MO,fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.6)',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:24}}>{modeLabel} · {dateStr}</div>
+        <div style={{fontFamily:_MO,fontSize:10,fontWeight:500,color:'rgba(255,255,255,0.6)',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:24}}>{modeLabel} · {dateStr}</div>
         <div style={{background:'var(--cm-paper,#FFFFFF)',borderRadius:22,padding:'18px 16px',marginBottom:12,textAlign:'center',boxShadow:'0 2px 12px rgba(0,0,0,.10)'}}>
-          <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.45)',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:4}}>Total Time</div>
+          <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.45)',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:4}}>Total Time</div>
           <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:52,color:'var(--cm-ink,#0A0A0A)',lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{fmtTime(totalElapsed)}</div>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:12}}>
           {tiles.map((tl,i)=>(
             <div key={i} style={{background:'var(--cm-paper,#FFFFFF)',borderRadius:22,padding:'14px 8px',textAlign:'center',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
               <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:22,color:'var(--cm-ink,#0A0A0A)',lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{tl.value}</div>
-              <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.45)',letterSpacing:'0.1em',textTransform:'uppercase',marginTop:4}}>{tl.label}</div>
+              <div style={{fontFamily:_MO,fontSize:8,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.45)',letterSpacing:'0.1em',textTransform:'uppercase',marginTop:4}}>{tl.label}</div>
             </div>
           ))}
         </div>
         <div style={{background:'var(--cm-paper,#FFFFFF)',borderRadius:22,padding:'20px',marginBottom:12,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)',letterSpacing:'0.16em',textTransform:'uppercase'}}>{hyroxEditing?'Edit Times':hasRuns?'Stations · Biggest Leak':'Rounds · Slowest'}</div>
-            <div onClick={()=>setHyroxEditing(e=>!e)} style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.08em',textTransform:'uppercase',cursor:'pointer',WebkitTapHighlightColor:'transparent',padding:'4px 6px'}}>{hyroxEditing?'Done':'Edit'}</div>
+            <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)',letterSpacing:'0.16em',textTransform:'uppercase'}}>{hyroxEditing?'Edit Times':hasRuns?'Stations · Biggest Leak':'Rounds · Slowest'}</div>
+            <div onClick={()=>setHyroxEditing(e=>!e)} style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.08em',textTransform:'uppercase',cursor:'pointer',WebkitTapHighlightColor:'transparent',padding:'4px 6px'}}>{hyroxEditing?'Done':'Edit'}</div>
           </div>
           {hyroxEditing?(
             <div>
@@ -3962,7 +4242,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                   <div key={i} style={{marginBottom:i===rows.length-1?0:12}}>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:5}}>
                       <span style={{fontFamily:_BC,fontStyle:'italic',fontWeight:isLeak?900:700,fontSize:isLeak?16:14,color:isLeak?'var(--cm-red,#FF3B30)':'rgba(var(--cm-ink-rgb,10,10,10),0.85)',textTransform:'uppercase'}}>
-                        {r.name}{isLeak&&<span style={{fontFamily:_MO,fontSize:8,fontWeight:700,marginLeft:8,padding:'2px 7px',borderRadius:6,background:'rgba(var(--cm-red-rgb,255,59,48),0.1)',color:'var(--cm-red,#FF3B30)',letterSpacing:'0.06em',verticalAlign:'middle'}}>LEAK</span>}
+                        {r.name}{isLeak&&<span style={{fontFamily:_MO,fontSize:8,fontWeight:500,marginLeft:8,padding:'2px 7px',borderRadius:6,background:'rgba(var(--cm-red-rgb,255,59,48),0.1)',color:'var(--cm-red,#FF3B30)',letterSpacing:'0.06em',verticalAlign:'middle'}}>LEAK</span>}
                       </span>
                       <span style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:isLeak?16:15,color:isLeak?'var(--cm-red,#FF3B30)':'var(--cm-ink,#0A0A0A)',fontVariantNumeric:'tabular-nums'}}>{fmtTime(r.t)}</span>
                     </div>
@@ -3976,7 +4256,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
             </div>
           )}
         </div>
-        <button onClick={finishExit} style={{width:'100%',padding:'18px 0',background:'var(--cm-paper,#FFFFFF)',border:'none',borderRadius:24,color:'var(--cm-red,#FF3B30)',fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>Save &amp; Exit →</button>
+        <button onClick={finishExit} style={{width:'100%',padding:'18px 0',background:'var(--cm-paper,#FFFFFF)',border:'none',borderRadius:24,color:'var(--cm-red,#FF3B30)',fontFamily:_MO,fontWeight:500,fontSize:11,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>Save &amp; Exit →</button>
         {hyroxPickerIdx!=null&&segs[hyroxPickerIdx]&&(()=>{
           const s=segs[hyroxPickerIdx];
           const cur=s.elapsed||0;
@@ -3996,7 +4276,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
           return(
             <div onClick={()=>setHyroxPickerIdx(null)} style={{position:'fixed',inset:0,zIndex:10050,background:'rgba(0,0,0,0.45)',display:'flex',alignItems:'flex-end'}}>
               <div onClick={e=>e.stopPropagation()} style={{width:'100%',background:'var(--cm-paper,#FFFFFF)',borderTopLeftRadius:24,borderTopRightRadius:24,padding:'20px 20px max(env(safe-area-inset-bottom),20px)',boxSizing:'border-box'}}>
-                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.5)',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:6,textAlign:'center'}}>{segLabel(s)}</div>
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.5)',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:6,textAlign:'center'}}>{segLabel(s)}</div>
                 <div style={{position:'relative',display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
                   <div style={{position:'absolute',left:'15%',right:'15%',top:ITEM*2,height:ITEM,background:'rgba(var(--cm-red-rgb,255,59,48),0.08)',borderTop:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.25)',borderBottom:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.25)',pointerEvents:'none',borderRadius:8}}/>
                   {wheel(mins,initMin,(i)=>{sel.min=i;},(m)=>String(m))}
@@ -4007,7 +4287,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                   <span style={{fontFamily:_MO,fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)',letterSpacing:'0.1em',textTransform:'uppercase'}}>min</span>
                   <span style={{fontFamily:_MO,fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)',letterSpacing:'0.1em',textTransform:'uppercase'}}>sec</span>
                 </div>
-                <button onClick={()=>setHyroxPickerIdx(null)} style={{width:'100%',padding:'15px 0',background:'var(--cm-red,#FF3B30)',border:'none',borderRadius:14,color:'#fff',fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>Done</button>
+                <button onClick={()=>setHyroxPickerIdx(null)} style={{width:'100%',padding:'15px 0',background:'var(--cm-red,#FF3B30)',border:'none',borderRadius:14,color:'#fff',fontFamily:_MO,fontWeight:500,fontSize:11,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>Done</button>
               </div>
             </div>
           );
@@ -4030,7 +4310,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",backdropFilter:"blur(8px)",zIndex:10000,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setSwapModal(null)}>
             <div style={{background:"var(--cm-paper,#fff)",border:"none",borderRadius:"24px 24px 0 0",padding:"20px 20px",paddingBottom:"max(env(safe-area-inset-bottom),32px)",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
               <div style={{width:36,height:4,background:"rgba(var(--cm-ink-rgb,10,10,10),.12)",borderRadius:2,margin:"0 auto 20px"}}/>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:".14em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",marginBottom:6}}>SWAP EXERCISE</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:500,letterSpacing:".14em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",marginBottom:6}}>SWAP EXERCISE</div>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",lineHeight:1,marginBottom:4}}>{swapModal.exerciseName}</div>
               <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),.50)",marginBottom:16}}>Choose a replacement — same muscle group</div>
               {opts.length>0
@@ -4206,7 +4486,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(8px)",zIndex:260,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={skipReadiness}>
           <div style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:"18px 18px 0 0",padding:"24px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
             <div style={{width:32,height:3,background:"rgba(var(--accent-rgb),0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
-            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:".14em",textTransform:"uppercase",marginBottom:4,fontFamily:"var(--mono)"}}>Pre-Session Check-In</div>
+            <div style={{fontSize:10,color:T.mu,fontWeight:500,letterSpacing:".14em",textTransform:"uppercase",marginBottom:4,fontFamily:"var(--mono)"}}>Pre-Session Check-In</div>
             <div style={{fontFamily:"var(--condensed)",fontSize:24,fontWeight:900,marginBottom:20}}>How are you feeling?</div>
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Sleep last night</div>
@@ -4343,7 +4623,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:10.5,color:'rgba(var(--cm-ink-rgb,10,10,10),.55)',lineHeight:1.4}}>{_sub}</div>
               </div>
               <div style={{display:'flex',gap:8,flexShrink:0,alignItems:'center'}}>
-                <button onClick={()=>{const _r=runResumePrompt;setRunResumePrompt(null);startGPSRun(_r);hapMed&&hapMed();}} style={{padding:'8px 13px',background:'var(--cm-red,#FF3B30)',border:'none',borderRadius:20,color:'#fff',fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',cursor:'pointer',whiteSpace:'nowrap',minHeight:'auto'}}>Resume →</button>
+                <button onClick={()=>{const _r=runResumePrompt;setRunResumePrompt(null);startGPSRun(_r);hapMed&&hapMed();}} style={{padding:'8px 13px',background:'var(--cm-red,#FF3B30)',border:'none',borderRadius:20,color:'#fff',fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:500,letterSpacing:'0.1em',textTransform:'uppercase',cursor:'pointer',whiteSpace:'nowrap',minHeight:'auto'}}>Resume →</button>
                 <button onClick={()=>{setRunResumePrompt(null);try{localStorage.removeItem(RUN_KEY);}catch{}}} style={{width:30,height:30,borderRadius:'50%',background:'rgba(var(--cm-ink-rgb,10,10,10),.06)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',padding:0,fontSize:14,color:'var(--cm-ink,#0A0A0A)',flexShrink:0,lineHeight:1,minHeight:'auto'}}>✕</button>
               </div>
             </div>
@@ -4363,7 +4643,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                   <div style={{fontFamily:"'DM Mono',monospace",fontSize:10.5,color:'rgba(var(--cm-ink-rgb,10,10,10),.55)',lineHeight:1.4}}>{_sub}</div>
                 </div>
                 <div style={{display:'flex',gap:8,flexShrink:0,alignItems:'center'}}>
-                  <button onClick={()=>{setActiveWorkout(resumePrompt);setTrainScreen("active");setResumePrompt(null);hapMed();showToast("Session resumed","success");}} style={{padding:'8px 13px',background:'var(--cm-red,#FF3B30)',border:'none',borderRadius:20,color:'#fff',fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',cursor:'pointer',whiteSpace:'nowrap',minHeight:'auto'}}>Resume →</button>
+                  <button onClick={()=>{setActiveWorkout(resumePrompt);setTrainScreen("active");setResumePrompt(null);hapMed();showToast("Session resumed","success");}} style={{padding:'8px 13px',background:'var(--cm-red,#FF3B30)',border:'none',borderRadius:20,color:'#fff',fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:500,letterSpacing:'0.1em',textTransform:'uppercase',cursor:'pointer',whiteSpace:'nowrap',minHeight:'auto'}}>Resume →</button>
                   <button onClick={()=>{setResumePrompt(null);clearPersistedWorkout();}} style={{width:30,height:30,borderRadius:'50%',background:'rgba(var(--cm-ink-rgb,10,10,10),.06)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',padding:0,fontSize:14,color:'var(--cm-ink,#0A0A0A)',flexShrink:0,lineHeight:1,minHeight:'auto'}}>✕</button>
                 </div>
               </div>
@@ -4427,7 +4707,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
               {/* ══ RED HERO ═══════════════════════════════════════════════════ */}
               <div style={{paddingLeft:20,paddingRight:20,paddingTop:0,paddingBottom:160}}>
                 {/* Eyebrow: program */}
-                  <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)",marginBottom:(_phase&&prescType!=="lifting")?16:10}}>
+                  <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)",marginBottom:(_phase&&prescType!=="lifting")?16:10}}>
                     <span>{progLabel}</span>
                   </div>
                   {/* ── RACE COUNTDOWN ── only for race-bearing modes; a stale run_race_date
@@ -4455,7 +4735,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                           </div>
                         )}
                         <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                          <span style={{display:"inline-flex",alignItems:"center",gap:6,fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",background:"rgba(255,255,255,0.16)",color:"#fff",padding:"4px 10px",borderRadius:6}}>
+                          <span style={{display:"inline-flex",alignItems:"center",gap:6,fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:"0.12em",textTransform:"uppercase",background:"rgba(255,255,255,0.16)",color:"#fff",padding:"4px 10px",borderRadius:6}}>
                             <span style={{width:6,height:6,borderRadius:"50%",background:_phase.color,display:"inline-block"}}></span>
                             {_phase.label}
                           </span>
@@ -4524,7 +4804,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                   <div style={{background:"rgba(255,59,48,0.07)",border:"1.5px solid rgba(255,59,48,0.18)",borderRadius:10,padding:"10px 14px",marginBottom:10,display:"flex",gap:10,alignItems:"flex-start"}}>
                     <span style={{fontSize:16,flexShrink:0}}>⚠️</span>
                     <div>
-                      <div style={{fontFamily:_MO,fontSize:10,color:"#FF3B30",letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:700,marginBottom:3}}>Injury Risk</div>
+                      <div style={{fontFamily:_MO,fontSize:10,color:"#FF3B30",letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:500,marginBottom:3}}>Injury Risk</div>
                       <div style={{fontSize:12,color:"var(--cm-ink)",lineHeight:1.55}}>{adaptiveSession.injuryNote}</div>
                       <div style={{fontSize:11,color:"rgba(var(--cm-ink-rgb),0.75)",marginTop:3}}>Consider seeing a physio before continuing.</div>
                     </div>
@@ -4675,7 +4955,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                             <div style={{display:"flex",flexDirection:"column",marginBottom:12}}>
                               {todayPrescription.map((ex,i)=>(
                                 <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 0",borderBottom:"1px solid rgba(10,10,10,0.06)"}}>
-                                  <div style={{width:26,height:26,borderRadius:"50%",background:"rgba(255,59,48,0.10)",border:"1px solid rgba(255,59,48,0.20)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:_MO,fontSize:10,color:"#FF3B30",fontWeight:700,flexShrink:0}}>{i+1}</div>
+                                  <div style={{width:26,height:26,borderRadius:"50%",background:"rgba(255,59,48,0.10)",border:"1px solid rgba(255,59,48,0.20)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:_MO,fontSize:10,color:"#FF3B30",fontWeight:500,flexShrink:0}}>{i+1}</div>
                                   <div style={{flex:1}}>
                                     <div style={{fontFamily:_AF,fontWeight:700,fontSize:15,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:1}}>{ex.name}</div>
                                     {(()=>{
@@ -4697,10 +4977,10 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                               <div style={{background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.18)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
                                 <div style={{fontFamily:_AF,fontWeight:800,fontSize:17,color:"var(--cm-ink)",marginBottom:4}}>You've pushed this program to its limit.</div>
                                 <div style={{fontFamily:_MO,fontSize:11,color:"var(--cm-ink)",lineHeight:1.55,marginBottom:10}}>Your coach has noticed {adaptiveSession.plateaus.join(', ')} have stalled. You're ready for the next level.</div>
-                                <button onClick={()=>setTrainScreen("library")} style={{padding:"8px 16px",background:"rgba(255,59,48,0.10)",border:"1.5px solid rgba(255,59,48,0.22)",borderRadius:9,color:"#FF3B30",fontFamily:_MO,fontSize:10,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>See next programs →</button>
+                                <button onClick={()=>setTrainScreen("library")} style={{padding:"8px 16px",background:"rgba(255,59,48,0.10)",border:"1.5px solid rgba(255,59,48,0.22)",borderRadius:9,color:"#FF3B30",fontFamily:_MO,fontSize:10,fontWeight:500,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>See next programs →</button>
                               </div>
                             )}
-                            <motion.button onClick={()=>{_hM();startFromProgram();}} onPointerDown={()=>_hL()} whileTap={{scale:0.94}} transition={{type:'spring',stiffness:600,damping:20}} style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START SESSION →</motion.button>
+                            <motion.button onClick={()=>{_hM();startFromProgram();}} onPointerDown={()=>_hL()} whileTap={{scale:0.94}} transition={{type:'spring',stiffness:600,damping:20}} style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:500,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START SESSION →</motion.button>
                           </div>
                         )}
                       </>
@@ -4710,7 +4990,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                         onPointerDown={()=>_hL()}
                         whileTap={{scale:0.94}}
                         transition={{type:'spring',stiffness:600,damping:20}}
-                        style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START SESSION →</motion.button>
+                        style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:500,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START SESSION →</motion.button>
                     )}
                     {/* Adapt today — secondary quiet pill, only when a session exists + quota remains */}
                     {Array.isArray(todayPrescription)&&todayPrescription.length>0&&adaptLeft>0&&(
@@ -4735,7 +5015,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                       onPointerDown={()=>_hL()}
                       whileTap={{scale:0.94}}
                       transition={{type:'spring',stiffness:600,damping:20}}
-                      style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START RUN →</motion.button>
+                      style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:500,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START RUN →</motion.button>
                   </div>
                 )}
                 {/* ── HYROX action region: hyrox or hybrid-hyrox day ── */}
@@ -4746,7 +5026,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                       onPointerDown={()=>_hL()}
                       whileTap={{scale:0.94}}
                       transition={{type:'spring',stiffness:600,damping:20}}
-                      style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START HYROX →</motion.button>
+                      style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:500,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START HYROX →</motion.button>
                   </div>
                 )}
               </PaperCard>
@@ -4787,7 +5067,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                   );
                 })()}
                 {/* Quick access eyebrow */}
-                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"var(--cm-ink)",marginBottom:14}}>QUICK ACCESS</div>
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",color:"var(--cm-ink)",marginBottom:14}}>QUICK ACCESS</div>
                 {/* Carousel */}
                 {(()=>{
                   const progInfo=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
@@ -4825,7 +5105,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                             <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
                           </div>
                           <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",marginBottom:2}}>PROGRAMS</div>
+                            <div style={{fontFamily:_MO,fontSize:8,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",marginBottom:2}}>PROGRAMS</div>
                             <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:1,marginBottom:3}}>TRAINING PLANS</div>
                             <div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb),0.75)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>PPL, Arnold, Hyrox…</div>
                           </div>
@@ -4904,7 +5184,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
               const _sub=_wuSubMap[_wt]||'Complete before your first working set.';
               return(
                 <div style={{padding:'max(env(safe-area-inset-top),48px) 24px 24px'}}>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,fontWeight:700,
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,fontWeight:500,
                                 letterSpacing:'0.20em',textTransform:'uppercase',
                                 color:'rgba(255,255,255,0.82)',marginBottom:10}}>
                     WARM-UP · ~5 MIN
@@ -4986,7 +5266,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                                      background:'rgba(var(--cm-ink-rgb),.06)',
                                      border:'1px solid rgba(var(--cm-ink-rgb),.10)',
                                      display:'flex',alignItems:'center',justifyContent:'center',
-                                     fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:700,
+                                     fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:500,
                                      color:'var(--cm-ink)',flexShrink:0}}>
                           {i+1}
                         </div>
@@ -5088,8 +5368,8 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                   <div style={{fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),.40)",fontFamily:"'DM Mono',monospace",lineHeight:1.5,marginBottom:22,letterSpacing:"0.02em"}}>Pause saves your session — pick up where you left off from the home screen.</div>
                   <div style={{display:"flex",flexDirection:"column",gap:10}}>
                     <button onClick={()=>setEndConfirm(false)} style={{padding:"15px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,letterSpacing:"0.04em",textTransform:"uppercase",cursor:"pointer"}}>Keep Going →</button>
-                    <button onClick={()=>{setEndConfirm(false);_handlePause();}} style={{padding:"14px",background:"none",border:"1.5px solid rgba(var(--cm-ink-rgb,10,10,10),.18)",borderRadius:14,color:"var(--cm-ink,#0A0A0A)",fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>Pause — resume later</button>
-                    <button onClick={()=>{setEndConfirm(false);finishWorkout();}} style={{padding:"11px",background:"none",border:"none",borderRadius:12,color:"rgba(var(--cm-ink-rgb,10,10,10),.40)",fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>End &amp; save session</button>
+                    <button onClick={()=>{setEndConfirm(false);_handlePause();}} style={{padding:"14px",background:"none",border:"1.5px solid rgba(var(--cm-ink-rgb,10,10,10),.18)",borderRadius:14,color:"var(--cm-ink,#0A0A0A)",fontFamily:"'DM Mono',monospace",fontWeight:500,fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>Pause — resume later</button>
+                    <button onClick={()=>{setEndConfirm(false);finishWorkout();}} style={{padding:"11px",background:"none",border:"none",borderRadius:12,color:"rgba(var(--cm-ink-rgb,10,10,10),.40)",fontFamily:"'DM Mono',monospace",fontWeight:500,fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>End &amp; save session</button>
                   </div>
                 </div>
               </div>
@@ -5112,7 +5392,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
               ?<div style={{textAlign:"center",padding:"60px 24px",border:`1px dashed ${T.bd}`,borderRadius:20}}>
                 <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,color:"#f5f5f0",textTransform:"uppercase",lineHeight:0.9,marginBottom:16}}>NO SESSION<br/>ACTIVE<span style={{color:"var(--accent)"}}>.</span></div>
                 <div style={{fontFamily:"var(--mono)",fontSize:12,color:T.mu,marginBottom:28,lineHeight:1.6}}>Head to the Train tab and tap Start Session to begin.</div>
-                <button onClick={()=>setTrainScreen("today")} style={{padding:"14px 28px",background:"var(--accent)",color:"#fff",fontWeight:700,fontSize:11,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.14em"}}>GO TO TRAIN →</button>
+                <button onClick={()=>setTrainScreen("today")} style={{padding:"14px 28px",background:"var(--accent)",color:"#fff",fontWeight:500,fontSize:11,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.14em"}}>GO TO TRAIN →</button>
               </div>
               : workoutSummary
                 ? <WorkoutSummaryScreen
@@ -5129,8 +5409,8 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                       <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:12}}>NO WORKOUT<br/>SCHEDULED.</div>
                       <div style={{fontFamily:"var(--condensed)",fontSize:18,color:"rgba(245,245,240,0.5)",lineHeight:1.5,marginBottom:32,maxWidth:280,margin:"0 auto 32px"}}>Your program doesn't have a session assigned for today. Try Adapt Now to generate one.</div>
                       <div style={{display:"flex",flexDirection:"column",gap:12,maxWidth:280,margin:"0 auto"}}>
-                        <button onClick={()=>setShowAdapt(true)} style={{padding:"14px 28px",background:"var(--accent)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>ADAPT NOW →</button>
-                        <button onClick={()=>setTrainScreen("today")} style={{padding:"13px 28px",background:"none",border:"1px solid rgba(245,245,240,0.12)",borderRadius:12,color:"rgba(245,245,240,0.65)",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>GO BACK</button>
+                        <button onClick={()=>setShowAdapt(true)} style={{padding:"14px 28px",background:"var(--accent)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:500,fontSize:11,letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>ADAPT NOW →</button>
+                        <button onClick={()=>setTrainScreen("today")} style={{padding:"13px 28px",background:"none",border:"1px solid rgba(245,245,240,0.12)",borderRadius:12,color:"rgba(245,245,240,0.65)",fontFamily:"var(--mono)",fontWeight:500,fontSize:11,letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>GO BACK</button>
                       </div>
                     </div>
                   :<div>
@@ -5148,7 +5428,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>
                       </button>
                     )}
-                    <button onClick={finishWorkout} style={{padding:"10px 16px",background:'var(--cm-red,#FF3B30)',color:"#fff",fontWeight:700,fontSize:11,border:"none",borderRadius:10,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.12em"}}>FINISH</button>
+                    <button onClick={finishWorkout} style={{padding:"10px 16px",background:'var(--cm-red,#FF3B30)',color:"#fff",fontWeight:500,fontSize:11,border:"none",borderRadius:10,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.12em"}}>FINISH</button>
                   </div>
                 </div>
 
@@ -5342,16 +5622,16 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                                 {showHint&&<div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4,marginLeft:16}}><svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="rgba(10,10,10,0.30)" strokeWidth={2} strokeLinecap="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span style={{fontFamily:"var(--mono)",fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),.30)',letterSpacing:"0.06em"}}>tap to edit</span></div>}
                                 <div onClick={()=>{setEditingSet({ei,si});setEditHintDismissed(true);}} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 16px",marginBottom:6,borderRadius:13,background:"var(--cm-surface,#f7f8fa)",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
                                   <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,letterSpacing:"0.04em",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",flexShrink:0}}>Set {si+1}</span>
-                                  <motion.span initial={_trainEyeRedMo?false:{scale:0.9}} animate={{scale:1}} transition={cmSpring} style={{display:"inline-block",transformOrigin:"left center",fontFamily:"var(--mono)",fontSize:13,fontWeight:700,color:"rgba(var(--cm-ink-rgb,10,10,10),.72)",letterSpacing:"-0.01em"}}>{s.weight||"—"} <span style={{fontWeight:500,opacity:.6}}>{_wu}</span> <span style={{opacity:.4}}>×</span> {s.reps}</motion.span>
+                                  <motion.span initial={_trainEyeRedMo?false:{scale:0.9}} animate={{scale:1}} transition={cmSpring} style={{display:"inline-block",transformOrigin:"left center",fontFamily:"var(--mono)",fontSize:13,fontWeight:500,color:"rgba(var(--cm-ink-rgb,10,10,10),.72)",letterSpacing:"-0.01em"}}>{s.weight||"—"} <span style={{fontWeight:500,opacity:.6}}>{_wu}</span> <span style={{opacity:.4}}>×</span> {s.reps}</motion.span>
                                   <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
-                                    {s.rpe&&<span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:"#FEA020"}}>RPE {s.rpe}</span>}
+                                    {s.rpe&&<span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:500,color:"#FEA020"}}>RPE {s.rpe}</span>}
                                     <svg width={16} height={16} viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}><path d="M5 13l4 4L19 7" stroke="var(--cm-good,#22c55e)" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"/></svg>
                                   </div>
                                 </div>
                                 <div style={{display:"flex",alignItems:"center",gap:4,marginLeft:16,marginBottom:8,marginTop:-1}}>
                                   <span style={{fontFamily:"var(--mono)",fontSize:7,color:'rgba(var(--cm-ink-rgb,10,10,10),.35)',marginRight:2,letterSpacing:"0.08em"}}>RPE</span>
                                   {[6,7,8,9,10].map(r=>(
-                                    <button key={r} onClick={()=>{const u={...activeWorkout};u.exercises[ei].sets[si].rpe=r;setActiveWorkout(u);}} style={{width:26,height:20,borderRadius:4,border:`1px solid ${s.rpe===r?"#FEA020":"rgba(var(--cm-ink-rgb,10,10,10),.10)"}`,background:s.rpe===r?"rgba(254,160,32,0.15)":"transparent",color:s.rpe===r?"#FEA020":"rgba(var(--cm-ink-rgb,10,10,10),.35)",fontFamily:"var(--mono)",fontSize:8,cursor:"pointer",padding:0,fontWeight:s.rpe===r?700:400,lineHeight:1}}>{r}</button>
+                                    <button key={r} onClick={()=>{const u={...activeWorkout};u.exercises[ei].sets[si].rpe=r;setActiveWorkout(u);}} style={{width:26,height:20,borderRadius:4,border:`1px solid ${s.rpe===r?"#FEA020":"rgba(var(--cm-ink-rgb,10,10,10),.10)"}`,background:s.rpe===r?"rgba(254,160,32,0.15)":"transparent",color:s.rpe===r?"#FEA020":"rgba(var(--cm-ink-rgb,10,10,10),.35)",fontFamily:"var(--mono)",fontSize:8,cursor:"pointer",padding:0,fontWeight:s.rpe===r?500:400,lineHeight:1}}>{r}</button>
                                   ))}
                                 </div>
                               </>)}
@@ -5388,8 +5668,8 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                             <div style={{height:"100%",background:"var(--cm-red,#FF3B30)",borderRadius:2,width:Math.max(0,Math.min(100,(localRestSecs/90)*100))+'%',transition:"width 1s linear"}}/>
                           </div>
                           <div style={{display:"flex",gap:8}}>
-                            <button onClick={onReduceLocalRest} style={{flex:1,background:"rgba(var(--cm-ink-rgb,10,10,10),.06)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.12)",borderRadius:10,padding:11,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"0.14em",cursor:"pointer"}}>−30s</button>
-                            <button onClick={onSkipLocalRest} style={{flex:2,background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:10,padding:11,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,color:"#fff",letterSpacing:"0.16em",textTransform:"uppercase",cursor:"pointer"}}>SKIP REST →</button>
+                            <button onClick={onReduceLocalRest} style={{flex:1,background:"rgba(var(--cm-ink-rgb,10,10,10),.06)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.12)",borderRadius:10,padding:11,fontFamily:"'DM Mono',monospace",fontWeight:500,fontSize:10,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"0.14em",cursor:"pointer"}}>−30s</button>
+                            <button onClick={onSkipLocalRest} style={{flex:2,background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:10,padding:11,fontFamily:"'DM Mono',monospace",fontWeight:500,fontSize:10,color:"#fff",letterSpacing:"0.16em",textTransform:"uppercase",cursor:"pointer"}}>SKIP REST →</button>
                           </div>
                         </div>
                       )}
@@ -5424,8 +5704,8 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                       }
                       <span style={{fontFamily:"var(--mono)",fontSize:10,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',letterSpacing:"0.08em"}}>{ei+1} / {exList.length}</span>
                       {ei<exList.length-1
-                        ?<button onClick={()=>setCurrentExerciseIdx(ei+1)} style={{background:'var(--cm-red,#FF3B30)',border:"none",borderRadius:10,padding:"10px 16px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#fff",cursor:"pointer",letterSpacing:"0.08em",maxWidth:170,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>NEXT: {nextLabel} →</button>
-                        :<button onClick={finishWorkout} style={{background:'var(--cm-red,#FF3B30)',border:"none",borderRadius:10,padding:"10px 16px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#fff",cursor:"pointer",letterSpacing:"0.08em"}}>FINISH SESSION →</button>
+                        ?<button onClick={()=>setCurrentExerciseIdx(ei+1)} style={{background:'var(--cm-red,#FF3B30)',border:"none",borderRadius:10,padding:"10px 16px",fontFamily:"var(--mono)",fontSize:10,fontWeight:500,color:"#fff",cursor:"pointer",letterSpacing:"0.08em",maxWidth:170,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>NEXT: {nextLabel} →</button>
+                        :<button onClick={finishWorkout} style={{background:'var(--cm-red,#FF3B30)',border:"none",borderRadius:10,padding:"10px 16px",fontFamily:"var(--mono)",fontSize:10,fontWeight:500,color:"#fff",cursor:"pointer",letterSpacing:"0.08em"}}>FINISH SESSION →</button>
                       }
                     </div>
                     </>
@@ -5462,7 +5742,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                 <div style={{flex:1,fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:17,color:"var(--cm-ink,#0A0A0A)"}}>Why this rest?</div>
                 <button onClick={()=>setWhyRest(null)} style={{background:"none",border:"none",cursor:"pointer",color:"rgba(var(--cm-ink-rgb,10,10,10),.4)",padding:4,fontSize:18,lineHeight:1,WebkitTapHighlightColor:"transparent"}}>✕</button>
               </div>
-              {whyRest.reason&&<div style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"var(--cm-accent,#FF3B30)",marginBottom:11}}>{whyRest.reason}</div>}
+              {whyRest.reason&&<div style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:500,letterSpacing:"0.1em",textTransform:"uppercase",color:"var(--cm-accent,#FF3B30)",marginBottom:11}}>{whyRest.reason}</div>}
               <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:500,fontSize:15,lineHeight:1.55,color:"rgba(var(--cm-ink-rgb,10,10,10),.82)"}}>{_restCoachNote(whyRest.secs)}</div>
             </div>
           </div>,
@@ -5514,7 +5794,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
             <div>
               {/* RED HERO BAND */}
               <div style={{paddingLeft:20,paddingRight:20,paddingTop:14,paddingBottom:84}}>
-                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)",marginBottom:8,display:"flex",gap:8,alignItems:"center"}}>
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)",marginBottom:8,display:"flex",gap:8,alignItems:"center"}}>
                   <span>YOUR PLAN</span>
                   <span style={{color:"rgba(255,255,255,0.25)"}}>·</span>
                   <span style={{color:"rgba(255,255,255,0.75)"}}>{expLabel}</span>
@@ -5531,14 +5811,14 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
               <PaperCard style={{margin:"-60px 12px 0",padding:"20px 0 4px"}}>
                 {/* Card header */}
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",marginBottom:14}}>
-                  <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"var(--cm-ink)"}}>THIS WEEK</div>
+                  <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",color:"var(--cm-ink)"}}>THIS WEEK</div>
                   {(()=>{const _nm=_switchNames.length?_switchNames[_switchProgIdx%_switchNames.length]:"Browse programs";return(
                     <div onClick={()=>{_hL();setTrainScreen("library");}} style={{display:"flex",alignItems:"center",gap:10,background:"var(--cm-paper,#fff)",borderRadius:18,boxShadow:"0 4px 18px rgba(0,0,0,.12)",padding:"10px 14px",cursor:"pointer",border:"none",marginTop:-4}}>
                       <div style={{width:32,height:32,borderRadius:9,background:"var(--cm-red,#FF3B30)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                         <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.3} strokeLinecap="round" strokeLinejoin="round"><path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/></svg>
                       </div>
                       <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",marginBottom:1}}>SWITCH PROGRAM</div>
+                        <div style={{fontFamily:_MO,fontSize:8,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",marginBottom:1}}>SWITCH PROGRAM</div>
                         <div key={_switchProgIdx} className="prog-cycle-name" style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:14,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",lineHeight:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{_nm}</div>
                       </div>
                       <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="rgba(var(--cm-ink-rgb,10,10,10),.35)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M9 18l6-6-6-6"/></svg>
@@ -5571,7 +5851,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                       >
                         <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
                           {/* Day abbrev */}
-                          <div style={{fontFamily:_MO,fontSize:10,fontWeight:700,letterSpacing:"0.06em",color:isToday?"var(--cm-red)":isDone?"rgba(var(--cm-ink-rgb),.40)":"rgba(var(--cm-ink-rgb),.42)",width:28,flexShrink:0,textTransform:"uppercase",paddingTop:2}}>
+                          <div style={{fontFamily:_MO,fontSize:10,fontWeight:500,letterSpacing:"0.06em",color:isToday?"var(--cm-red)":isDone?"rgba(var(--cm-ink-rgb),.40)":"rgba(var(--cm-ink-rgb),.42)",width:28,flexShrink:0,textTransform:"uppercase",paddingTop:2}}>
                             {day.slice(0,3)}
                           </div>
                           {/* Content */}
@@ -5597,7 +5877,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                             {/* Expanded: exact sub-muscle pills */}
                             {isExpanded&&isTraining&&(
                               <div style={{marginTop:8}}>
-                                <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb),.38)",marginBottom:6}}>
+                                <div style={{fontFamily:_MO,fontSize:8,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb),.38)",marginBottom:6}}>
                                   MUSCLES WORKED
                                 </div>
                                 <MusclePills focus={focus} variant="exact"/>
@@ -5645,7 +5925,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
             <SectionCard title="Training Mode">
               <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
                 {[["strength","Strength"],["run","Running"],["hyrox","Hyrox"],["hybrid","Hybrid"]].map(([k,l])=>(
-                  <button key={k} onClick={()=>setPlanMode(k)} style={{padding:"9px 14px",borderRadius:9,border:`1.5px solid ${planMode===k?T.prot:T.bd}`,background:planMode===k?`rgba(var(--accent-rgb),0.08)`:T.s3,color:planMode===k?T.prot:T.mu,fontFamily:"var(--mono)",fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>{l}</button>
+                  <button key={k} onClick={()=>setPlanMode(k)} style={{padding:"9px 14px",borderRadius:9,border:`1.5px solid ${planMode===k?T.prot:T.bd}`,background:planMode===k?`rgba(var(--accent-rgb),0.08)`:T.s3,color:planMode===k?T.prot:T.mu,fontFamily:"var(--mono)",fontSize:11,fontWeight:500,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>{l}</button>
                 ))}
               </div>
               {planMode==="hybrid"&&<div style={{borderTop:`1px solid ${T.bd}`,paddingTop:14}}>
@@ -6008,7 +6288,7 @@ export function TrainingDNA({profile,wPrefs,user,isMobile,schedule,prefetchedDna
   if(daysSince<30){
     return(
       <div style={{background:"var(--bg)",padding:"18px 20px 20px"}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>TRAINING DNA</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>TRAINING DNA</div>
         <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:18,color:"var(--cm-ink)",marginBottom:8}}>Unlocks after 30 days.</div>
         <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.5}}>Keep training — {30-daysSince} days to go.</div>
       </div>
@@ -6054,7 +6334,7 @@ export function TrainingDNA({profile,wPrefs,user,isMobile,schedule,prefetchedDna
       {/* Header */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
         <div>
-          <div style={{fontFamily:_MO,fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:6}}>TRAINING DNA</div>
+          <div style={{fontFamily:_MO,fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:6}}>TRAINING DNA</div>
           <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"var(--cm-ink)",lineHeight:1}}>{dnaData?getAthleteTitle(scores):"CALCULATING..."}</div>
         </div>
         <div style={{fontFamily:_MO,fontSize:9,color:"var(--text-faint)",textAlign:"right",letterSpacing:"0.08em"}}>LAST 90 DAYS<br/>{dnaData?`${dnaData.total} SESSIONS`:"—"}</div>
@@ -6068,9 +6348,9 @@ export function TrainingDNA({profile,wPrefs,user,isMobile,schedule,prefetchedDna
           return(
             <div key={key}>
               <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:8}}>
-                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)"}}>{label}</div>
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)"}}>{label}</div>
                 <div style={{fontFamily:_AF,fontWeight:800,fontSize:30,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.02em"}}>
-                  {v!=null?v:'—'}<span style={{fontFamily:_MO,fontSize:11,fontWeight:700,color:"var(--text-faint)",marginLeft:2}}>/100</span>
+                  {v!=null?v:'—'}<span style={{fontFamily:_MO,fontSize:11,fontWeight:500,color:"var(--text-faint)",marginLeft:2}}>/100</span>
                 </div>
               </div>
               <div style={{height:6,background:"var(--card-border)",borderRadius:3,overflow:"hidden"}}>
@@ -6340,7 +6620,7 @@ export function ConnectSection({stravaToken,setStravaToken,stravaStatus,stravaAt
     <div style={{paddingBottom:isMobile?20:0,padding:isMobile?"12px 18px":"0"}}>
       <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,marginBottom:4}}>CONNECT DEVICES</div>
       <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Burned calories automatically add to your Fuel budget</p>
-      {earnedCals>0&&<div style={{background:`rgba(var(--accent-rgb),0.07)`,border:`1px solid rgba(var(--accent-rgb),0.19)`,borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase"}}>// Earned Today</div><div style={{fontSize:12,color:T.mu,marginTop:2}}>{todayActs.map(a=>`${a.title||a.type}`).join(" · ")}</div></div><div style={{color:T.prot,fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22}}>+{earnedCals} kcal</div></div>}
+      {earnedCals>0&&<div style={{background:`rgba(var(--accent-rgb),0.07)`,border:`1px solid rgba(var(--accent-rgb),0.19)`,borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase"}}>// Earned Today</div><div style={{fontSize:12,color:T.mu,marginTop:2}}>{todayActs.map(a=>`${a.title||a.type}`).join(" · ")}</div></div><div style={{color:T.prot,fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22}}>+{earnedCals} kcal</div></div>}
       <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:14}}>
         {/* Strava */}
         <SectionCard title={<span style={{display:"inline-flex",alignItems:"center",gap:7}}><span style={{width:10,height:10,borderRadius:"50%",background:"#FC4C02",flexShrink:0,display:"inline-block"}}/>Strava — Live Sync</span>}>
@@ -6470,7 +6750,7 @@ function AppearanceSection({ user, wPrefs, setWPrefs }) {
           <div style={{ background: pCard, borderRadius: 14, padding: '13px 15px', border: `1px solid ${pBord}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
               <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 10.5, color: ptxtD, letterSpacing: '0.02em' }}>Protein</span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, color: accentH }}>142 / 180g</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 500, color: accentH }}>142 / 180g</span>
             </div>
             <div style={{ height: 6, background: `rgba(${lt ? '0,0,0' : '245,245,240'},0.10)`, borderRadius: 3, overflow: 'hidden' }}>
               <div style={{ width: '79%', height: '100%', background: accentH, borderRadius: 3 }} />
@@ -7435,9 +7715,9 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 try{
                   const{data:{user:u}}=await withTimeout(sb.auth.getUser(),6000,'getUser').catch(()=>({data:{user:null}}));
                   if(!u){showToast("Please sign in to continue.","error");return;}
-                  // ── DEV-TEST BYPASS (build:sim → MODE!=="production") — visible simulated unlock.
-                  //    MODE-gated → terser-stripped from production `vite build` (never ships). ──
-                  if(import.meta.env.MODE!=="production"){
+                  // ── DEV-TEST BYPASS — requires BOTH MODE!=="production" AND VITE_DEV_IAP_BYPASS==="1"
+                  //    (.env.development.local only). Two-factor: IMPOSSIBLE to reach in an App Store archive. ──
+                  if(import.meta.env.MODE!=="production"&&import.meta.env.VITE_DEV_IAP_BYPASS==="1"){
                     const unlocked=await devUnlockEntitlement(u.id);
                     if(unlocked){setShowPlansModal(false);showToast("Dev unlock — subscription simulated!","success");}
                     else showToast("Dev unlock failed — check the console.","error");
@@ -7912,9 +8192,9 @@ export function Paywall({profile}) {
       const { data: { user: u } } = await sb.auth.getUser().catch(() => ({ data: { user: null } }));
       if (!u) { showToast('Please sign in to continue.', 'error'); return; }
 
-      // ── DEV-TEST BYPASS (build:sim → MODE!=="production") — visible simulated unlock.
-      //    MODE-gated → terser-stripped from production `vite build` (never ships). ──
-      if (import.meta.env.MODE !== 'production') {
+      // ── DEV-TEST BYPASS — requires BOTH MODE!=="production" AND VITE_DEV_IAP_BYPASS==="1"
+      //    (.env.development.local only). Two-factor: IMPOSSIBLE to reach in an App Store archive. ──
+      if (import.meta.env.MODE !== 'production' && import.meta.env.VITE_DEV_IAP_BYPASS === '1') {
         const unlocked = await devUnlockEntitlement(u.id);
         if (unlocked) { showToast('Dev unlock — subscription simulated. Loading your app…', 'success'); setTimeout(() => window.location.reload(), 800); }
         else showToast('Dev unlock failed — check the console.', 'error');
@@ -8018,9 +8298,9 @@ export function UpgradeScreen({ profile, onContinue }) {
       const { data: { user: u } } = await sb.auth.getUser().catch(() => ({ data: { user: null } }));
       if (!u) { showToast('Please sign in to continue.', 'error'); return; }
 
-      // ── DEV-TEST BYPASS (build:sim → MODE!=="production") — visible simulated unlock.
-      //    MODE-gated → terser-stripped from production `vite build` (never ships). ──
-      if (import.meta.env.MODE !== 'production') {
+      // ── DEV-TEST BYPASS — requires BOTH MODE!=="production" AND VITE_DEV_IAP_BYPASS==="1"
+      //    (.env.development.local only). Two-factor: IMPOSSIBLE to reach in an App Store archive. ──
+      if (import.meta.env.MODE !== 'production' && import.meta.env.VITE_DEV_IAP_BYPASS === '1') {
         const unlocked = await devUnlockEntitlement(u.id);
         if (unlocked) { showToast('Dev unlock — subscription simulated. Continuing…', 'success'); onContinue?.(); }
         else showToast('Dev unlock failed — check the console.', 'error');
@@ -8171,9 +8451,9 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
       setLoading(true);
       const uid = await getUid();
       if (!uid) { setPurchaseError("Please sign in to continue."); return; }
-      // ── DEV-TEST BYPASS (build:sim → MODE!=="production") — visible simulated unlock.
-      //    MODE-gated → terser-stripped from production `vite build` (never ships). ──
-      if (import.meta.env.MODE !== "production") {
+      // ── DEV-TEST BYPASS — requires BOTH MODE!=="production" AND VITE_DEV_IAP_BYPASS==="1"
+      //    (.env.development.local only). Two-factor: IMPOSSIBLE to reach in an App Store archive. ──
+      if (import.meta.env.MODE !== "production" && import.meta.env.VITE_DEV_IAP_BYPASS === "1") {
         if (await devUnlockEntitlement(uid)) onSubscribed?.();
         else setPurchaseError("Dev unlock failed — check the console.");
         return;
@@ -8192,9 +8472,9 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
       setLoading(true);
       const uid = await getUid();
       if (!uid) { setPurchaseError("Please sign in to continue."); return; }
-      // ── DEV-TEST BYPASS (build:sim → MODE!=="production") — visible simulated unlock.
-      //    MODE-gated → terser-stripped from production `vite build` (never ships). ──
-      if (import.meta.env.MODE !== "production") {
+      // ── DEV-TEST BYPASS — requires BOTH MODE!=="production" AND VITE_DEV_IAP_BYPASS==="1"
+      //    (.env.development.local only). Two-factor: IMPOSSIBLE to reach in an App Store archive. ──
+      if (import.meta.env.MODE !== "production" && import.meta.env.VITE_DEV_IAP_BYPASS === "1") {
         if (await devUnlockEntitlement(uid)) onSubscribed?.();
         else setPurchaseError("Dev unlock failed — check the console.");
         return;

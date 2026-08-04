@@ -1331,7 +1331,7 @@ function BuildScreen({ d, getMapped, onDone }) {
               border: "1px solid rgba(var(--accent-rgb),0.3)",
               borderRadius: 10, padding: "12px 6px",
             }}>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700, color: "#FFFFFF", lineHeight: 1, marginBottom: 5 }}>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 500, color: "#FFFFFF", lineHeight: 1, marginBottom: 5 }}>
                 {p.num}
               </div>
               <div style={{ fontFamily: "var(--mono)", fontSize: 8, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(245,245,240,0.45)" }}>
@@ -1491,12 +1491,10 @@ function NewPaywall({ trialDays }) {
       const { data: { user: u } } = await sb.auth.getUser().catch(() => ({ data: { user: null } }));
       if (!u) { showToast("Please sign in to continue.", "error"); return; }
 
-      // ── DEV-TEST BYPASS (build:sim → MODE!=="production") ──────────────────
-      // There is no configured RevenueCat offering in dev/sim, so the real IAP
-      // can't complete — the button would appear dead. Instead, VISIBLY simulate
-      // a successful unlock so the post-paywall flow is testable end-to-end.
-      // MODE-gated → terser-stripped from production `vite build` (never ships).
-      if (import.meta.env.MODE !== "production") {
+      // ── DEV-TEST BYPASS — requires BOTH MODE!=="production" AND VITE_DEV_IAP_BYPASS==="1"
+      // (set in .env.development.local). Two independent guards so this is IMPOSSIBLE to
+      // reach in an App Store archive even if build:sim is accidentally used before archiving.
+      if (import.meta.env.MODE !== "production" && import.meta.env.VITE_DEV_IAP_BYPASS === "1") {
         const unlocked = await devUnlockEntitlement(u.id);
         if (unlocked) {
           showToast("Dev unlock — subscription simulated. Loading your app…", "success");
