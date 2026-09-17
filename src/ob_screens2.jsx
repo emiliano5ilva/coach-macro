@@ -28,7 +28,7 @@ import { getCyclePhase } from "./utils/ait.js";
 import { getCycleNutrition, getConsistencyScore, showConsistencyScore, isCalorieFreeMode } from "./utils/female.js";
 import { getDayType, getDayTypeNutrition, getWeekNutrition, getDailyWaterTarget } from "./utils/dayTypeNutrition.js";
 import { getWaterLogs, addWaterLog, deleteWaterLog, getWaterHistory } from "./services/foodDatabase.js";
-import { computeStreak, saveStreakData, loadFoodLogDates } from "./services/streakService.js";
+import { computeStreak, saveStreakData, loadFoodLogDates, localDateStr } from "./services/streakService.js";
 import { displayDistance, distanceLabel } from "./utils/units.js";
 import { minSecToInterval, PLAN_TO_RACE_TYPE } from "./utils/runPlanUtils.js";
 import { resolveProgram, inferEntryFromFields } from "./utils/programResolver.js";
@@ -641,7 +641,7 @@ const SCORE_SLEEP = {u5:20,"5-6":40,"6-7":65,"7-8":85,"8+":100};
 const _WDAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
 function calcCoachScore({profile,consumed,macros,log,workoutLogsRaw,schedule,todayKey,todayType,healthSnap}) {
-  const today = new Date().toISOString().split("T")[0];
+  const today = localDateStr(new Date());
 
   // ── Recovery (40%) ─────────────────────────────────────────────────────────
   // Use real HealthKit data when available, fall back to onboarding self-report
@@ -3098,7 +3098,7 @@ function ConnectionsView({ userId, onClose, healthSnap, workoutLogsRaw, bodyweig
     rhr:      healthSnap?.rhr ?? null,
     steps:    healthSnap?.steps != null ? healthSnap.steps / 1000 : null,
     calories: consumed?.calories ?? null,
-    volume:   workoutLogsRaw ? (() => { const t=new Date(); t.setHours(0,0,0,0); const ds=t.toISOString().split('T')[0]; const tot=workoutLogsRaw.filter(l=>l.date===ds).reduce((s,l)=>s+(l.volume_lbs||0),0); return tot>0?tot/1000:null; })() : null,
+    volume:   workoutLogsRaw ? (() => { const ds=localDateStr(new Date()); const tot=workoutLogsRaw.filter(l=>l.date===ds).reduce((s,l)=>s+(l.volume_lbs||0),0); return tot>0?tot/1000:null; })() : null,
     weight:   bodyweightLogs?.[0]?.weight ?? null,
     tdee:     null,
   };
@@ -7601,7 +7601,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   }
 
   // ── Food log date navigation ───────────────────────────────────────────────
-  const logDate=new Date().toISOString().split("T")[0]; // today-only; past-day viewing via Today bars
+  const logDate=localDateStr(new Date()); // today-only; past-day viewing via Today bars
 
   // ── Bodyweight logs ────────────────────────────────────────────────────────
   const [bodyweightLogs,setBodyweightLogs]=useState([]);
@@ -7663,7 +7663,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
 
   // ── Persist food log: single row per day, entries = full jsonb array ────────
   async function saveFoodLog(uid,entries,addedEntry=null){
-    const today=new Date().toISOString().split("T")[0];
+    const today=localDateStr(new Date());
     const {error}=await sb.from("food_logs")
       .upsert({user_id:uid,date:today,entries},{onConflict:"user_id,date"});
     if(error)console.error("[saveFoodLog] error:",error.message,error.code);
@@ -7703,21 +7703,21 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const saveSkippedSlots=useCallback(async (newSkipped)=>{
     if(!user)return;
     setSkippedSlots(newSkipped);
-    const today=new Date().toISOString().split("T")[0];
+    const today=localDateStr(new Date());
     await sb.from("food_logs").upsert({user_id:user.id,date:today,skipped_slots:newSkipped},{onConflict:"user_id,date"});
   },[user]);
 
   const saveSlotOverages=useCallback(async (newOverages)=>{
     if(!user)return;
     setSlotOverages(newOverages);
-    const today=new Date().toISOString().split("T")[0];
+    const today=localDateStr(new Date());
     await sb.from("food_logs").upsert({user_id:user.id,date:today,slot_overages:newOverages},{onConflict:"user_id,date"});
   },[user]);
 
   const saveLockedSlots=useCallback(async (newLocked)=>{
     if(!user)return;
     setLockedSlots(newLocked);
-    const today=new Date().toISOString().split("T")[0];
+    const today=localDateStr(new Date());
     await sb.from("food_logs").upsert({user_id:user.id,date:today,locked_slots:newLocked},{onConflict:"user_id,date"});
   },[user]);
 
@@ -8782,7 +8782,7 @@ Rules:
       if(user){
         try{
           const feedbackData=activeWorkout.exercises.filter(ex=>ex.feedback).map(ex=>({name:ex.name,feedback:ex.feedback}));
-          const today=new Date().toISOString().split("T")[0];
+          const today=localDateStr(new Date());
           _wkObj={focus:normFocus(todayFocus),exercises:setsLogged,calories_burned:burn,type:todayType,readinessTier:activeWorkout.readinessTier||null,exerciseFeedback:feedbackData};
           const {data:_wkRow,error:saveErr}=await sb.from("workout_logs").insert({
             user_id:user.id,

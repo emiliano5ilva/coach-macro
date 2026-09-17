@@ -1,10 +1,13 @@
 import { sb } from '../client.js';
 
-// Local YYYY-MM-DD string — matches how workout_logs and food_logs store dates.
-// Must use local date parts (not toISOString/UTC) so dates align with stored values.
-function _localDs(d) {
+// Local YYYY-MM-DD string — the one canonical date helper for the whole app.
+// Exported so ob_screens2.jsx write sites use the same definition as the streak walk.
+// Must use local date parts (not toISOString/UTC) so writes and streak reads agree.
+export function localDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
+// Keep internal alias for existing calls within this file
+const _localDs = localDateStr;
 
 /**
  * Compute the unified streak (food OR workout, either counts) with Yazio-style freeze protection.
