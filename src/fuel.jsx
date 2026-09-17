@@ -2380,7 +2380,7 @@ Reply with ONLY a valid JSON object, no markdown:
                     <div style={{width:'50%'}}>{_pages[1]}</div>
                   </motion.div>
                 </div>
-                <FlameIcon/>
+                <FlameIcon count={0}/>
               </div>
             );
           })():(

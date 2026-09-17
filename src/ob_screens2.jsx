@@ -10778,7 +10778,7 @@ Rules:
                 </div>
               </motion.div>
             </div>
-            <FlameIcon/>
+            <FlameIcon count={workoutStreak}/>
           </div>
 
           {/* Greeting */}

@@ -4606,7 +4606,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                         <div style={{width:'50%'}}>{_pages[1]}</div>
                       </motion.div>
                     </div>
-                    <FlameIcon/>
+                    <FlameIcon count={0}/>
                   </div>
                 );
               })():(

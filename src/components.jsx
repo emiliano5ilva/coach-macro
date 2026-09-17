@@ -1360,30 +1360,22 @@ export function WhistleMark({ size = 32, variant = "glyph", style }) {
   );
 }
 
-// 22×28px idle-animated flame mascot. Single continuous teardrop silhouette + inner core layer.
-export function FlameIcon({size=22}) {
+// 22×28px idle-animated flame mascot. Bold two-tone Duolingo-style: solid orange outer teardrop,
+// solid yellow inner teardrop (orange visible at tip and base). count prop stacks a small DM Mono
+// number above the flame. Pass count={0} as a placeholder where streak isn't wired yet.
+export function FlameIcon({size=22, count=0}) {
   const h=Math.round(size*28/22);
   return(
-    <svg width={size} height={h} viewBox="0 0 22 28" fill="none" aria-hidden="true" style={{display:'block',flexShrink:0}}>
-      <style>{`@keyframes _flt{0%,100%{transform:scaleY(1) rotate(0deg)}42%{transform:scaleY(0.91) rotate(-1.8deg)}70%{transform:scaleY(0.96) rotate(0.9deg)}}._flt{transform-box:fill-box;transform-origin:50% 96%;animation:_flt 2s ease-in-out infinite}`}</style>
-      <g className="_flt">
-        {/* Outer flame — one continuous teardrop, tip at top, rounded base */}
-        <path d="M11 1.5C9.5 4.5 4 8.5 4 14.5 4 20.5 7 24.5 11 25.5 15 24.5 18 20.5 18 14.5 18 8.5 12.5 4.5 11 1.5Z" fill="url(#_floa)"/>
-        {/* Inner core — narrower flame layer for warm depth */}
-        <path d="M11 7C10 10 7.5 12.5 7.5 16.5 7.5 20.5 9 23.5 11 24 13 23.5 14.5 20.5 14.5 16.5 14.5 12.5 12 10 11 7Z" fill="url(#_flia)" opacity="0.85"/>
-      </g>
-      <defs>
-        <linearGradient id="_floa" x1="11" y1="1.5" x2="11" y2="25.5" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#FFC200"/>
-          <stop offset="45%" stopColor="#FF7A00"/>
-          <stop offset="100%" stopColor="#FF3B30"/>
-        </linearGradient>
-        <linearGradient id="_flia" x1="11" y1="7" x2="11" y2="24" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#FFF176"/>
-          <stop offset="100%" stopColor="#FFB300" stopOpacity="0.65"/>
-        </linearGradient>
-      </defs>
-    </svg>
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,flexShrink:0}}>
+      <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:500,color:'rgba(255,255,255,0.75)',letterSpacing:'0.04em',lineHeight:1}}>{count}</span>
+      <svg width={size} height={h} viewBox="0 0 22 28" fill="none" aria-hidden="true" style={{display:'block'}}>
+        <style>{`@keyframes _flt{0%,100%{transform:scaleY(1) rotate(0deg)}42%{transform:scaleY(0.91) rotate(-1.8deg)}70%{transform:scaleY(0.96) rotate(0.9deg)}}._flt{transform-box:fill-box;transform-origin:50% 96%;animation:_flt 2s ease-in-out infinite}`}</style>
+        <g className="_flt">
+          <path d="M11 1.5C9.5 4.5 4 8.5 4 14.5 4 20.5 7 24.5 11 25.5 15 24.5 18 20.5 18 14.5 18 8.5 12.5 4.5 11 1.5Z" fill="#FF9500"/>
+          <path d="M11 8C9.5 11.5 7 15 7 18.5 7 21.5 9 23 11 23.5 13 23 15 21.5 15 18.5 15 15 12.5 11.5 11 8Z" fill="#FFE300"/>
+        </g>
+      </svg>
+    </div>
   );
 }
 
