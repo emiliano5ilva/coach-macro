@@ -1360,28 +1360,28 @@ export function WhistleMark({ size = 32, variant = "glyph", style }) {
   );
 }
 
-// 22×28px idle-animated flame blob mascot. CSS animations run independently on each tab instance.
+// 22×28px idle-animated flame mascot. Single continuous teardrop silhouette + inner core layer.
 export function FlameIcon({size=22}) {
   const h=Math.round(size*28/22);
   return(
     <svg width={size} height={h} viewBox="0 0 22 28" fill="none" aria-hidden="true" style={{display:'block',flexShrink:0}}>
-      <style>{`@keyframes _flt{0%,100%{transform:scaleY(1) scaleX(1)}32%{transform:scaleY(0.87) scaleX(1.06)}65%{transform:scaleY(0.94) scaleX(0.97)}}@keyframes _flc{0%,100%{opacity:.72}44%{opacity:1}}._flt{transform-box:fill-box;transform-origin:50% 98%;animation:_flt 1.85s ease-in-out infinite}._flc{transform-box:fill-box;transform-origin:50% 80%;animation:_flc 1.25s ease-in-out infinite 0.3s}`}</style>
+      <style>{`@keyframes _flt{0%,100%{transform:scaleY(1) rotate(0deg)}42%{transform:scaleY(0.91) rotate(-1.8deg)}70%{transform:scaleY(0.96) rotate(0.9deg)}}._flt{transform-box:fill-box;transform-origin:50% 96%;animation:_flt 2s ease-in-out infinite}`}</style>
       <g className="_flt">
-        <path d="M11 1.8C10.2 4.5 7.5 6.8 6 10.5 4.5 14.5 5.8 18 8.5 20.2 9.7 21.2 10.2 22.5 11 23.5 11.8 22.5 12.3 21.2 13.5 20.2 16.2 18 17.5 14.5 16 10.5 14.5 6.8 11.8 4.5 11 1.8Z" fill="url(#_fla)"/>
-      </g>
-      <g className="_flc">
-        <ellipse cx="11" cy="19.5" rx="3.2" ry="4.8" fill="url(#_flb)"/>
+        {/* Outer flame — one continuous teardrop, tip at top, rounded base */}
+        <path d="M11 1.5C9.5 4.5 4 8.5 4 14.5 4 20.5 7 24.5 11 25.5 15 24.5 18 20.5 18 14.5 18 8.5 12.5 4.5 11 1.5Z" fill="url(#_floa)"/>
+        {/* Inner core — narrower flame layer for warm depth */}
+        <path d="M11 7C10 10 7.5 12.5 7.5 16.5 7.5 20.5 9 23.5 11 24 13 23.5 14.5 20.5 14.5 16.5 14.5 12.5 12 10 11 7Z" fill="url(#_flia)" opacity="0.85"/>
       </g>
       <defs>
-        <linearGradient id="_fla" x1="11" y1="1.8" x2="11" y2="23.5" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#FFE040"/>
-          <stop offset="35%" stopColor="#FF6A00"/>
+        <linearGradient id="_floa" x1="11" y1="1.5" x2="11" y2="25.5" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFC200"/>
+          <stop offset="45%" stopColor="#FF7A00"/>
           <stop offset="100%" stopColor="#FF3B30"/>
         </linearGradient>
-        <radialGradient id="_flb" cx="50%" cy="30%" r="70%" gradientUnits="objectBoundingBox">
-          <stop offset="0%" stopColor="#FFFDE0" stopOpacity="0.9"/>
-          <stop offset="100%" stopColor="#FFD040" stopOpacity="0"/>
-        </radialGradient>
+        <linearGradient id="_flia" x1="11" y1="7" x2="11" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFF176"/>
+          <stop offset="100%" stopColor="#FFB300" stopOpacity="0.65"/>
+        </linearGradient>
       </defs>
     </svg>
   );
