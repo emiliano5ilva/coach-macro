@@ -1360,19 +1360,19 @@ export function WhistleMark({ size = 32, variant = "glyph", style }) {
   );
 }
 
-// 30×36px idle-animated flame mascot. Bold two-tone Duolingo-style: solid orange outer teardrop,
-// solid yellow inner teardrop (orange visible at tip and base). count prop stacks a Baloo 2 800
-// number above the flame. Pass count={0} as a placeholder where streak isn't wired yet.
+// 30×36px idle-animated flame mascot. Duolingo-style twin-peak silhouette: taller right peak,
+// smaller left peak with a notch between them, wide rounded base. Solid orange outer, solid
+// yellow inner teardrop (orange visible above and below). Baloo 2 800 count number stacks above.
 export function FlameIcon({size=30, count=0}) {
-  const h=Math.round(size*1.2); // 30→36, preserves 5:6 display ratio
+  const h=Math.round(size*1.2); // 30→36 display size; viewBox 100×112 scales to fit
   return(
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,flexShrink:0}}>
       <span style={{fontFamily:"'Baloo 2',sans-serif",fontSize:20,fontWeight:800,color:'rgba(255,255,255,0.90)',lineHeight:1}}>{count}</span>
-      <svg width={size} height={h} viewBox="0 0 22 28" fill="none" aria-hidden="true" style={{display:'block'}}>
+      <svg width={size} height={h} viewBox="0 0 100 112" fill="none" aria-hidden="true" style={{display:'block'}}>
         <style>{`@keyframes _flt{0%,100%{transform:scaleY(1) rotate(0deg)}42%{transform:scaleY(0.91) rotate(-1.8deg)}70%{transform:scaleY(0.96) rotate(0.9deg)}}._flt{transform-box:fill-box;transform-origin:50% 96%;animation:_flt 2s ease-in-out infinite}`}</style>
         <g className="_flt">
-          <path d="M11 1.5C9.5 4.5 4 8.5 4 14.5 4 20.5 7 24.5 11 25.5 15 24.5 18 20.5 18 14.5 18 8.5 12.5 4.5 11 1.5Z" fill="#FF9500"/>
-          <path d="M11 8C9.5 11.5 7 15 7 18.5 7 21.5 9 23 11 23.5 13 23 15 21.5 15 18.5 15 15 12.5 11.5 11 8Z" fill="#FFE300"/>
+          <path d="M58 4C52 14 48 20 44 26C40 20 38 16 34 12C24 16 14 26 10 40C4 56 4 72 10 84C18 98 34 106 50 106C66 106 82 98 90 84C96 72 96 56 90 40C86 26 76 16 66 12C70 10 66 6 58 4Z" fill="#FF9500"/>
+          <path d="M50 45C42 58 37 70 37 80C37 94 42 102 50 102C58 102 63 94 63 80C63 70 58 58 50 45Z" fill="#FFE300"/>
         </g>
       </svg>
     </div>
