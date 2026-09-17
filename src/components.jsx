@@ -482,7 +482,7 @@ export function useCountUp(target, dur=1400) {
 
 // ─── GLOBAL STYLES ─────────────────────────────────────────────────────────────
 export const GLOBAL_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Barlow:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Archivo:wght@400;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@800&family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Barlow:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Archivo:wght@400;600;700;800&display=swap');
   :root {
     --accent: #FF3B30;
     --accent-rgb: 255,59,48;
@@ -1360,14 +1360,14 @@ export function WhistleMark({ size = 32, variant = "glyph", style }) {
   );
 }
 
-// 22×28px idle-animated flame mascot. Bold two-tone Duolingo-style: solid orange outer teardrop,
-// solid yellow inner teardrop (orange visible at tip and base). count prop stacks a small DM Mono
+// 30×36px idle-animated flame mascot. Bold two-tone Duolingo-style: solid orange outer teardrop,
+// solid yellow inner teardrop (orange visible at tip and base). count prop stacks a Baloo 2 800
 // number above the flame. Pass count={0} as a placeholder where streak isn't wired yet.
-export function FlameIcon({size=22, count=0}) {
-  const h=Math.round(size*28/22);
+export function FlameIcon({size=30, count=0}) {
+  const h=Math.round(size*1.2); // 30→36, preserves 5:6 display ratio
   return(
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,flexShrink:0}}>
-      <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:500,color:'rgba(255,255,255,0.75)',letterSpacing:'0.04em',lineHeight:1}}>{count}</span>
+      <span style={{fontFamily:"'Baloo 2',sans-serif",fontSize:20,fontWeight:800,color:'rgba(255,255,255,0.90)',lineHeight:1}}>{count}</span>
       <svg width={size} height={h} viewBox="0 0 22 28" fill="none" aria-hidden="true" style={{display:'block'}}>
         <style>{`@keyframes _flt{0%,100%{transform:scaleY(1) rotate(0deg)}42%{transform:scaleY(0.91) rotate(-1.8deg)}70%{transform:scaleY(0.96) rotate(0.9deg)}}._flt{transform-box:fill-box;transform-origin:50% 96%;animation:_flt 2s ease-in-out infinite}`}</style>
         <g className="_flt">
