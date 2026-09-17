@@ -11,7 +11,7 @@ import { T, GLOBAL_CSS, REDESIGN_CSS, GOCLUB_REDESIGN, WDAYS, DAY_CFG, SPLIT_CYC
   SectionCard, Spinner, Logo, WhistleMark, CC, BodyFigure, InfoTip, ErrorBoundary,
   DashboardSkeleton, ScoreSkeleton, CardSkeleton, ProgressSkeleton, CalendarSkeleton,
   calcTDEE, autoFocus, useCountUp, lookupBarcode,
-  getDayMacros, getTodayKey, isToday, hap, hapPR, hapSuccess, pad2 } from "./components.jsx";
+  getDayMacros, getTodayKey, isToday, hap, hapPR, hapSuccess, pad2, FlameIcon } from "./components.jsx";
 import { showToast, subscribeToast } from "./utils/toast.js";
 import { themeRoot } from "./utils/portalRoot.js";
 import { TrainSection, ConnectSection, SettingsSection,
@@ -587,7 +587,7 @@ function DeloadCard({signals, onStart, onDismiss}) {
     <div style={{margin:"0 20px 14px",padding:"16px 18px",background:"#0d1508",border:"1px solid rgba(245,158,11,0.3)",borderLeft:`3px solid ${T.fat}`,borderRadius:"4px 14px 14px 4px"}}>
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
         <span style={{fontSize:14}}>⚠️</span>
-        <div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.16em",color:T.fat,textTransform:"uppercase",fontWeight:700}}>Deload Recommended</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.16em",color:T.fat,textTransform:"uppercase",fontWeight:500}}>Deload Recommended</div>
       </div>
       <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",marginBottom:14}}>Your body is signaling recovery is needed.</div>
       <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:14}}>
@@ -614,7 +614,7 @@ function DeloadActiveBadge({daysLeft, onComplete}) {
     <div style={{margin:"0 20px 14px",padding:"14px 18px",background:"rgba(245,158,11,0.06)",border:"1px solid rgba(245,158,11,0.25)",borderLeft:`3px solid ${T.fat}`,borderRadius:"4px 14px 14px 4px",display:"flex",alignItems:"center",gap:12}}>
       <span style={{fontSize:20}}>🔄</span>
       <div style={{flex:1}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:10,color:T.fat,letterSpacing:"0.14em",textTransform:"uppercase",fontWeight:700,marginBottom:3}}>Deload Week Active</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:10,color:T.fat,letterSpacing:"0.14em",textTransform:"uppercase",fontWeight:500,marginBottom:3}}>Deload Week Active</div>
         <div style={{fontSize:12,color:"rgba(245,245,240,0.55)"}}>{daysLeft>0?`${daysLeft} day${daysLeft===1?"":"s"} remaining — 60% weights, 12–15 reps`:"Deload complete — returning to full program"}</div>
       </div>
       {daysLeft<=0&&<button onClick={onComplete} style={{padding:"8px 14px",background:"var(--green)",border:"none",borderRadius:8,color:"#000",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>Resume →</button>}
@@ -862,7 +862,7 @@ function ScoreRing({score}) {
       <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:0}}>
         <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:62,lineHeight:1,color:isElite?"#FFD700":"#fff",transition:"color 0.32s"}}>{displayScore}</div>
         <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.32)",letterSpacing:"0.18em",textTransform:"uppercase",marginTop:3}}>Coach Macro Score</div>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:tierColor,letterSpacing:"0.14em",textTransform:"uppercase",marginTop:4,fontWeight:700,transition:"color 0.32s"}}>{tierLabel}</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:tierColor,letterSpacing:"0.14em",textTransform:"uppercase",marginTop:4,fontWeight:500,transition:"color 0.32s"}}>{tierLabel}</div>
       </div>
     </div>
   );
@@ -1697,7 +1697,7 @@ function PRPredictionCard({ predictions, runActs, wPrefs, wUnit }) {
                     const bd  = m.weeks<=4?"rgba(34,197,94,0.28)":m.weeks<=8?"rgba(74,144,226,0.28)":"rgba(245,158,11,0.28)";
                     return (
                       <div key={mi} style={{padding:"5px 10px",background:bg,border:`1px solid ${bd}`,borderRadius:20,display:"flex",alignItems:"center",gap:5}}>
-                        <span style={{fontFamily:"var(--mono)",fontSize:11,color:col,fontWeight:700}}>{m.weight} {unit}</span>
+                        <span style={{fontFamily:"var(--mono)",fontSize:11,color:col,fontWeight:500}}>{m.weight} {unit}</span>
                         <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)"}}>— {m.weeks===1?"1 week":`${m.weeks} weeks`}</span>
                       </div>
                     );
@@ -1732,7 +1732,7 @@ function PRPredictionCard({ predictions, runActs, wPrefs, wUnit }) {
             {runData.races.map((r,ri)=>(
               <div key={ri} style={{padding:"5px 10px",background:"rgba(74,144,226,0.09)",border:"1px solid rgba(74,144,226,0.28)",borderRadius:20,display:"flex",alignItems:"center",gap:6}}>
                 <span style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.45)"}}>{r.name}</span>
-                <span style={{fontFamily:"var(--mono)",fontSize:11,color:T.carb,fontWeight:700}}>{_fmtFinish(r.mins)}</span>
+                <span style={{fontFamily:"var(--mono)",fontSize:11,color:T.carb,fontWeight:500}}>{_fmtFinish(r.mins)}</span>
               </div>
             ))}
           </div>
@@ -1915,8 +1915,8 @@ function InjuryAlertCard({risks, onAdapt, onDismiss}) {
     <div style={{margin:"0 20px 14px",padding:"16px 18px",background:lc.bg,border:`1px solid ${lc.border}`,borderLeft:`3px solid ${lc.left}`,borderRadius:"4px 14px 14px 4px"}}>
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap"}}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--accent)"><path d="M12 2L1 21h22L12 2zm0 3.99L20.53 19H3.47L12 5.99zm-1 5.01v4h2v-4h-2zm0 6v2h2v-2h-2z"/></svg>
-        <div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.16em",color:lc.color,textTransform:"uppercase",fontWeight:700}}>INJURY PREVENTION ALERT</div>
-        <div style={{marginLeft:"auto",padding:"2px 8px",background:`${lc.color}15`,border:`1px solid ${lc.color}40`,borderRadius:4,fontFamily:"var(--mono)",fontSize:9,color:lc.color,letterSpacing:"0.1em",textTransform:"uppercase",fontWeight:700,whiteSpace:"nowrap"}}>{lc.label}</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.16em",color:lc.color,textTransform:"uppercase",fontWeight:500}}>INJURY PREVENTION ALERT</div>
+        <div style={{marginLeft:"auto",padding:"2px 8px",background:`${lc.color}15`,border:`1px solid ${lc.color}40`,borderRadius:4,fontFamily:"var(--mono)",fontSize:9,color:lc.color,letterSpacing:"0.1em",textTransform:"uppercase",fontWeight:500,whiteSpace:"nowrap"}}>{lc.label}</div>
       </div>
       <div style={{fontSize:13,color:"rgba(245,245,240,0.8)",lineHeight:1.65,marginBottom:10}}>{top.message}</div>
       {top.recommendation&&(
@@ -1953,7 +1953,7 @@ function InjuryRiskReport({risks, muscleSetCounts}) {
     <div style={{margin:"0 20px 14px",padding:"16px 18px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase"}}>Injury Risk This Week</div>
-        <div style={{padding:"3px 10px",background:`${LC[overallLevel]}12`,border:`1px solid ${LC[overallLevel]}35`,borderRadius:6,fontFamily:"var(--mono)",fontSize:9,color:LC[overallLevel],fontWeight:700,letterSpacing:"0.1em"}}>{overallLevel}</div>
+        <div style={{padding:"3px 10px",background:`${LC[overallLevel]}12`,border:`1px solid ${LC[overallLevel]}35`,borderRadius:6,fontFamily:"var(--mono)",fontSize:9,color:LC[overallLevel],fontWeight:500,letterSpacing:"0.1em"}}>{overallLevel}</div>
       </div>
       {mostAtRisk&&mostAtRisk.threshold>0&&(
         <div style={{fontSize:11,color:"rgba(245,245,240,0.45)",marginBottom:10}}>
@@ -2108,7 +2108,7 @@ function PRFeed({dbPRs,wUnit}){
   return(
     <div data-tour="pr-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase"}}>PERSONAL RECORDS</div>
+        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase"}}>PERSONAL RECORDS</div>
         <div style={{display:"flex",gap:4}}>
           {['recent','all time'].map(t=>(
             <button key={t} onClick={()=>setPrTab(t)} style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${prTab===t?"var(--accent)":"var(--card-border)"}`,background:prTab===t?"rgba(var(--accent-rgb),0.1)":"transparent",fontFamily:"'DM Mono',monospace",fontSize:9,color:prTab===t?"var(--accent)":"var(--text-faint)",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>{t}</button>
@@ -2161,7 +2161,7 @@ function WeeklyReview({workoutLogsRaw,workoutsThisWeek,volumeThisWeek,volumeLast
 
       {/* Header */}
       <div style={{padding:"14px 16px 0",display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
-        <div style={{..._MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase"}}>WEEK IN REVIEW</div>
+        <div style={{..._MO,fontSize:9,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase"}}>WEEK IN REVIEW</div>
         <div style={{..._MO,fontSize:9,color:"var(--text-faint)"}}>{dateRange}</div>
       </div>
 
@@ -2211,7 +2211,7 @@ function WeeklyReview({workoutLogsRaw,workoutsThisWeek,volumeThisWeek,volumeLast
       {/* Vs last week */}
       <div style={{padding:"8px 16px",display:"flex",alignItems:"center",gap:6}}>
         <div style={{..._MO,fontSize:8,color:"var(--text-faint)",letterSpacing:"0.06em",textTransform:"uppercase"}}>Training days</div>
-        <div style={{..._MO,fontSize:8,fontWeight:700,color:dayDelta>0?'#22c55e':dayDelta<0?"var(--accent)":"var(--text-faint)"}}>
+        <div style={{..._MO,fontSize:8,fontWeight:500,color:dayDelta>0?'#22c55e':dayDelta<0?"var(--accent)":"var(--text-faint)"}}>
           {dayDelta>0?`▲ +${dayDelta}`:dayDelta<0?`▼ ${dayDelta}`:'→ same'} from last week
         </div>
       </div>
@@ -2503,7 +2503,7 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
       {/* Calorie-override guard — fixed so it overlays even when scrolled */}
       {confirmOverrideCals&&(
         <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:10011,background:'var(--card-bg)',borderTop:'2px solid var(--accent)',borderRadius:'20px 20px 0 0',padding:'20px 20px max(env(safe-area-inset-bottom),24px)'}}>
-          <div style={{..._MO,fontSize:9,fontWeight:700,color:'var(--text-faint)',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:8}}>CUSTOM TARGET SET</div>
+          <div style={{..._MO,fontSize:9,fontWeight:500,color:'var(--text-faint)',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:8}}>CUSTOM TARGET SET</div>
           <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:ink,marginBottom:16}}>You set a custom calorie target. Replace it with the suggested {confirmOverrideCals} kcal?</div>
           <div style={{display:'flex',gap:10}}>
             <button onClick={()=>setConfirmOverrideCals(null)} style={{flex:1,padding:'12px',background:'none',color:'var(--text-dim)',border:'1px solid var(--card-border)',borderRadius:10,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>Keep mine</button>
@@ -2517,7 +2517,7 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
         <div style={{display:'flex',justifyContent:'flex-end',marginBottom:20}}>
           <button onClick={onClose} style={{background:'var(--card-bg)',border:'1px solid var(--card-border)',borderRadius:'50%',width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:ink,fontSize:16,fontFamily:'inherit'}}>✕</button>
         </div>
-        <div style={{..._MO,fontSize:9,fontWeight:700,color:'var(--text-faint)',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:8}}>WEEK IN REVIEW</div>
+        <div style={{..._MO,fontSize:9,fontWeight:500,color:'var(--text-faint)',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:8}}>WEEK IN REVIEW</div>
         <div style={{..._AF,fontSize:38,color:ink,lineHeight:0.95,marginBottom:12}}>{dateRange}</div>
         <div style={{fontFamily:"'Barlow',sans-serif",fontSize:15,color:'var(--text-dim)',lineHeight:1.4}}>
           You showed up {trainingDaysThisWeek} day{trainingDaysThisWeek!==1?'s':''}.{prsThisWeek.count>0?` ${prsThisWeek.count} new PR${prsThisWeek.count>1?'s':''}.`:''}
@@ -2529,7 +2529,7 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
 
         {/* Consistency strip */}
         <div style={{..._card,padding:'16px'}}>
-          <div style={{..._MO,fontSize:8,fontWeight:700,color:'var(--text-faint)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:8}}>CONSISTENCY · {trainingDaysThisWeek} OF 7 DAYS</div>
+          <div style={{..._MO,fontSize:8,fontWeight:500,color:'var(--text-faint)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:8}}>CONSISTENCY · {trainingDaysThisWeek} OF 7 DAYS</div>
           <div style={{display:'flex',gap:4}}>
             {weekDaysArr.map((day,i)=>(
               <div key={i} style={{flex:1,height:40,borderRadius:8,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:day.trained?'var(--accent)':'var(--card-border)'}}>
@@ -2567,7 +2567,7 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
         {/* Vs last week */}
         <div style={{..._card,padding:'12px 16px',display:'flex',alignItems:'center',gap:8}}>
           <div style={{..._MO,fontSize:8,color:'var(--text-faint)',letterSpacing:'0.06em',textTransform:'uppercase',flex:1}}>Training days vs last week</div>
-          <div style={{..._MO,fontSize:9,fontWeight:700,color:dayDelta>0?'#22c55e':dayDelta<0?'var(--accent)':'var(--text-faint)'}}>
+          <div style={{..._MO,fontSize:9,fontWeight:500,color:dayDelta>0?'#22c55e':dayDelta<0?'var(--accent)':'var(--text-faint)'}}>
             {dayDelta>0?`▲ +${dayDelta}`:dayDelta<0?`▼ ${dayDelta}`:'→ same'}
           </div>
         </div>
@@ -2587,7 +2587,7 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
 
         {/* Muscle coverage card */}
         <div style={{..._card,padding:'16px'}}>
-          <div style={{..._MO,fontSize:8,fontWeight:700,color:'var(--text-faint)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:12}}>MUSCLES TRAINED THIS WEEK</div>
+          <div style={{..._MO,fontSize:8,fontWeight:500,color:'var(--text-faint)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:12}}>MUSCLES TRAINED THIS WEEK</div>
           <div style={{display:'flex',gap:14,alignItems:'flex-start'}}>
             <div style={{width:100,flexShrink:0}}>
               <BodyMap colors={bodyColors}/>
@@ -2621,7 +2621,7 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
           <>
             {/* Nutrition adherence */}
             <div style={{..._card,padding:'16px'}}>
-              <div style={{..._MO,fontSize:8,fontWeight:700,color:'var(--text-faint)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:12}}>NUTRITION</div>
+              <div style={{..._MO,fontSize:8,fontWeight:500,color:'var(--text-faint)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:12}}>NUTRITION</div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
                 {[
                   {label:'Cal days',value:`${data.calHit}/7`,green:data.calHit>=5},
@@ -2649,7 +2649,7 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
             {/* Coach signal + calorie adjustment */}
             {(data.topInsight||data.calorieDelta)&&(
               <div style={{..._card,padding:'16px'}}>
-                <div style={{..._MO,fontSize:8,fontWeight:700,color:'var(--text-faint)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:8}}>COACH SIGNAL</div>
+                <div style={{..._MO,fontSize:8,fontWeight:500,color:'var(--text-faint)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:8}}>COACH SIGNAL</div>
                 {data.topInsight&&<div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:ink,lineHeight:1.6,marginBottom:data.calorieDelta?12:0}}>{data.topInsight.message}</div>}
                 {data.calorieDelta&&(
                   <div style={{background:'rgba(var(--accent-rgb),0.06)',border:'1px solid rgba(var(--accent-rgb),0.25)',borderRadius:10,padding:'12px'}}>
@@ -2659,7 +2659,7 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
                     <div style={{..._MO,fontSize:9,color:'var(--text-dim)',marginBottom:10}}>
                       {macros?.calories||2000} → {(macros?.calories||2000)+data.calorieDelta} kcal/day
                     </div>
-                    <button onClick={handleApply} disabled={applying} style={{width:'100%',padding:'11px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:9,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer'}}>
+                    <button onClick={handleApply} disabled={applying} style={{width:'100%',padding:'11px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:9,fontFamily:"'DM Mono',monospace",fontWeight:500,fontSize:10,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer'}}>
                       {applying?'Applying…':'Apply Change'}
                     </button>
                   </div>
@@ -2670,7 +2670,7 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
         ) : null}
 
         {/* Done */}
-        <button onClick={onClose} style={{width:'100%',padding:'15px',background:'var(--card-bg)',border:'1px solid var(--card-border)',borderRadius:14,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,color:ink,letterSpacing:'0.14em',textTransform:'uppercase',cursor:'pointer',marginTop:4}}>
+        <button onClick={onClose} style={{width:'100%',padding:'15px',background:'var(--card-bg)',border:'1px solid var(--card-border)',borderRadius:14,fontFamily:"'DM Mono',monospace",fontWeight:500,fontSize:10,color:ink,letterSpacing:'0.14em',textTransform:'uppercase',cursor:'pointer',marginTop:4}}>
           Done
         </button>
 
@@ -3204,9 +3204,9 @@ function ConnectionsView({ userId, onClose, healthSnap, workoutLogsRaw, bodyweig
                     <div key={`${c.a}-${c.b}`} style={{marginBottom:10,padding:"10px 12px",background:"rgba(var(--accent-rgb),0.03)",border:"1px solid var(--card-border)",borderRadius:10}}>
                       <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
                         <span style={{fontSize:13}}>{aMeta?.icon}</span>
-                        <span style={{fontFamily:_MO,fontSize:9,color:"var(--cm-ink)",fontWeight:700}}>{aMeta?.label}</span>
+                        <span style={{fontFamily:_MO,fontSize:9,color:"var(--cm-ink)",fontWeight:500}}>{aMeta?.label}</span>
                         <span style={{color,fontSize:11}}>{arrow}</span>
-                        <span style={{fontFamily:_MO,fontSize:9,color:"var(--cm-ink)",fontWeight:700}}>{bMeta?.label}</span>
+                        <span style={{fontFamily:_MO,fontSize:9,color:"var(--cm-ink)",fontWeight:500}}>{bMeta?.label}</span>
                         <span style={{fontSize:13}}>{bMeta?.icon}</span>
                         <span style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",marginLeft:"auto"}}>{lagText}</span>
                       </div>
@@ -3257,7 +3257,7 @@ function PercentileCard({ label, icon, pct, sublabel, expanded, onClick }) {
             <path d={arcPath} fill="none" stroke={info.color} strokeWidth={5} strokeLinecap="round"
               strokeDasharray={strokeDasharray} strokeDashoffset={strokeDashoffset} />
           )}
-          <text x={cx} y={cy + 4} textAnchor="middle" fontFamily="'DM Mono',monospace" fontSize={arcPct != null ? 11 : 8} fontWeight="700" fill={arcPct != null ? info.color : "rgba(245,245,240,0.3)"}>
+          <text x={cx} y={cy + 4} textAnchor="middle" fontFamily="'DM Mono',monospace" fontSize={arcPct != null ? 11 : 8} fontWeight="500" fill={arcPct != null ? info.color : "rgba(245,245,240,0.3)"}>
             {arcPct != null ? `${arcPct}` : '—'}
           </text>
         </svg>
@@ -3469,7 +3469,7 @@ function PeerInsightsView({ userId, profile, onClose }) {
                         })}
                         <div style={{textAlign:"center",flex:1}}>
                           <div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",marginBottom:3}}>YOU</div>
-                          <div style={{fontFamily:_MO,fontSize:11,color:getPercentileLabel(pct[expandedCard]).color,fontWeight:700}}>{mc.format(userVal)}</div>
+                          <div style={{fontFamily:_MO,fontSize:11,color:getPercentileLabel(pct[expandedCard]).color,fontWeight:500}}>{mc.format(userVal)}</div>
                         </div>
                       </div>
                       <div style={{height:4,background:"var(--card-border)",borderRadius:2,position:"relative"}}>
@@ -3521,7 +3521,7 @@ function PeerInsightsView({ userId, profile, onClose }) {
                       {[['Conservative',range.conservative,'#60a5fa'],['Realistic',range.realistic,'#4ade80'],['Aggressive',range.aggressive,'#a78bfa']].map(([tier,val,color])=>(
                         <div key={tier} style={{flex:1,background:`${color}10`,border:`1px solid ${color}30`,borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
                           <div style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)",marginBottom:4,letterSpacing:"0.06em"}}>{tier.toUpperCase()}</div>
-                          <div style={{fontFamily:_MO,fontSize:11,color,fontWeight:700}}>{val}</div>
+                          <div style={{fontFamily:_MO,fontSize:11,color,fontWeight:500}}>{val}</div>
                         </div>
                       ))}
                     </div>
@@ -5903,9 +5903,9 @@ const ProgressSection = React.memo(function ProgressSection({
           <div style={{display:"flex",gap:8,padding:"12px 20px 4px"}}>
             {tiles.map(({l,v,u,s,c})=>(
               <div key={l} style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:12,padding:"14px 10px",boxShadow:_isLight?"0 2px 12px rgba(0,0,0,0.06)":undefined}}>
-                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>{l}</div>
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>{l}</div>
                 <div style={{fontFamily:_AF,fontWeight:800,fontSize:30,color:c,lineHeight:1,letterSpacing:"-0.02em"}}>
-                  {v}{u&&<span style={{fontFamily:_MO,fontSize:12,fontWeight:700,color:c,marginLeft:2}}>{u}</span>}
+                  {v}{u&&<span style={{fontFamily:_MO,fontSize:12,fontWeight:500,color:c,marginLeft:2}}>{u}</span>}
                 </div>
                 {s&&<div style={{fontFamily:_MO,fontSize:8,fontWeight:400,color:"var(--text-faint)",marginTop:3,letterSpacing:"0.06em"}}>{s}</div>}
               </div>
@@ -5931,7 +5931,7 @@ const ProgressSection = React.memo(function ProgressSection({
                 ["TEF","Thermic Effect of Food — energy cost of digestion. High-protein meals burn ~25% of their protein calories just to process."],
               ].map(([term,def])=>(
                 <div key={term} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
-                  <div style={{fontFamily:_MO,fontSize:7,fontWeight:700,color:"var(--accent)",textTransform:"uppercase",letterSpacing:"0.1em",paddingTop:1,minWidth:32}}>{term}</div>
+                  <div style={{fontFamily:_MO,fontSize:7,fontWeight:500,color:"var(--accent)",textTransform:"uppercase",letterSpacing:"0.1em",paddingTop:1,minWidth:32}}>{term}</div>
                   <div style={{fontFamily:"'Barlow',sans-serif",fontSize:11,color:"var(--text-dim)",lineHeight:1.5}}>{def}</div>
                 </div>
               ))}
@@ -5953,7 +5953,7 @@ const ProgressSection = React.memo(function ProgressSection({
       if (insightLoading && !top) {
         return (
           <div style={{margin:"0 16px 14px",padding:"16px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16}}>
-            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>TODAY'S INSIGHT</div>
+            <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>TODAY'S INSIGHT</div>
             <div style={{height:48,display:"flex",alignItems:"center",justifyContent:"center"}}>
               <div style={{width:18,height:18,borderRadius:"50%",border:"2px solid var(--card-border)",borderTopColor:"var(--accent)",animation:"spin 0.9s linear infinite"}}/>
             </div>
@@ -5987,7 +5987,7 @@ const ProgressSection = React.memo(function ProgressSection({
           <div style={{padding:"16px"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase"}}>TODAY'S INSIGHT</div>
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase"}}>TODAY'S INSIGHT</div>
                 <div style={{background:pb,border:`1px solid ${pc}44`,borderRadius:4,padding:"1px 6px",fontFamily:_MO,fontSize:7,color:pc,textTransform:"uppercase",letterSpacing:"0.12em"}}>{top.priority}</div>
               </div>
               <div style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{typeLabel[top.insight_type] || top.insight_type}</div>
@@ -6054,7 +6054,7 @@ const ProgressSection = React.memo(function ProgressSection({
             <>
               <div style={{height:1,background:"var(--card-border)"}}/>
               <div style={{padding:"14px 16px"}}>
-                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>COACH MEMORY</div>
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>COACH MEMORY</div>
                 <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.6,marginBottom:10}}>
                   {_memSuggestion||coachRecall.intelligent_suggestion}
                 </div>
@@ -6111,7 +6111,7 @@ const ProgressSection = React.memo(function ProgressSection({
     function PH({eyebrow,headline,body}){
       return(
         <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
-          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>{eyebrow.replace(/^\/\/ /,'')}</div>
+          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>{eyebrow.replace(/^\/\/ /,'')}</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--cm-ink)",marginBottom:6}}>{headline}</div>
           <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.5}}>{body}</div>
         </div>
@@ -6129,7 +6129,7 @@ const ProgressSection = React.memo(function ProgressSection({
           {/* Header */}
           <div className="screen-header" style={{paddingTop:12}}>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:700,letterSpacing:"0.16em",color:"var(--text-faint)",textTransform:"uppercase",marginBottom:8}}>Progress</div>
+              <div style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:500,letterSpacing:"0.16em",color:"var(--text-faint)",textTransform:"uppercase",marginBottom:8}}>Progress</div>
               <button ref={wordRef} onClick={()=>{const r=wordRef.current?.getBoundingClientRect();if(r)setWordPos(r);setRolodexOpen(v=>!v);}} style={{display:"inline-flex",alignItems:"center",gap:6,background:"none",border:"none",padding:0,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
                 <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:40,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:0.92,letterSpacing:"-0.01em"}}>{activeTab.toUpperCase()}</span>
                 <span style={{color:"var(--text-faint)",fontSize:18,lineHeight:1,marginLeft:4}}>▾</span>
@@ -6242,16 +6242,16 @@ const ProgressSection = React.memo(function ProgressSection({
                   <div style={{background:"var(--bg)"}}>
 
                     <div style={{padding:"18px 20px 10px"}}>
-                      <div style={{fontFamily:_MO,fontSize:11,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>WEIGHT TREND</div>
+                      <div style={{fontFamily:_MO,fontSize:11,fontWeight:500,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>WEIGHT TREND</div>
                       {/* Number + delta — baseline-aligned inline (mock: "180 lb ▼ 5 lb · on track") */}
                       <div style={{display:"flex",alignItems:"baseline",gap:12,flexWrap:"wrap"}}>
                         <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em"}}>
-                          {_curW??'--'}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:5}}>{_unit==='lbs'?'lb':_unit}</span>
+                          {_curW??'--'}<span style={{fontFamily:_MO,fontSize:15,fontWeight:500,color:"var(--text-dim)",marginLeft:5}}>{_unit==='lbs'?'lb':_unit}</span>
                         </div>
                         {_deltaN!=null&&(
                           <div style={{fontFamily:_AF,fontWeight:700,fontSize:13,color:_deltaColor,letterSpacing:"-0.01em",display:"flex",alignItems:"center",gap:4,paddingBottom:3}}>
                             <span>{_deltaN<0?'▼':'▲'}</span>
-                            <span>{Math.abs(_deltaN)}<span style={{fontFamily:_MO,fontSize:10,fontWeight:700,marginLeft:1}}>{_unit==='lbs'?'lb':_unit}</span></span>
+                            <span>{Math.abs(_deltaN)}<span style={{fontFamily:_MO,fontSize:10,fontWeight:500,marginLeft:1}}>{_unit==='lbs'?'lb':_unit}</span></span>
                             {_goodDir===true&&_goalW&&<span>{'· on track for '}{_goalW}</span>}
                           </div>
                         )}
@@ -6305,10 +6305,10 @@ const ProgressSection = React.memo(function ProgressSection({
                       {l:'TO GOAL', v:_g3v,                 u:_g3u,  s:_g3s,               c:'#22c55e'},
                     ].map(({l,v,u,s,c})=>(
                       <div key={l} style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:12,padding:"14px 10px",boxShadow:_isLight?"0 2px 12px rgba(0,0,0,0.06)":undefined}}>
-                        <div style={{fontFamily:_MO,fontSize:11,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>{l}</div>
+                        <div style={{fontFamily:_MO,fontSize:11,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>{l}</div>
                         {/* Number + compact bold unit suffix (lb / d / %) */}
                         <div style={{fontFamily:_AF,fontWeight:800,fontSize:30,color:c,lineHeight:1,letterSpacing:"-0.02em"}}>
-                          {v}{u&&<span style={{fontFamily:_MO,fontSize:12,fontWeight:700,color:c,marginLeft:1}}>{u}</span>}
+                          {v}{u&&<span style={{fontFamily:_MO,fontSize:12,fontWeight:500,color:c,marginLeft:1}}>{u}</span>}
                         </div>
                         {/* Dim word label below — secondary context */}
                         {s&&<div style={{fontFamily:_MO,fontSize:9,fontWeight:400,color:"var(--text-faint)",marginTop:3,letterSpacing:"0.06em"}}>{s}</div>}
@@ -6328,9 +6328,9 @@ const ProgressSection = React.memo(function ProgressSection({
               return(
                 <div style={{background:"var(--bg)"}}>
                   <div style={{padding:"18px 20px 14px"}}>
-                    <div style={{fontFamily:_MO,fontSize:11,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>THIS WEEK</div>
+                    <div style={{fontFamily:_MO,fontSize:11,fontWeight:500,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>THIS WEEK</div>
                     <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em",marginBottom:16}}>
-                      {trainingDaysThisWeek}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:5}}>{_dLabel}</span>
+                      {trainingDaysThisWeek}<span style={{fontFamily:_MO,fontSize:15,fontWeight:500,color:"var(--text-dim)",marginLeft:5}}>{_dLabel}</span>
                     </div>
                     <div style={{display:"flex",gap:8,marginBottom:16}}>
                       {twRings.map(({pct,value,label,color},i)=>(
@@ -6346,7 +6346,7 @@ const ProgressSection = React.memo(function ProgressSection({
                       ].map(({l,v},i)=>(
                         <div key={l} style={{flex:1,textAlign:"center",borderRight:i<2?"1px solid var(--card-border)":"none"}}>
                           <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.02em"}}>{v}</div>
-                          <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",marginTop:4,letterSpacing:"0.14em",textTransform:"uppercase"}}>{l}</div>
+                          <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:"var(--text-faint)",marginTop:4,letterSpacing:"0.14em",textTransform:"uppercase"}}>{l}</div>
                         </div>
                       ))}
                     </div>
@@ -6372,9 +6372,9 @@ const ProgressSection = React.memo(function ProgressSection({
                 <div style={{display:"flex",gap:8,padding:"12px 20px 4px",background:"var(--bg)"}}>
                   {_tiles.map(({l,v,u,s,c})=>(
                     <div key={l} style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:12,padding:"14px 10px",boxShadow:_isLight?"0 2px 12px rgba(0,0,0,0.06)":undefined}}>
-                      <div style={{fontFamily:_MO,fontSize:11,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>{l}</div>
+                      <div style={{fontFamily:_MO,fontSize:11,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>{l}</div>
                       <div style={{fontFamily:_AF,fontWeight:800,fontSize:30,color:c,lineHeight:1,letterSpacing:"-0.02em"}}>
-                        {v}{u&&<span style={{fontFamily:_MO,fontSize:12,fontWeight:700,color:c,marginLeft:1}}>{u}</span>}
+                        {v}{u&&<span style={{fontFamily:_MO,fontSize:12,fontWeight:500,color:c,marginLeft:1}}>{u}</span>}
                       </div>
                       {s&&<div style={{fontFamily:_MO,fontSize:9,fontWeight:400,color:"var(--text-faint)",marginTop:3,letterSpacing:"0.06em",textTransform:"uppercase"}}>{s}</div>}
                     </div>
@@ -6426,7 +6426,7 @@ const ProgressSection = React.memo(function ProgressSection({
                     ))}
                   </div>
                 </div>
-                <button onClick={()=>setSection("train")} style={{width:"100%",padding:"13px 0",background:"var(--accent)",border:"none",borderRadius:12,fontFamily:"var(--mono)",fontWeight:700,fontSize:10,color:"#fff",letterSpacing:"0.16em",textTransform:"uppercase",cursor:"pointer"}}>
+                <button onClick={()=>setSection("train")} style={{width:"100%",padding:"13px 0",background:"var(--accent)",border:"none",borderRadius:12,fontFamily:"var(--mono)",fontWeight:500,fontSize:10,color:"#fff",letterSpacing:"0.16em",textTransform:"uppercase",cursor:"pointer"}}>
                   START A SESSION →
                 </button>
               </div>
@@ -6461,13 +6461,13 @@ const ProgressSection = React.memo(function ProgressSection({
                 return(
                   <div style={{background:"var(--bg)"}}>
                     <div style={{padding:"18px 20px 16px"}}>
-                      <div style={{fontFamily:_MO,fontSize:11,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>RACE COUNTDOWN · HYROX</div>
+                      <div style={{fontFamily:_MO,fontSize:11,fontWeight:500,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>RACE COUNTDOWN · HYROX</div>
                       <div style={{display:"flex",alignItems:"baseline",gap:10,marginBottom:10}}>
                         <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em",filter:_glow}}>
-                          {phase.weeksUntilRace}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:4}}>wks</span>
+                          {phase.weeksUntilRace}<span style={{fontFamily:_MO,fontSize:15,fontWeight:500,color:"var(--text-dim)",marginLeft:4}}>wks</span>
                         </div>
                         <div style={{background:`${phase.color}18`,border:`1px solid ${phase.color}50`,borderRadius:8,padding:"4px 10px",flexShrink:0}}>
-                          <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:phase.color,letterSpacing:"0.08em"}}>{phase.label}</div>
+                          <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:phase.color,letterSpacing:"0.08em"}}>{phase.label}</div>
                         </div>
                       </div>
                       <div style={{fontFamily:_MO,fontSize:9,color:"var(--text-faint)",marginBottom:8}}>{new Date(raceDate).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
@@ -6477,20 +6477,20 @@ const ProgressSection = React.memo(function ProgressSection({
                       <div style={{height:1,background:"var(--card-border)",marginBottom:14}}/>
                       <div style={{display:"flex",gap:8,marginBottom:pred.targetTime?10:0}}>
                         <div style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:10,padding:"12px",textAlign:"center"}}>
-                          <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>PREDICTED</div>
+                          <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>PREDICTED</div>
                           <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:"var(--cm-ink)",lineHeight:1}}>{pred.currentPrediction}</div>
                         </div>
                         {pred.targetTime&&<div style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:10,padding:"12px",textAlign:"center"}}>
-                          <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>TARGET</div>
+                          <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>TARGET</div>
                           <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:pred.onTrack?"#22c55e":"var(--accent)",lineHeight:1}}>{pred.targetTime}</div>
                         </div>}
                       </div>
                       {pred.targetTime&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8,marginBottom:pred.topPriorities?.length?12:0,padding:"8px 12px",background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(var(--accent-rgb),0.04)",borderRadius:8}}>
-                        <span style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{pred.onTrack?"On track":"Gap to target"}</span>
+                        <span style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{pred.onTrack?"On track":"Gap to target"}</span>
                         <span style={{fontFamily:_AF,fontWeight:800,fontSize:15,color:pred.onTrack?"#22c55e":"var(--accent)"}}>{pred.onTrack?"✓ "+pred.gap+" ahead":pred.gap+" behind"}</span>
                       </div>}
                       {pred.topPriorities?.length>0&&<>
-                        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:8}}>PRIORITY STATIONS</div>
+                        <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:8}}>PRIORITY STATIONS</div>
                         {pred.topPriorities.map(s=>(
                           <div key={s} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
                             <div style={{width:4,height:4,borderRadius:1,background:phase.color,flexShrink:0}}/>
@@ -6516,13 +6516,13 @@ const ProgressSection = React.memo(function ProgressSection({
                 return(
                   <div style={{background:"var(--bg)"}}>
                     <div style={{padding:"18px 20px 16px"}}>
-                      <div style={{fontFamily:_MO,fontSize:11,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>RACE DAY{raceLabel?` · ${raceLabel}`:''}</div>
+                      <div style={{fontFamily:_MO,fontSize:11,fontWeight:500,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>RACE DAY{raceLabel?` · ${raceLabel}`:''}</div>
                       <div style={{display:"flex",alignItems:"baseline",gap:10,marginBottom:10}}>
                         <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em",filter:_glow}}>
-                          {phase.weeksUntilRace}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:4}}>wks</span>
+                          {phase.weeksUntilRace}<span style={{fontFamily:_MO,fontSize:15,fontWeight:500,color:"var(--text-dim)",marginLeft:4}}>wks</span>
                         </div>
                         <div style={{background:`${phase.color}18`,border:`1px solid ${phase.color}50`,borderRadius:8,padding:"4px 10px",flexShrink:0}}>
-                          <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:phase.color,letterSpacing:"0.08em"}}>{phase.label}</div>
+                          <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:phase.color,letterSpacing:"0.08em"}}>{phase.label}</div>
                         </div>
                       </div>
                       <div style={{fontFamily:_MO,fontSize:9,color:"var(--text-faint)",marginBottom:8}}>{new Date(profile.run_race_date).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
@@ -6533,16 +6533,16 @@ const ProgressSection = React.memo(function ProgressSection({
                         <div style={{height:1,background:"var(--card-border)",marginBottom:14}}/>
                         <div style={{display:"flex",gap:8,marginBottom:pred.targetTime&&pred.gap?10:0}}>
                           <div style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:10,padding:"12px",textAlign:"center"}}>
-                            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>PREDICTED</div>
+                            <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>PREDICTED</div>
                             <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:"var(--cm-ink)",lineHeight:1}}>{pred.currentPrediction||pred.previousTime}</div>
                           </div>
                           {pred.targetTime&&<div style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:10,padding:"12px",textAlign:"center"}}>
-                            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>TARGET</div>
+                            <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>TARGET</div>
                             <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:pred.onTrack?"#22c55e":"var(--accent)",lineHeight:1}}>{pred.targetTime}</div>
                           </div>}
                         </div>
                         {pred.targetTime&&pred.gap&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8,padding:"8px 12px",background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(var(--accent-rgb),0.04)",borderRadius:8}}>
-                          <span style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{pred.onTrack?"On track":"Gap to target"}</span>
+                          <span style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{pred.onTrack?"On track":"Gap to target"}</span>
                           <span style={{fontFamily:_AF,fontWeight:800,fontSize:15,color:pred.onTrack?"#22c55e":"var(--accent)"}}>{pred.onTrack?"✓ "+pred.gap+" ahead":pred.gap+" behind"}</span>
                         </div>}
                       </>}
@@ -6563,13 +6563,13 @@ const ProgressSection = React.memo(function ProgressSection({
               return(
                 <div style={{background:"var(--bg)"}}>
                   <div style={{padding:"18px 20px 16px"}}>
-                    <div style={{fontFamily:_MO,fontSize:11,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>COMPETITION{compTypeLabel?` · ${compTypeLabel.toUpperCase()}`:''}</div>
+                    <div style={{fontFamily:_MO,fontSize:11,fontWeight:500,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>COMPETITION{compTypeLabel?` · ${compTypeLabel.toUpperCase()}`:''}</div>
                     <div style={{display:"flex",alignItems:"baseline",gap:10,marginBottom:10}}>
                       <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em",filter:_glow}}>
-                        {phase.weeksUntilRace}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:4}}>wks</span>
+                        {phase.weeksUntilRace}<span style={{fontFamily:_MO,fontSize:15,fontWeight:500,color:"var(--text-dim)",marginLeft:4}}>wks</span>
                       </div>
                       <div style={{background:`${phase.color}18`,border:`1px solid ${phase.color}50`,borderRadius:8,padding:"4px 10px",flexShrink:0}}>
-                        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:phase.color,letterSpacing:"0.08em"}}>{phase.label}</div>
+                        <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:phase.color,letterSpacing:"0.08em"}}>{phase.label}</div>
                       </div>
                     </div>
                     <div style={{fontFamily:_MO,fontSize:9,color:"var(--text-faint)",marginBottom:8}}>{compTypeLabel}{federation?` · ${federation}`:""}{` · `}{new Date(profile.strength_comp_date).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
@@ -6580,16 +6580,16 @@ const ProgressSection = React.memo(function ProgressSection({
                       <div style={{height:1,background:"var(--card-border)",marginBottom:14}}/>
                       <div style={{display:"flex",gap:8,marginBottom:pred.targetTotal?10:0}}>
                         <div style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:10,padding:"12px",textAlign:"center"}}>
-                          <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>CURRENT</div>
-                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:"var(--cm-ink)",lineHeight:1}}>{pred.currentTotal.toLocaleString()}<span style={{fontFamily:_MO,fontSize:12,fontWeight:700,color:"var(--text-dim)",marginLeft:3}}>{_wUnit}</span></div>
+                          <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>CURRENT</div>
+                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:"var(--cm-ink)",lineHeight:1}}>{pred.currentTotal.toLocaleString()}<span style={{fontFamily:_MO,fontSize:12,fontWeight:500,color:"var(--text-dim)",marginLeft:3}}>{_wUnit}</span></div>
                         </div>
                         {pred.targetTotal&&<div style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:10,padding:"12px",textAlign:"center"}}>
-                          <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>TARGET</div>
-                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:pred.onTrack?"#22c55e":"var(--accent)",lineHeight:1}}>{pred.targetTotal.toLocaleString()}<span style={{fontFamily:_MO,fontSize:12,fontWeight:700,color:pred.onTrack?"#22c55e":"var(--accent)",marginLeft:3}}>{_wUnit}</span></div>
+                          <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>TARGET</div>
+                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:pred.onTrack?"#22c55e":"var(--accent)",lineHeight:1}}>{pred.targetTotal.toLocaleString()}<span style={{fontFamily:_MO,fontSize:12,fontWeight:500,color:pred.onTrack?"#22c55e":"var(--accent)",marginLeft:3}}>{_wUnit}</span></div>
                         </div>}
                       </div>
                       {pred.targetTotal&&pred.gapToTarget!==null&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8,marginBottom:pred.topLiftToImprove?12:0,padding:"8px 12px",background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(var(--accent-rgb),0.04)",borderRadius:8}}>
-                        <span style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{pred.onTrack?"Target reached":"Gap to target"}</span>
+                        <span style={{fontFamily:_MO,fontSize:9,fontWeight:500,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{pred.onTrack?"Target reached":"Gap to target"}</span>
                         <span style={{fontFamily:_AF,fontWeight:800,fontSize:15,color:pred.onTrack?"#22c55e":"var(--accent)"}}>{pred.onTrack?"✓ On track":`${Math.abs(pred.gapToTarget)} to go`}</span>
                       </div>}
                       {pred.topLiftToImprove&&<div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -6620,7 +6620,7 @@ const ProgressSection = React.memo(function ProgressSection({
               return(
                 <div style={{margin:"0 16px 14px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,overflow:"hidden"}}>
                   <div style={{padding:"14px 16px 6px"}}>
-                    <div style={{fontFamily:_MO,fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase"}}>INSIGHTS</div>
+                    <div style={{fontFamily:_MO,fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase"}}>INSIGHTS</div>
                   </div>
                   {_rows.map(({label,sub,onTap},i)=>(
                     <div key={label} onClick={onTap} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",borderTop:"1px solid var(--card-border)",cursor:"pointer"}}>
@@ -6650,12 +6650,12 @@ const ProgressSection = React.memo(function ProgressSection({
               return(
                 <div style={{background:"var(--bg)"}}>
                   <div style={{padding:"18px 20px 14px"}}>
-                    <div style={{fontFamily:_MO,fontSize:11,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>PERFORMANCE</div>
+                    <div style={{fontFamily:_MO,fontSize:11,fontWeight:500,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>PERFORMANCE</div>
                     <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:4}}>
                       <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em",filter:!_isLight?"drop-shadow(0 0 20px rgba(var(--accent-rgb),0.18))":undefined}}>
                         {_trainedDays}
                       </div>
-                      <span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)"}}>days trained</span>
+                      <span style={{fontFamily:_MO,fontSize:15,fontWeight:500,color:"var(--text-dim)"}}>days trained</span>
                     </div>
                     <div style={{fontFamily:_MO,fontSize:9,color:"var(--text-faint)",letterSpacing:"0.06em"}}>5-week window · {_loggedDays} meals logged</div>
                   </div>
@@ -6689,12 +6689,12 @@ const ProgressSection = React.memo(function ProgressSection({
                 const _AXLABELS=['STR','END','POW','CON','NUT','REC'];
                 return(
                   <div style={{padding:"18px 20px 20px"}}>
-                    <div style={{fontFamily:_MO,fontSize:11,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>ATHLETE DNA</div>
+                    <div style={{fontFamily:_MO,fontSize:11,fontWeight:500,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>ATHLETE DNA</div>
                     <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:6}}>
                       <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em"}}>
-                        {_sess}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:4}}>/10</span>
+                        {_sess}<span style={{fontFamily:_MO,fontSize:15,fontWeight:500,color:"var(--text-dim)",marginLeft:4}}>/10</span>
                       </div>
-                      <span style={{fontFamily:_MO,fontSize:13,fontWeight:700,color:"var(--text-dim)"}}>sessions</span>
+                      <span style={{fontFamily:_MO,fontSize:13,fontWeight:500,color:"var(--text-dim)"}}>sessions</span>
                     </div>
                     <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.5,marginBottom:12}}>
                       {_sess===0
@@ -6751,10 +6751,10 @@ const ProgressSection = React.memo(function ProgressSection({
 
             {/* ── COACH TIPS — Pass 2D ── */}
             <div style={{margin:"0 16px 14px",padding:"16px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16}}>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>COACHING</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>COACHING</div>
               {doingWell.length>0&&(
                 <div style={{marginBottom:focusTips.length?14:0}}>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:"#22c55e",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>DOING WELL</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:500,color:"#22c55e",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>DOING WELL</div>
                   {doingWell.map((t,i)=>(
                     <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:6}}>
                       <span style={{color:"#22c55e",fontSize:11,marginTop:1,flexShrink:0}}>✓</span>
@@ -6765,7 +6765,7 @@ const ProgressSection = React.memo(function ProgressSection({
               )}
               {focusTips.length>0&&(
                 <div>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:"var(--accent)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>FOCUS THIS WEEK</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:500,color:"var(--accent)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>FOCUS THIS WEEK</div>
                   {focusTips.map((t,i)=>(
                     <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<focusTips.length-1?6:0}}>
                       <span style={{color:"var(--accent)",fontSize:11,marginTop:1,flexShrink:0}}>→</span>
@@ -6790,10 +6790,10 @@ const ProgressSection = React.memo(function ProgressSection({
               return(
                 <div style={{background:"var(--bg)"}}>
                   <div style={{padding:"18px 20px 14px"}}>
-                    <div style={{fontFamily:_MO,fontSize:11,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>MILESTONES</div>
+                    <div style={{fontFamily:_MO,fontSize:11,fontWeight:500,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>MILESTONES</div>
                     <div style={{display:"flex",alignItems:"baseline",gap:8}}>
                       <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em"}}>{_earnedCount}</div>
-                      <span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)"}}>/{MILESTONES.length} earned</span>
+                      <span style={{fontFamily:_MO,fontSize:15,fontWeight:500,color:"var(--text-dim)"}}>/{MILESTONES.length} earned</span>
                     </div>
                   </div>
                   <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:18}}>
@@ -6833,7 +6833,7 @@ const ProgressSection = React.memo(function ProgressSection({
           {/* ── STRENGTH ── */}
           {activeTab==="strength"&&<>
             <div data-tour="plateau-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:activePlateaus.length>0?12:0}}>ACTIVE PLATEAUS</div>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:activePlateaus.length>0?12:0}}>ACTIVE PLATEAUS</div>
               {activePlateaus.length>0?(
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
                   {activePlateaus.map((p,i)=>(
@@ -6858,7 +6858,7 @@ const ProgressSection = React.memo(function ProgressSection({
             <PRFeed dbPRs={dbPRs} wUnit={profile?.wUnit||"lbs"}/>
 
             <div style={{background:"var(--bg)",padding:"16px 20px",borderBottom:"1px solid var(--card-border)",marginBottom:14}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>Volume This Week</div>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>Volume This Week</div>
               {volumeThisWeek>0?(
                 <>
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:32,color:"var(--cm-ink)",lineHeight:1}}>{volumeThisWeek.toLocaleString()} <span style={{fontSize:16,color:"var(--text-faint)"}}>{profile?.wUnit||"lbs"}</span></div>
@@ -6878,7 +6878,7 @@ const ProgressSection = React.memo(function ProgressSection({
             </div>
 
             <div style={{background:"var(--bg)",padding:"16px 20px",borderBottom:"1px solid var(--card-border)",marginBottom:14}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>Workout Frequency</div>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>Workout Frequency</div>
               <WorkoutFreqBars weeklyFreq={weeklyFreq} isLight={(wPrefs?.theme?.bg||'black')==='white'}/>
             </div>
 
@@ -6889,7 +6889,7 @@ const ProgressSection = React.memo(function ProgressSection({
               const pct=Math.min(100,Math.round((progWeek/totalWk)*100));
               return(
                 <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out 120ms both"}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>Mesocycle Progress</div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>Mesocycle Progress</div>
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-ink)",marginBottom:10}}>Week {progWeek} of {totalWk} · {split}</div>
                   <div style={{height:6,background:"var(--card-border)",borderRadius:3,overflow:"hidden"}}>
                     <div style={{height:"100%",width:`${pct}%`,background:"linear-gradient(90deg,var(--accent),rgba(var(--accent-rgb),0.6))",borderRadius:3,transformOrigin:"left center",animation:"smBar 0.6s cubic-bezier(.2,.7,.3,1) both"}}/>
@@ -6929,7 +6929,7 @@ const ProgressSection = React.memo(function ProgressSection({
               const _isLight=(wPrefs?.theme?.bg||'black')==='white';
               return(
                 <div style={{background:"var(--bg)",padding:"16px 20px",borderBottom:"1px solid var(--card-border)",marginBottom:14}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>RPE Trend</div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>RPE Trend</div>
                   {topExercises.map(([exName,exHistory])=>{
                     const points=exHistory.slice(-8);
                     if(points.length<2)return null;
@@ -6962,12 +6962,12 @@ const ProgressSection = React.memo(function ProgressSection({
               function chipColor(actual,target){if(actual>=target*0.9&&actual<=target*1.1)return"#22c55e";if(actual>=target*0.75&&actual<=target*1.25)return"#FEA020";return"var(--accent)";}
               return(
                 <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>This Week's Averages</div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>This Week's Averages</div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                     {[{l:"Calories",v:avgCal,t:calTarget,u:"kcal"},{l:"Protein",v:avgProt,t:protTarget,u:"g"},{l:"Carbs",v:avgCarbs,t:carbTarget,u:"g"},{l:"Fat",v:avgFat,t:fatTarget,u:"g"}].map(({l,v,t,u})=>(
                       <div key={l} style={{padding:"10px 12px",background:"var(--bg)",borderRadius:10,border:`1px solid ${chipColor(v,t)}30`}}>
                         <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>{l}</div>
-                        <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:30,color:"var(--cm-ink)",lineHeight:1}}>{v}<span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:13,fontWeight:700,color:"var(--text-faint)",marginLeft:3}}>/ {t}{u}</span></div>
+                        <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:30,color:"var(--cm-ink)",lineHeight:1}}>{v}<span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:13,fontWeight:500,color:"var(--text-faint)",marginLeft:3}}>/ {t}{u}</span></div>
                       </div>
                     ))}
                   </div>
@@ -6986,7 +6986,7 @@ const ProgressSection = React.memo(function ProgressSection({
               const hitCount=days14.filter(({fd})=>fd?.hasData&&fd.prot>=protTarget*0.9).length;
               return(
                 <div style={{background:"var(--bg)",padding:"16px 20px",borderBottom:"1px solid var(--card-border)",marginBottom:14}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>Protein Consistency</div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>Protein Consistency</div>
                   <ProteinGrid days14={days14} hitCount={hitCount} protTarget={protTarget} isLight={_isLight}/>
                 </div>
               );
@@ -7003,7 +7003,7 @@ const ProgressSection = React.memo(function ProgressSection({
               if(daysWithData<3)return<PH eyebrow="// Calorie Trend" headline="KEEP LOGGING." body="Log 3 days of meals to see your calorie trend."/>;
               return(
                 <div style={{background:"var(--bg)",padding:"16px 20px",borderBottom:"1px solid var(--card-border)",marginBottom:14}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>Calorie Trend</div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>Calorie Trend</div>
                   <CalorieTrendChart days14={days14} calTarget={calTarget} isLight={_isLight}/>
                 </div>
               );
@@ -7012,7 +7012,7 @@ const ProgressSection = React.memo(function ProgressSection({
             <BodyweightSection logs={bodyweightLogs} user={user} setLogs={setBodyweightLogs} wUnit={profile?.wUnit||'lbs'} profile={profile} onProfileUpdate={onProfileUpdate}/>
             {weightProjection?(
               <div style={{background:"var(--bg)",padding:"16px 20px",borderBottom:"1px solid var(--card-border)",marginBottom:14}}>
-                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>Weight Projection</div>
+                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>Weight Projection</div>
                 <WeightChart
                   weightProjection={weightProjection}
                   goalW={profile?.goalWeight?parseFloat(profile.goalWeight):null}
@@ -7053,7 +7053,7 @@ const ProgressSection = React.memo(function ProgressSection({
               const qpTotal=(b?.quad_volume_lbs||0)+(b?.posterior_volume_lbs||0);
               return(
                 <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>Muscle Balance</div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>Muscle Balance</div>
                   {noData?(
                     <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:"var(--text-dim)"}}>
                       COMPLETE MORE SESSIONS TO SEE BALANCE.
@@ -7116,7 +7116,7 @@ const ProgressSection = React.memo(function ProgressSection({
               const c=Math.abs(diff)<=1?"#22c55e":Math.abs(diff)===2?"#FEA020":"var(--accent)";
               return(
                 <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>Rest Days This Week</div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>Rest Days This Week</div>
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:c,lineHeight:1,marginBottom:6}}>{restDaysThisWeek} <span style={{fontSize:14,color:"var(--text-faint)"}}>rest days</span></div>
                   <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"var(--text-faint)"}}>Optimal for {split||"your program"}: {optimal} rest day{optimal!==1?"s":""}</div>
                 </div>
@@ -7124,27 +7124,27 @@ const ProgressSection = React.memo(function ProgressSection({
             })()}
 
             <div style={{margin:"0 16px 14px",padding:"20px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,textAlign:"center",animation:"cardIn 0.4s ease-out both"}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>Recovery Score</div>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>Recovery Score</div>
               <RecoveryGauge score={recoveryScore} isLight={(wPrefs?.theme?.bg||'black')==='white'}/>
             </div>
 
             {healthConnected?(
               healthSnap?.sleep!=null?(
                 <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>Avg Sleep This Week</div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>Avg Sleep This Week</div>
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:healthSnap.sleep>=7?"#22c55e":healthSnap.sleep>=6?"#FEA020":"var(--accent)",lineHeight:1,marginBottom:6}}>{Math.floor(healthSnap.sleep)}h {Math.round((healthSnap.sleep%1)*60)}m</div>
                   <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"var(--text-faint)"}}>Optimal for recovery: 7–9 hours</div>
                 </div>
               ):(
                 <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Sleep Data</div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Sleep Data</div>
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:"var(--cm-ink)",marginBottom:6}}>CONNECTED — NO SLEEP DATA.</div>
                   <div style={{fontSize:13,color:"var(--text-dim)"}}>Apple Health is connected. No sleep was recorded for last night — wear your Apple Watch to bed to track sleep.</div>
                 </div>
               )
             ):(
               <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
-                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Sleep Data</div>
+                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:500,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Sleep Data</div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-ink)",marginBottom:6}}>CONNECT APPLE HEALTH.</div>
                 <div style={{fontSize:13,color:"var(--text-dim)",marginBottom:12}}>Connect Apple Health to track sleep and recovery data automatically.</div>
                 <button onClick={()=>setShowHealthModal(true)} style={{background:"none",border:"1px solid var(--card-border)",borderRadius:8,padding:"8px 14px",color:"var(--text-dim)",fontSize:12,cursor:"pointer",fontFamily:"'DM Mono','SF Mono',monospace",letterSpacing:"0.08em"}}>Connect Apple Health →</button>
@@ -9675,7 +9675,7 @@ Rules:
                         return(
                           <div style={{borderTop:"1px solid rgba(var(--accent-rgb),0.08)",paddingTop:12}}>
                             <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>// WHAT SHOULD I DO FIRST?</div>
-                            <button onClick={()=>setSection("train")} style={{width:"100%",background:"rgba(var(--accent-rgb),0.08)",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:10,padding:"11px 14px",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",textAlign:"left"}}>START YOUR SESSION →</button>
+                            <button onClick={()=>setSection("train")} style={{width:"100%",background:"rgba(var(--accent-rgb),0.08)",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:10,padding:"11px 14px",fontFamily:"var(--mono)",fontSize:9,fontWeight:500,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",textAlign:"left"}}>START YOUR SESSION →</button>
                           </div>
                         );
                       }
@@ -9683,7 +9683,7 @@ Rules:
                         return(
                           <div style={{borderTop:"1px solid rgba(var(--accent-rgb),0.08)",paddingTop:12}}>
                             <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>// WHAT SHOULD I DO FIRST?</div>
-                            <button onClick={()=>{setSection("fuel");setFuelScreen("home");}} style={{width:"100%",background:"rgba(var(--accent-rgb),0.08)",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:10,padding:"11px 14px",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",textAlign:"left"}}>LOG BREAKFAST →</button>
+                            <button onClick={()=>{setSection("fuel");setFuelScreen("home");}} style={{width:"100%",background:"rgba(var(--accent-rgb),0.08)",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:10,padding:"11px 14px",fontFamily:"var(--mono)",fontSize:9,fontWeight:500,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",textAlign:"left"}}>LOG BREAKFAST →</button>
                           </div>
                         );
                       }
@@ -9751,7 +9751,7 @@ Rules:
               <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>// NUTRITION CHECK</div>
               <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>{msg.headline}</div>
               <div style={{fontFamily:"var(--condensed)",fontSize:14,color:"rgba(245,245,240,0.6)",lineHeight:1.5}}>{msg.sub}</div>
-              <button onClick={()=>{setSection("fuel");setFuelScreen("home");}} style={{marginTop:10,background:"transparent",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>LOG A MEAL →</button>
+              <button onClick={()=>{setSection("fuel");setFuelScreen("home");}} style={{marginTop:10,background:"transparent",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"var(--mono)",fontSize:10,fontWeight:500,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>LOG A MEAL →</button>
             </div>
           );
         })()}
@@ -9769,7 +9769,7 @@ Rules:
               <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#22c55e",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>// POST-WORKOUT WINDOW</div>
               <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>FUEL YOUR RECOVERY.</div>
               <div style={{fontFamily:"var(--condensed)",fontSize:16,color:"rgba(245,245,240,0.6)",lineHeight:1.4,marginBottom:10}}>Your post-workout window is open. Hit {pwProtein}g protein and {pwCarbs}g carbs in the next 45 minutes to maximize recovery.</div>
-              <button onClick={()=>{setSection("fuel");setFuelScreen("home");}} style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#22c55e",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>LOG POST-WORKOUT MEAL →</button>
+              <button onClick={()=>{setSection("fuel");setFuelScreen("home");}} style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"var(--mono)",fontSize:10,fontWeight:500,color:"#22c55e",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>LOG POST-WORKOUT MEAL →</button>
             </div>
           );
         })()}
@@ -9888,7 +9888,7 @@ Rules:
                     setUpcomingDeload(null);setSkipConfirmDeload(false);
                     setDeloadSnooze(todayStr);localStorage.setItem("deload_snooze",todayStr);
                   }} style={{flex:1,padding:12,background:"rgba(245,245,240,0.08)",border:"1px solid rgba(245,245,240,0.15)",borderRadius:10,color:"rgba(245,245,240,0.5)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>SKIP ANYWAY</button>
-                  <button onClick={()=>setSkipConfirmDeload(false)} style={{flex:2,padding:12,background:"#FEA020",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>TAKE THE DELOAD</button>
+                  <button onClick={()=>setSkipConfirmDeload(false)} style={{flex:2,padding:12,background:"#FEA020",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:500,fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>TAKE THE DELOAD</button>
                 </div>
               </div>
             );
@@ -9912,7 +9912,7 @@ Rules:
                   Next week: same exercises, 50% less volume and weight. This is where the gains you've built actually set in.
                 </div>
                 <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",marginBottom:14}}>DELOAD WEEK: {formattedRange}</div>
-                <button onClick={startDeload} style={{width:"100%",padding:13,background:"#FEA020",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",marginBottom:8}}>GOT IT →</button>
+                <button onClick={startDeload} style={{width:"100%",padding:13,background:"#FEA020",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:500,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",marginBottom:8}}>GOT IT →</button>
                 <button onClick={()=>setSkipConfirmDeload(true)} style={{width:"100%",padding:10,background:"transparent",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>SKIP DELOAD</button>
               </div>
             </CollapsibleAlert>
@@ -9957,7 +9957,7 @@ Rules:
                     <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:16,color:accent}}>W{weekAdjustment.new_week}</div>
                   </div>
                 </div>
-                <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setAdjSnooze(t);localStorage.setItem("adj_snooze",t);}} style={{width:"100%",marginTop:12,padding:13,background:accent,border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
+                <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setAdjSnooze(t);localStorage.setItem("adj_snooze",t);}} style={{width:"100%",marginTop:12,padding:13,background:accent,border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:500,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
               </div>
             </CollapsibleAlert>
           );
@@ -10009,7 +10009,7 @@ Rules:
                   })}
                 </div>
                 {extra>0&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginBottom:12}}>and {extra} more exercise{extra>1?"s":""} need attention</div>}
-                <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setPlateauSnooze(t);localStorage.setItem("plateau_snooze",t);}} style={{width:"100%",padding:13,background:"#60a5fa",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
+                <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setPlateauSnooze(t);localStorage.setItem("plateau_snooze",t);}} style={{width:"100%",padding:13,background:"#60a5fa",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:500,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
               </div>
             </CollapsibleAlert>
           );
@@ -10071,7 +10071,7 @@ Rules:
                     </div>
                   );
                 })}
-                <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setBalanceSnooze(t);localStorage.setItem("balance_snooze",t);}} style={{width:"100%",marginTop:14,padding:13,background:accent,border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
+                <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setBalanceSnooze(t);localStorage.setItem("balance_snooze",t);}} style={{width:"100%",marginTop:14,padding:13,background:accent,border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:500,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
               </div>
             </CollapsibleAlert>
           );
@@ -10112,7 +10112,7 @@ Rules:
                       :"Watch your RPE closely this week. If it keeps climbing a deload may be needed soon."}
                   </div>
                 </div>
-                <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setFatigueSnooze(t);localStorage.setItem("fatigue_snooze",t);}} style={{width:"100%",padding:13,background:accent,border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
+                <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setFatigueSnooze(t);localStorage.setItem("fatigue_snooze",t);}} style={{width:"100%",padding:13,background:accent,border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:500,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
               </div>
             </CollapsibleAlert>
           );
@@ -10130,7 +10130,7 @@ Rules:
         {/* ── ACWR HIGH-RISK ALERTS ── */}
         {acwrHighRisks.map(r=>(
           <div key={r.region} onClick={()=>setShowInjuryRiskModal(r.region)} style={{margin:"0 20px 12px",padding:"14px 16px",background:"rgba(239,68,68,0.07)",border:"1.5px solid rgba(239,68,68,0.28)",borderLeft:"3px solid #EF4444",borderRadius:"4px 14px 14px 4px",cursor:"pointer"}}>
-            <div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.14em",color:"#EF4444",textTransform:"uppercase",fontWeight:700,marginBottom:6}}>⚠️ INJURY RISK ALERT — {r.region.replace("_"," ").toUpperCase()}</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.14em",color:"#EF4444",textTransform:"uppercase",fontWeight:500,marginBottom:6}}>⚠️ INJURY RISK ALERT — {r.region.replace("_"," ").toUpperCase()}</div>
             <div style={{fontSize:13,color:"rgba(245,245,240,.8)",lineHeight:1.6,marginBottom:8}}>
               Your {r.region.replace("_"," ")} training load is significantly above average this week (ACWR: {r.acwrRatio}).
               {r.recentPain>0&&` You've also reported pain in this area recently.`}
@@ -10170,11 +10170,11 @@ Rules:
                 50% load · 50% volume · Full movement pattern
               </div>
               <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>setSection("train")} style={{flex:1,padding:14,background:"#FEA020",border:"none",borderRadius:12,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>
+                <button onClick={()=>setSection("train")} style={{flex:1,padding:14,background:"#FEA020",border:"none",borderRadius:12,color:"#000",fontFamily:"var(--mono)",fontWeight:500,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>
                   START DELOAD SESSION →
                 </button>
                 {deloadStartedAt&&Math.max(0,7-Math.floor((new Date()-new Date(deloadStartedAt))/864e5))<=0&&(
-                  <button onClick={handleDeloadComplete} style={{padding:14,background:"rgba(34,197,94,0.15)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:12,color:"#22c55e",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",flexShrink:0}}>COMPLETE →</button>
+                  <button onClick={handleDeloadComplete} style={{padding:14,background:"rgba(34,197,94,0.15)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:12,color:"#22c55e",fontFamily:"var(--mono)",fontWeight:500,fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",flexShrink:0}}>COMPLETE →</button>
                 )}
               </div>
             </div>
@@ -10198,7 +10198,7 @@ Rules:
                   {focusLabel}<span style={{color:"var(--accent)"}}>.</span>
                 </div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:17,color:"rgba(245,245,240,0.55)",lineHeight:1.45,marginTop:6,marginBottom:14}}>{coachQuote}</div>
-                <button onClick={()=>{setSection("train");startStructured(todayFocus);}} style={{width:"100%",background:"var(--accent)",border:"none",borderRadius:12,padding:"14px 0",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",marginBottom:sessionExpandedToday?8:0}}>
+                <button onClick={()=>{setSection("train");startStructured(todayFocus);}} style={{width:"100%",background:"var(--accent)",border:"none",borderRadius:12,padding:"14px 0",fontFamily:"var(--mono)",fontWeight:500,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",marginBottom:sessionExpandedToday?8:0}}>
                   START SESSION →
                 </button>
                 <div onClick={()=>setSessionExpandedToday(s=>!s)} style={{textAlign:"center",fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase",marginTop:8}}>
@@ -10745,37 +10745,40 @@ Rules:
         <div style={{background:'var(--cm-red,#FF3B30)',paddingLeft:22,paddingRight:22,paddingBottom:148}}>
 
           {/* ── 3-page swipeable top eyebrow: date | vs-yesterday | streak ── */}
-          <div style={{marginBottom:6,overflow:'hidden',userSelect:'none',touchAction:'manipulation'}}
-            onPointerDown={e=>{eyeX.current=e.clientX;eyeY.current=e.clientY;}}
-            onPointerUp={e=>{
-              const dx=e.clientX-eyeX.current,dy=e.clientY-eyeY.current;
-              if(Math.abs(dx)>30&&Math.abs(dx)>Math.abs(dy)*1.5)setEyePg(p=>dx<0?Math.min(2,p+1):Math.max(0,p-1));
-            }}
-          >
-            <motion.div
-              animate={{x:eyePg===0?'0%':eyePg===1?'-33.333%':'-66.666%'}}
-              transition={reducedMotion?{duration:0}:{type:'spring',stiffness:500,damping:40}}
-              style={{display:'flex',width:'300%'}}
+          <div style={{display:'flex',alignItems:'center',marginBottom:6}}>
+            <div style={{flex:1,overflow:'hidden',userSelect:'none',touchAction:'manipulation'}}
+              onPointerDown={e=>{eyeX.current=e.clientX;eyeY.current=e.clientY;}}
+              onPointerUp={e=>{
+                const dx=e.clientX-eyeX.current,dy=e.clientY-eyeY.current;
+                if(Math.abs(dx)>30&&Math.abs(dx)>Math.abs(dy)*1.5)setEyePg(p=>dx<0?Math.min(2,p+1):Math.max(0,p-1));
+              }}
             >
-              <div style={{width:'33.333%',fontFamily:AF,fontWeight:600,fontSize:11,color:"#ffffff",letterSpacing:"0.13em",textTransform:"uppercase"}}>
-                {dayLabel} · {dayStatus}
-              </div>
-              <div style={{width:'33.333%',fontFamily:AF,fontWeight:700,fontSize:11,letterSpacing:'0.13em',textTransform:'uppercase'}}>
-                <span style={{color:'#ffffff'}}>VS YESTERDAY</span>
-                <span style={{color:'rgba(255,255,255,0.35)',margin:'0 6px'}}>|</span>
-                {delta!==null
-                  ? <span style={{color:delta>=0?"#86efac":"#fca5a5"}}>{delta>=0?"+":""}{delta} pts</span>
-                  : <span style={{color:'rgba(255,255,255,0.35)'}}>—</span>
-                }
-              </div>
-              <div style={{width:'33.333%',fontFamily:AF,fontWeight:700,fontSize:11,letterSpacing:'0.13em',textTransform:'uppercase'}}>
-                <span style={{color:'#ffffff'}}>STREAK</span>
-                <span style={{color:'rgba(255,255,255,0.35)',margin:'0 6px'}}>|</span>
-                <span style={{color:workoutStreak>=3?"#86efac":workoutStreak>=1?"#fcd34d":"rgba(255,255,255,0.35)"}}>
-                  {workoutStreak} day{workoutStreak!==1?"s":""}
-                </span>
-              </div>
-            </motion.div>
+              <motion.div
+                animate={{x:eyePg===0?'0%':eyePg===1?'-33.333%':'-66.666%'}}
+                transition={reducedMotion?{duration:0}:{type:'spring',stiffness:500,damping:40}}
+                style={{display:'flex',width:'300%'}}
+              >
+                <div style={{width:'33.333%',fontFamily:AF,fontWeight:600,fontSize:11,color:"#ffffff",letterSpacing:"0.13em",textTransform:"uppercase"}}>
+                  {dayLabel} · {dayStatus}
+                </div>
+                <div style={{width:'33.333%',fontFamily:AF,fontWeight:700,fontSize:11,letterSpacing:'0.13em',textTransform:'uppercase'}}>
+                  <span style={{color:'#ffffff'}}>VS YESTERDAY</span>
+                  <span style={{color:'rgba(255,255,255,0.35)',margin:'0 6px'}}>|</span>
+                  {delta!==null
+                    ? <span style={{color:delta>=0?"#86efac":"#fca5a5"}}>{delta>=0?"+":""}{delta} pts</span>
+                    : <span style={{color:'rgba(255,255,255,0.35)'}}>—</span>
+                  }
+                </div>
+                <div style={{width:'33.333%',fontFamily:AF,fontWeight:700,fontSize:11,letterSpacing:'0.13em',textTransform:'uppercase'}}>
+                  <span style={{color:'#ffffff'}}>STREAK</span>
+                  <span style={{color:'rgba(255,255,255,0.35)',margin:'0 6px'}}>|</span>
+                  <span style={{color:workoutStreak>=3?"#86efac":workoutStreak>=1?"#fcd34d":"rgba(255,255,255,0.35)"}}>
+                    {workoutStreak} day{workoutStreak!==1?"s":""}
+                  </span>
+                </div>
+              </motion.div>
+            </div>
+            <FlameIcon/>
           </div>
 
           {/* Greeting */}
@@ -11138,7 +11141,7 @@ Rules:
                 <div style={{display:"flex",paddingBottom:16,marginBottom:16,borderBottom:"1px solid rgba(0,0,0,0.07)"}}>
                   {[{k:"Protein",v:<MN value={Math.round(consumed.protein)}/>,c:T.prot},{k:"Carbs",v:<MN value={Math.round(consumed.carbs)}/>,c:T.carb},{k:"Fat",v:<MN value={Math.round(consumed.fat)}/>,c:T.fat}].map(({k,v,c},i,arr)=>(
                     <div key={k} style={{flex:1,textAlign:"center",borderRight:i<arr.length-1?"1px solid rgba(0,0,0,0.07)":"none"}}>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:22,color:c,lineHeight:1}}>{v}<span style={{fontSize:11,fontWeight:400,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)"}}>g</span></div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontWeight:500,fontSize:22,color:c,lineHeight:1}}>{v}<span style={{fontSize:11,fontWeight:400,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)"}}>g</span></div>
                       <div style={{fontFamily:AF,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:5,letterSpacing:"0.03em"}}>{k}</div>
                     </div>
                   ))}
@@ -11393,7 +11396,7 @@ Rules:
                     {k:"Fat",    v:<MN value={Math.round(selMacros.fat)}/>,    c:T.fat},
                   ].map(({k,v,c},i,arr)=>(
                     <div key={k} style={{flex:1,textAlign:"center",borderRight:i<arr.length-1?"1px solid rgba(0,0,0,0.07)":"none"}}>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:22,color:c,lineHeight:1}}>{v}<span style={{fontSize:11,fontWeight:400,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)"}}>g</span></div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontWeight:500,fontSize:22,color:c,lineHeight:1}}>{v}<span style={{fontSize:11,fontWeight:400,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)"}}>g</span></div>
                       <div style={{fontFamily:AF,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:5,letterSpacing:"0.03em"}}>{k}</div>
                     </div>
                   ))}
@@ -11781,8 +11784,8 @@ Rules:
             </div>
             {/* Buttons */}
             <div style={{display:'flex',gap:10,marginTop:4}}>
-              <button onClick={()=>setPendingMilestone(null)} style={{flex:2,background:'var(--accent)',border:'none',borderRadius:12,padding:14,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:11,color:'#fff',letterSpacing:'0.16em',textTransform:'uppercase',cursor:'pointer'}}>KEEP GOING</button>
-              <button onClick={()=>{try{navigator.clipboard.writeText(pendingMilestone.title);}catch{}}} style={{flex:1,background:'transparent',border:'1px solid rgba(245,245,240,0.1)',borderRadius:12,padding:14,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:11,color:'rgba(245,245,240,0.4)',letterSpacing:'0.14em',textTransform:'uppercase',cursor:'pointer'}}>SHARE</button>
+              <button onClick={()=>setPendingMilestone(null)} style={{flex:2,background:'var(--accent)',border:'none',borderRadius:12,padding:14,fontFamily:"'DM Mono',monospace",fontWeight:500,fontSize:11,color:'#fff',letterSpacing:'0.16em',textTransform:'uppercase',cursor:'pointer'}}>KEEP GOING</button>
+              <button onClick={()=>{try{navigator.clipboard.writeText(pendingMilestone.title);}catch{}}} style={{flex:1,background:'transparent',border:'1px solid rgba(245,245,240,0.1)',borderRadius:12,padding:14,fontFamily:"'DM Mono',monospace",fontWeight:500,fontSize:11,color:'rgba(245,245,240,0.4)',letterSpacing:'0.14em',textTransform:'uppercase',cursor:'pointer'}}>SHARE</button>
             </div>
           </div>
         </>,

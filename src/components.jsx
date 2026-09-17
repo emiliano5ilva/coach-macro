@@ -954,11 +954,11 @@ export function MacroBar({label,consumed,target,color}) {
     <div style={{background:T.s2,borderRadius:14,padding:"12px 14px",marginBottom:8,border:`1px solid ${T.bd}`}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:8}}>
         <div>
-          <div style={{color,fontSize:9,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)",marginBottom:3}}>{label}</div>
+          <div style={{color,fontSize:9,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)",marginBottom:3}}>{label}</div>
           <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,lineHeight:1,color:pct>=1?color:"#fff"}}>{consumed}<span style={{fontSize:10,color:T.mu,fontWeight:400,fontStyle:"normal",marginLeft:2}}>g</span></div>
         </div>
         <div style={{textAlign:"right"}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:10,color:pct>=1?color:T.mu,fontWeight:700}}>{pct>=1?"✓ Hit":`${rem}g left`}</div>
+          <div style={{fontFamily:"var(--mono)",fontSize:10,color:pct>=1?color:T.mu,fontWeight:500}}>{pct>=1?"✓ Hit":`${rem}g left`}</div>
           <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.3)",marginTop:2}}>of {target}g</div>
         </div>
       </div>
@@ -1360,6 +1360,33 @@ export function WhistleMark({ size = 32, variant = "glyph", style }) {
   );
 }
 
+// 22×28px idle-animated flame blob mascot. CSS animations run independently on each tab instance.
+export function FlameIcon({size=22}) {
+  const h=Math.round(size*28/22);
+  return(
+    <svg width={size} height={h} viewBox="0 0 22 28" fill="none" aria-hidden="true" style={{display:'block',flexShrink:0}}>
+      <style>{`@keyframes _flt{0%,100%{transform:scaleY(1) scaleX(1)}32%{transform:scaleY(0.87) scaleX(1.06)}65%{transform:scaleY(0.94) scaleX(0.97)}}@keyframes _flc{0%,100%{opacity:.72}44%{opacity:1}}._flt{transform-box:fill-box;transform-origin:50% 98%;animation:_flt 1.85s ease-in-out infinite}._flc{transform-box:fill-box;transform-origin:50% 80%;animation:_flc 1.25s ease-in-out infinite 0.3s}`}</style>
+      <g className="_flt">
+        <path d="M11 1.8C10.2 4.5 7.5 6.8 6 10.5 4.5 14.5 5.8 18 8.5 20.2 9.7 21.2 10.2 22.5 11 23.5 11.8 22.5 12.3 21.2 13.5 20.2 16.2 18 17.5 14.5 16 10.5 14.5 6.8 11.8 4.5 11 1.8Z" fill="url(#_fla)"/>
+      </g>
+      <g className="_flc">
+        <ellipse cx="11" cy="19.5" rx="3.2" ry="4.8" fill="url(#_flb)"/>
+      </g>
+      <defs>
+        <linearGradient id="_fla" x1="11" y1="1.8" x2="11" y2="23.5" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFE040"/>
+          <stop offset="35%" stopColor="#FF6A00"/>
+          <stop offset="100%" stopColor="#FF3B30"/>
+        </linearGradient>
+        <radialGradient id="_flb" cx="50%" cy="30%" r="70%" gradientUnits="objectBoundingBox">
+          <stop offset="0%" stopColor="#FFFDE0" stopOpacity="0.9"/>
+          <stop offset="100%" stopColor="#FFD040" stopOpacity="0"/>
+        </radialGradient>
+      </defs>
+    </svg>
+  );
+}
+
 // Brand lockup: whistle mark + optional "COACH / MACRO" wordmark. Same signature as before so every
 // call-site keeps working; `variant` picks the mark treatment (default lockup — the brand default).
 export function Logo({size=32, text=true, textColor="#fff", variant="lockup"}) {
@@ -1694,7 +1721,7 @@ export function MuscleMap({dayFocus, isMobile}) {
 
         {selected&&(
           <div style={{background:T.s2,border:`1px solid ${statusText(selected).c}35`,borderRadius:12,padding:"14px 16px",marginTop:12}}>
-            <div style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:T.mu,marginBottom:4}}>{selected.replace("_"," ")}</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase",color:T.mu,marginBottom:4}}>{selected.replace("_"," ")}</div>
             <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,textTransform:"uppercase",color:"#fff",marginBottom:4}}>{selected.replace("_"," ")}</div>
             <div style={{fontSize:12,color:statusText(selected).c,fontWeight:600,fontFamily:"var(--mono)"}}>{statusText(selected).l}</div>
           </div>
@@ -1725,8 +1752,8 @@ export function MuscleMap({dayFocus, isMobile}) {
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
                   <span style={{fontSize:13,fontWeight:600,color:isSel?T.prot:"rgba(245,245,240,0.8)"}}>{l}</span>
                   <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    {optimal&&<span style={{fontSize:9,color:T.green,background:`${T.green}12`,borderRadius:6,padding:"2px 7px",fontWeight:700,fontFamily:"var(--mono)",letterSpacing:"0.08em"}}>✓ HIT</span>}
-                    <span style={{fontSize:12,fontWeight:700,color:sets===0?T.mu:c,fontFamily:"var(--mono)"}}>{sets===0?"—":`${sets}`}<span style={{fontSize:9,color:T.mu}}>{sets>0?" sets":""}</span></span>
+                    {optimal&&<span style={{fontSize:9,color:T.green,background:`${T.green}12`,borderRadius:6,padding:"2px 7px",fontWeight:500,fontFamily:"var(--mono)",letterSpacing:"0.08em"}}>✓ HIT</span>}
+                    <span style={{fontSize:12,fontWeight:500,color:sets===0?T.mu:c,fontFamily:"var(--mono)"}}>{sets===0?"—":`${sets}`}<span style={{fontSize:9,color:T.mu}}>{sets>0?" sets":""}</span></span>
                   </div>
                 </div>
                 <div style={{height:5,background:"rgba(245,245,240,0.06)",borderRadius:3,overflow:"hidden"}}>

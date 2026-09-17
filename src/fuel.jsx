@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, useReducedMotion, AnimatePresence } from 'motion/react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { registerPlugin } from '@capacitor/core';
 import { MN, MotionArc, StaggerItem } from './motion-layer.jsx';
 import { getRunWeek, HEAVY_LOWER_CYCLES, HYBRID_TEMPLATE_CYCLES } from './running_programs.js';
 const _hL=()=>{try{Haptics.impact({style:ImpactStyle.Light});}catch{}};
@@ -15,7 +16,7 @@ import { MetabolicResetProgressCard } from "./MetabolicAdaptation.jsx";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, FASTING_PROTOCOLS,
   Ring, MacroRing, MacroBar, PrimaryBtn, SectionCard, Spinner, Logo, WhistleMark, FAQItem,
   FoodSearchSkeleton, EmptyState, hap, calcTDEE,
-  GOCLUB_REDESIGN } from "./components.jsx";
+  GOCLUB_REDESIGN, FlameIcon } from "./components.jsx";
 
 const _FUEL_GOCLUB_CSS=`
 .goclub.tab-fuel{background:var(--cm-red)!important;--condensed:'Archivo',sans-serif}
@@ -45,11 +46,114 @@ import { buildUserContext, getRestaurantRecs, getMenuScanRecs } from './services
 import { geocodeCity, getNearbyRestaurants } from './services/locationService.js';
 import { getRecentMealsForSlot, getPerformanceCorrelations } from './services/macroMemoryService.js';
 
+// BackgroundGeolocation — native CLLocationManager via @capacitor-community/background-geolocation.
+// Same plugin used in sections.jsx for GPS runs and weather look-ups.
+// Shows "Coach Macro" in the iOS permission prompt instead of "localhost".
+const BackgroundGeolocation = registerPlugin('BackgroundGeolocation');
+
+// Full URL for the Places proxy — needed for <img> src in the native WKWebView where relative
+// paths resolve to capacitor://localhost, not coach-macro.com.
+const _RA_PROXY = import.meta.env.VITE_API_BASE_URL || 'https://www.coach-macro.com';
+
 // Lever 4: Restaurant AI session caches (module scope → survive modal open/close for the app session).
 // Re-tapping a restaurant you already viewed (same meal targets) = instant, no LLM call.
 // Re-searching a city you already searched = instant, no geocode/places round-trips.
 const _raRecCache = new Map();     // key: `${name}|${cal}|${prot}|${carb}|${fat}` → rec result
 const _raPlacesCache = new Map();  // key: city (lowercased, trimmed)               → places array
+
+// Chain-logo override: when a restaurant name contains a known brand, show the official logo
+// (via Google's no-auth favicon API) instead of the Google Places location photo.
+// Keys are lowercase substrings to match against; longer/more-specific keys listed first so
+// e.g. "dairy queen" wins over a hypothetical "queen" entry.
+const _RA_CHAIN_LOGOS = {
+  'dairy queen':         'dairyqueen.com',
+  'jack in the box':     'jackinthebox.com',
+  'buffalo wild wings':  'buffalowildwings.com',
+  'panda express':       'pandaexpress.com',
+  'raising cane':        'raisingcanes.com',
+  'texas roadhouse':     'texasroadhouse.com',
+  'panera bread':        'panerabread.com',
+  'jersey mike':         'jerseymikes.com',
+  'jimmy john':          'jimmyjohns.com',
+  'firehouse subs':      'firehousesubs.com',
+  'el pollo loco':       'elpolloloco.com',
+  'five guys':           'fiveguys.com',
+  'red lobster':         'redlobster.com',
+  'waffle house':        'wafflehouse.com',
+  'cheesecake factory':  'thecheesecakefactory.com',
+  'olive garden':        'olivegarden.com',
+  'burger king':         'bk.com',
+  'papa john':           'papajohns.com',
+  'little caesar':       'littlecaesars.com',
+  'shake shack':         'shakeshack.com',
+  'whataburger':         'whataburger.com',
+  'sweetgreen':          'sweetgreen.com',
+  'chick-fil-a':         'chick-fil-a.com',
+  'in-n-out':            'in-n-out.com',
+  'taco bell':           'tacobell.com',
+  'mcdonald':            'mcdonalds.com',
+  'starbucks':           'starbucks.com',
+  'chipotle':            'chipotle.com',
+  'pizza hut':           'pizzahut.com',
+  "domino":              'dominos.com',
+  'subway':              'subway.com',
+  "wendy":               'wendys.com',
+  'popeyes':             'popeyes.com',
+  'applebee':            'applebees.com',
+  'wingstop':            'wingstop.com',
+  'sweetgreen':          'sweetgreen.com',
+  'dunkin':              'dunkin.com',
+  'longhorn':            'longhornsteakhouse.com',
+  'outback':             'outback.com',
+  'red robin':           'redrobin.com',
+  'cracker barrel':      'crackerbarrel.com',
+  'hardee':              'hardees.com',
+  "carl's jr":           'carlsjr.com',
+  'del taco':            'deltaco.com',
+  'qdoba':               'qdoba.com',
+  'sonic':               'sonicdrivein.com',
+  'panera':              'panerabread.com',
+  'arby':                'arbys.com',
+  'ihop':                'ihop.com',
+  "denny":               'dennys.com',
+  'kfc':                 'kfc.com',
+  'zaxby':               'zaxbys.com',
+  'bojangles':           'bojangles.com',
+  'first watch':         'firstwatch.com',
+};
+function _raChainDomain(name) {
+  const lower = name.toLowerCase();
+  for (const [chain, domain] of Object.entries(_RA_CHAIN_LOGOS)) {
+    if (lower.includes(chain)) return domain;
+  }
+  return null;
+}
+
+// One-shot device location using BackgroundGeolocation. Mirrors the pattern in sections.jsx:2405-2419:
+// addWatcher with stale:true fires immediately on the first available fix, the watcher is then
+// removed. Resolves to {lat, lng} on success, null on denial/error/timeout (4.5 s hard cap).
+function getDeviceLocation(){
+  return new Promise(resolve=>{
+    let _done=false,_watchId=null;
+    const _timer=setTimeout(()=>{
+      if(_done)return;
+      _done=true;
+      if(_watchId!=null)BackgroundGeolocation.removeWatcher({id:_watchId}).catch(()=>{});
+      resolve(null);
+    },4500);
+    BackgroundGeolocation.addWatcher(
+      {requestPermissions:true,stale:true,distanceFilter:0},
+      (loc,err)=>{
+        if(err||!loc||_done)return;
+        _done=true;
+        clearTimeout(_timer);
+        if(_watchId!=null)BackgroundGeolocation.removeWatcher({id:_watchId}).catch(()=>{});
+        resolve({lat:loc.latitude,lng:loc.longitude});
+      }
+    ).then(id=>{if(_done)BackgroundGeolocation.removeWatcher({id}).catch(()=>{});else _watchId=id;})
+     .catch(()=>{clearTimeout(_timer);if(!_done){_done=true;resolve(null);}});
+  });
+}
 
 // #4: funky food-themed loader copy — shuffled random order each generation, ~1.7s per line.
 const RA_LOAD_MSGS = [
@@ -709,7 +813,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
       )}
       {!query&&recentFoods.length>0&&(
         <div style={{marginBottom:16}}>
-          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Recent</div>
+          <div style={{fontSize:10,color:T.mu,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Recent</div>
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
             {recentFoods.slice(0,5).map((f,i)=>(
               <button key={i} onClick={()=>selectFood(f.food_data)} style={{padding:"10px 14px",background:"var(--cm-paper,#FFFFFF)",borderRadius:12,boxShadow:'0 1px 6px rgba(0,0,0,.08)',border:`1px solid ${T.bd}`,cursor:"pointer",textAlign:"left",color:"var(--cm-red,#FF3B30)",fontFamily:"inherit"}}>
@@ -722,7 +826,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
       )}
       {!query&&frequentFoods.length>0&&(
         <div style={{marginBottom:16}}>
-          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Most Used</div>
+          <div style={{fontSize:10,color:T.mu,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Most Used</div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             {frequentFoods.slice(0,8).map((f,i)=>(
               <button key={i} onClick={()=>selectFood(f.food_data)} style={{padding:"7px 13px",background:"var(--cm-paper,#FFFFFF)",borderRadius:12,boxShadow:'0 1px 6px rgba(0,0,0,.08)',border:`1px solid ${T.bd}`,cursor:"pointer",color:"var(--cm-red,#FF3B30)",fontSize:12,fontWeight:600,fontFamily:"inherit"}}>{f.food_name}</button>
@@ -735,21 +839,23 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
 }
 
 const DIET_PRESETS=[
-  {id:'balanced',    label:'Balanced',     badge:'POPULAR',  color:'var(--cm-red,#FF3B30)'},
-  {id:'high-protein',label:'High Protein', badge:'POPULAR',  color:'var(--cm-red,#FF3B30)'},
-  {id:'mediterranean',label:'Mediterranean',badge:'TRENDING',color:'#FEA020'},
-  {id:'keto',        label:'Keto',         badge:'TRENDING', color:'#FEA020'},
-  {id:'paleo',       label:'Paleo',        badge:null,       color:null},
-  {id:'vegetarian',  label:'Vegetarian',   badge:null,       color:null},
-  {id:'vegan',       label:'Vegan',        badge:null,       color:null},
-  {id:'carnivore',   label:'Carnivore',    badge:'NEW',      color:'#22c55e'},
-  {id:'low-carb',    label:'Low Carb',     badge:null,       color:null},
-  {id:'pescatarian', label:'Pescatarian',  badge:null,       color:null},
+  {id:'balanced',       label:'Balanced',        badge:'POPULAR',  color:'var(--cm-red,#FF3B30)'},
+  {id:'high-protein',   label:'High Protein',    badge:'POPULAR',  color:'var(--cm-red,#FF3B30)'},
+  {id:'mediterranean',  label:'Mediterranean',   badge:'TRENDING', color:'#FEA020'},
+  {id:'keto',           label:'Keto',            badge:'TRENDING', color:'#FEA020'},
+  {id:'paleo',          label:'Paleo',           badge:null,       color:null},
+  {id:'vegetarian',     label:'Vegetarian',      badge:null,       color:null},
+  {id:'vegan',          label:'Vegan',           badge:null,       color:null},
+  {id:'carnivore',      label:'Carnivore',       badge:'NEW',      color:'#22c55e'},
+  {id:'low-carb',       label:'Low Carb',        badge:null,       color:null},
+  {id:'pescatarian',    label:'Pescatarian',     badge:null,       color:null},
+  {id:'poquito-de-todo',label:'Poquito de Todo', badge:null,       color:null},
 ];
 const DIET_DESC={
   'balanced':'A bit of everything','high-protein':'Protein-forward meals','mediterranean':'Fish, olive oil & veg',
   'keto':'Very low carb, high fat','paleo':'Whole foods, no grains','vegetarian':'No meat or fish',
   'vegan':'Fully plant-based','carnivore':'Animal foods only','low-carb':'Reduced carbs','pescatarian':'Veggie + seafood',
+  'poquito-de-todo':'A little of everything',
 };
 
 // safeParseJSON — used by non-meal-prep AI paths (restaurant, quick suggestions).
@@ -791,15 +897,16 @@ const ALLERGEN_CHIP_TO_TAG = {
 // 'high-protein' is explicit here so its intent is clear; the diet_tags
 // overlap on ['high-protein'] surfaces all recipes tagged protein-forward.
 const DIET_INCLUDES = {
-  vegan:            ['vegan'],
-  vegetarian:       ['vegetarian','vegan'],
-  pescatarian:      ['pescatarian','vegetarian','vegan'],
-  mediterranean:    ['mediterranean'],
-  keto:             ['keto'],
-  paleo:            ['paleo'],
-  'low-carb':       ['low-carb'],
-  carnivore:        ['carnivore'],
-  'high-protein':   ['high-protein'],
+  vegan:              ['vegan'],
+  vegetarian:         ['vegetarian','vegan'],
+  pescatarian:        ['pescatarian','vegetarian','vegan'],
+  mediterranean:      ['mediterranean'],
+  keto:               ['keto'],
+  paleo:              ['paleo'],
+  'low-carb':         ['low-carb'],
+  carnivore:          ['carnivore'],
+  'high-protein':     ['high-protein'],
+  'poquito-de-todo':  ['poquito-de-todo'],
 };
 
 // Format a scaled ingredient quantity for display: "200g", "1.5 cups", etc.
@@ -1507,6 +1614,26 @@ export const FuelSection=React.memo(function FuelSection({log,macros,consumed,re
     }catch(e){
       setRaNearbyError('Error finding restaurants. Check your connection.');
     }
+    setRaNearbyLoading(false);
+  }
+
+  async function handleNearMeTap(){
+    setRaStep('nearme');
+    setRaNearby([]);
+    setRaNearbyError('');
+    setRaNearbyLoading(true);
+    const coords=await getDeviceLocation();
+    if(coords){
+      try{
+        const places=await getNearbyRestaurants(coords.lat,coords.lng);
+        _raPlacesCache.set('__device__',places);
+        setRaNearby(places);
+        if(places.length===0)setRaNearbyError('No restaurants found nearby. Try searching a city instead.');
+      }catch(e){
+        // Fail silently — manual city input is still available below
+      }
+    }
+    // coords null (denied/timeout/error): loading stops, manual input visible, no error shown
     setRaNearbyLoading(false);
   }
 
@@ -2235,22 +2362,25 @@ Reply with ONLY a valid JSON object, no markdown:
               <><span style={{color:'rgba(255,255,255,0.4)'}}>CALORIES</span><span style={{color:'rgba(255,255,255,0.18)',margin:'0 5px'}}>|</span><span style={{color:_ec(_calRemPct)}}>{_calRemPct}% remaining</span>{_calDelta2!=null&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:_calDelta2>=0?'#22C55E':'var(--cm-red,#FF3B30)',marginLeft:6,letterSpacing:'0.06em'}}>{_calDelta2>=0?'+':''}{_calDelta2}% vs yest.</span>}</>,
             ];
             return(
-              <div className="header-eyebrow"
-                style={{overflow:'hidden',userSelect:'none'}}
-                onPointerDown={e=>{_fuelEyeX.current=e.clientX;_fuelEyeY.current=e.clientY;}}
-                onPointerUp={e=>{
-                  const dx=e.clientX-_fuelEyeX.current,dy=e.clientY-_fuelEyeY.current;
-                  if(Math.abs(dx)>30&&Math.abs(dx)>Math.abs(dy)*1.5)_setFuelEyePg(p=>dx<0?Math.min(1,p+1):Math.max(0,p-1));
-                }}
-              >
-                <motion.div
-                  animate={{x:_fuelEyePg===0?'0%':'-50%'}}
-                  transition={_fuelEyeRedMo?{duration:0}:{type:'spring',stiffness:500,damping:40}}
-                  style={{display:'flex',width:'200%'}}
+              <div style={{display:'flex',alignItems:'center',marginBottom:8}}>
+                <div className="header-eyebrow"
+                  style={{overflow:'hidden',userSelect:'none',flex:1,marginBottom:0}}
+                  onPointerDown={e=>{_fuelEyeX.current=e.clientX;_fuelEyeY.current=e.clientY;}}
+                  onPointerUp={e=>{
+                    const dx=e.clientX-_fuelEyeX.current,dy=e.clientY-_fuelEyeY.current;
+                    if(Math.abs(dx)>30&&Math.abs(dx)>Math.abs(dy)*1.5)_setFuelEyePg(p=>dx<0?Math.min(1,p+1):Math.max(0,p-1));
+                  }}
                 >
-                  <div style={{width:'50%'}}>{_pages[0]}</div>
-                  <div style={{width:'50%'}}>{_pages[1]}</div>
-                </motion.div>
+                  <motion.div
+                    animate={{x:_fuelEyePg===0?'0%':'-50%'}}
+                    transition={_fuelEyeRedMo?{duration:0}:{type:'spring',stiffness:500,damping:40}}
+                    style={{display:'flex',width:'200%'}}
+                  >
+                    <div style={{width:'50%'}}>{_pages[0]}</div>
+                    <div style={{width:'50%'}}>{_pages[1]}</div>
+                  </motion.div>
+                </div>
+                <FlameIcon/>
               </div>
             );
           })():(
@@ -2270,7 +2400,7 @@ Reply with ONLY a valid JSON object, no markdown:
         </div>
         {!GOCLUB_REDESIGN&&(
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"var(--red)",fontWeight:700,letterSpacing:"0.1em"}}>{macros.calories.toLocaleString()} kcal</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"var(--red)",fontWeight:500,letterSpacing:"0.1em"}}>{macros.calories.toLocaleString()} kcal</div>
           </div>
         )}
       </div>
@@ -2515,7 +2645,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)",marginBottom:20,letterSpacing:"0.08em"}}>{impactText}</div>
               )}
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                <button onClick={confirmSkip} style={{width:"100%",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:10,padding:14,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,color:"#fff",letterSpacing:"0.16em",textTransform:"uppercase",cursor:"pointer"}}>{btnLabel}</button>
+                <button onClick={confirmSkip} style={{width:"100%",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:10,padding:14,fontFamily:"'DM Mono',monospace",fontWeight:500,fontSize:10,color:"#fff",letterSpacing:"0.16em",textTransform:"uppercase",cursor:"pointer"}}>{btnLabel}</button>
                 <button onClick={()=>{setShowSkipPrompt(false);setSkipPromptTarget(null);}} style={{width:"100%",background:"transparent",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,padding:12,fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GO BACK</button>
               </div>
             </div>
@@ -2534,7 +2664,7 @@ Reply with ONLY a valid JSON object, no markdown:
             const restored=(skippedSlots||[]).filter(s=>!justSkipped.includes(s));
             if(onSkipSlots)await onSkipSlots(restored);
             setJustSkipped([]);
-          }} style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.15)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.4)",borderRadius:6,padding:"5px 12px",fontFamily:"'DM Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",flexShrink:0,marginLeft:12}}>UNDO</button>
+          }} style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.15)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.4)",borderRadius:6,padding:"5px 12px",fontFamily:"'DM Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",fontWeight:500,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",flexShrink:0,marginLeft:12}}>UNDO</button>
           <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:"rgba(var(--cm-red-rgb,255,59,48),0.2)"}}>
             <div style={{background:"var(--cm-red,#FF3B30)",height:"100%",width:`${undoProgress}%`,transition:"width 5s linear"}}/>
           </div>
@@ -3125,11 +3255,11 @@ Reply with ONLY a valid JSON object, no markdown:
                   <div style={{fontSize:12,color:T.mu,lineHeight:1.65,marginBottom:10}}>{mn.note}</div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                     <div>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:T.green,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:5}}>Calcium sources</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:T.green,fontWeight:500,letterSpacing:".1em",textTransform:"uppercase",marginBottom:5}}>Calcium sources</div>
                       {mn.calcium.map(f=><div key={f} style={{fontSize:11,color:T.mu,marginBottom:2}}>• {f}</div>)}
                     </div>
                     <div>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:T.green,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:5}}>Omega-3 sources</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:T.green,fontWeight:500,letterSpacing:".1em",textTransform:"uppercase",marginBottom:5}}>Omega-3 sources</div>
                       {mn.omega3.map(f=><div key={f} style={{fontSize:11,color:T.mu,marginBottom:2}}>• {f}</div>)}
                     </div>
                   </div>
@@ -3153,8 +3283,8 @@ Reply with ONLY a valid JSON object, no markdown:
                         <div style={{fontSize:10,color:T.mu}}>{c.count} sessions tracked</div>
                       </div>
                       <div style={{display:"flex",gap:12,textAlign:"right"}}>
-                        <div><div style={{fontFamily:"'DM Mono',monospace",fontSize:15,fontWeight:700,color:"var(--cm-red,#FF3B30)"}}>{c.avg_calories}</div><div style={{fontSize:9,color:T.mu,letterSpacing:".06em"}}>KCAL</div></div>
-                        <div><div style={{fontFamily:"'DM Mono',monospace",fontSize:15,fontWeight:700,color:T.prot}}>{c.avg_protein}g</div><div style={{fontSize:9,color:T.mu,letterSpacing:".06em"}}>PROT</div></div>
+                        <div><div style={{fontFamily:"'DM Mono',monospace",fontSize:15,fontWeight:500,color:"var(--cm-red,#FF3B30)"}}>{c.avg_calories}</div><div style={{fontSize:9,color:T.mu,letterSpacing:".06em"}}>KCAL</div></div>
+                        <div><div style={{fontFamily:"'DM Mono',monospace",fontSize:15,fontWeight:500,color:T.prot}}>{c.avg_protein}g</div><div style={{fontSize:9,color:T.mu,letterSpacing:".06em"}}>PROT</div></div>
                       </div>
                     </div>
                   ))}
@@ -3225,7 +3355,7 @@ Reply with ONLY a valid JSON object, no markdown:
                       return(
                         <button key={type} onClick={()=>{if(type==="flex")toggleFlexDay(dayModal);else setDayTypeInSchedule(dayModal,type);setDayModal(null);}}
                           style={{flex:1,padding:"14px 8px",background:isSelected?(isFlex?"rgba(245,158,11,.15)":"rgba(var(--cm-red-rgb,255,59,48),.12)"):"rgba(255,255,255,.04)",border:`1.5px solid ${isSelected?(isFlex?"rgba(245,158,11,.5)":"rgba(var(--cm-red-rgb,255,59,48),.5)"):"rgba(255,255,255,.08)"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:16,fontWeight:700,color:isSelected?(isFlex?"var(--amber)":"var(--cm-red,#FF3B30)"):"rgba(245,245,240,.25)",marginBottom:4}}>{abbr}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:16,fontWeight:500,color:isSelected?(isFlex?"var(--amber)":"var(--cm-red,#FF3B30)"):"rgba(245,245,240,.25)",marginBottom:4}}>{abbr}</div>
                           <div style={{fontSize:12,fontWeight:700,color:isSelected?(isFlex?"var(--amber)":"var(--cm-red,#FF3B30)"):"rgba(245,245,240,.5)"}}>{label}</div>
                         </button>
                       );
@@ -3601,7 +3731,7 @@ Reply with ONLY a valid JSON object, no markdown:
                   })}
                 </div>
               )}
-              <button onClick={()=>setOverageModal(null)} style={{width:"100%",padding:"14px",background:"var(--cm-red,#FF3B30)",color:"#fff",border:"none",borderRadius:12,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT</button>
+              <button onClick={()=>setOverageModal(null)} style={{width:"100%",padding:"14px",background:"var(--cm-red,#FF3B30)",color:"#fff",border:"none",borderRadius:12,fontFamily:"'DM Mono',monospace",fontWeight:500,fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT</button>
             </div>
           </div>
         )}
@@ -4168,7 +4298,7 @@ Reply with ONLY a valid JSON object, no markdown:
               {/* PICKER */}
               {raStep==='picker'&&(
                 <div>
-                  <div onClick={()=>setRaStep('nearme')} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer",position:"relative",boxShadow:"0 2px 12px rgba(0,0,0,.08)"}}>
+                  <div onClick={handleNearMeTap} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer",position:"relative",boxShadow:"0 2px 12px rgba(0,0,0,.08)"}}>
                     <div style={{width:48,height:48,borderRadius:10,background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--cm-ink)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                     </div>
@@ -4205,15 +4335,32 @@ Reply with ONLY a valid JSON object, no markdown:
                   {raNearby.length>0&&(
                     <div>
                       <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.04em",textTransform:"uppercase",marginBottom:10}}>{raNearby.length} Restaurants Nearby</div>
-                      {raNearby.slice(0,10).map((r,i)=>(
-                        <div key={i} onClick={()=>handleRaRestaurantTap(r)} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:12,padding:"14px 16px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",boxShadow:"0 2px 12px rgba(0,0,0,.08)"}}>
+                      {raNearby.slice(0,10).map((r,i)=>{
+                        const _chainDomain=_raChainDomain(r.name);
+                        return(
+                        <div key={i} onClick={()=>handleRaRestaurantTap(r)} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:12,padding:"12px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:12,cursor:"pointer",boxShadow:"0 2px 12px rgba(0,0,0,.08)"}}>
+                          {_chainDomain?(
+                            /* Known chain — white tile with brand logo (favicon API, no auth required) */
+                            <div style={{width:56,height:56,borderRadius:10,background:"#fff",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
+                              <img src={`https://www.google.com/s2/favicons?domain=${_chainDomain}&sz=128`} alt="" onError={e=>{e.currentTarget.style.display='none';}} style={{width:36,height:36,objectFit:"contain"}}/>
+                            </div>
+                          ):(
+                            /* Independent restaurant — Google Places location photo with pin fallback */
+                            <div style={{width:56,height:56,borderRadius:8,background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",position:"relative",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                              {r.photos?.[0]?.photo_reference&&(
+                                <img src={`${_RA_PROXY}/api/places?endpoint=photo&photo_reference=${r.photos[0].photo_reference}&maxwidth=160`} alt="" onError={e=>{e.currentTarget.style.display='none';}} style={{width:56,height:56,borderRadius:8,objectFit:"cover",position:"absolute",top:0,left:0}}/>
+                              )}
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--cm-ink-rgb,10,10,10),0.3)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            </div>
+                          )}
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-ink)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
                             <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:500,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.55)",marginTop:3,letterSpacing:0}}>{r.vicinity||""}{r.rating?` · ${r.rating}★`:""}</div>
                           </div>
-                          <div style={{color:"var(--cm-red,#FF3B30)",fontFamily:"'DM Mono',monospace",fontSize:12,flexShrink:0,marginLeft:12}}>→</div>
+                          <div style={{color:"var(--cm-red,#FF3B30)",fontFamily:"'DM Mono',monospace",fontSize:12,flexShrink:0}}>→</div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -4385,7 +4532,7 @@ Reply with ONLY a valid JSON object, no markdown:
                       setFuelScreen('log');
                     }
                   }}
-                  style={{flex:2,padding:"14px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:12,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,color:"#fff",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>
+                  style={{flex:2,padding:"14px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:12,fontFamily:"'DM Mono',monospace",fontWeight:500,fontSize:10,color:"#fff",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>
                   YES — LOCK IT
                 </button>
                 <button
@@ -4394,7 +4541,7 @@ Reply with ONLY a valid JSON object, no markdown:
                     if(lockGate.pendingEntry)logEntry(lockGate.pendingEntry);
                     setLockGate(null);
                   }}
-                  style={{flex:1,padding:"14px",background:"rgba(var(--cm-red-rgb,255,59,48),0.04)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)",borderRadius:12,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>
+                  style={{flex:1,padding:"14px",background:"rgba(var(--cm-red-rgb,255,59,48),0.04)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)",borderRadius:12,fontFamily:"'DM Mono',monospace",fontWeight:500,fontSize:10,color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>
                   NOT YET
                 </button>
               </div>

@@ -85,7 +85,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   hap, hapMed, hapSuccess, hapPR,
   PaperCard, Pill, MusclePills,
   InfoTip, WorkoutSkeleton, ExerciseSkeleton, CardSkeleton, EmptyState,
-  GOCLUB_REDESIGN, WhistleMark } from "./components.jsx";
+  GOCLUB_REDESIGN, WhistleMark, FlameIcon } from "./components.jsx";
 import { showToast } from "./utils/toast.js";
 import { sb, ai, streamAI } from "./client.js";
 import { track, EVENTS, trackError, setAnalyticsEnabled } from "./services/analytics.js";
@@ -2401,14 +2401,22 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
     shouldRunAnalysis(user.id).then(should=>{
       if(should)runWeeklyAnalysis(user.id,profile).catch(()=>{});
     }).catch(()=>{});
-    // Weather adjustment for run sessions — fire once
+    // Weather adjustment for run sessions — fire once.
+    // Uses BackgroundGeolocation (native CLLocationManager) so the iOS permission prompt shows
+    // "Coach Macro" instead of "localhost". Watcher is removed after the first position.
     if(wPrefs?.isHybrid||wPrefs?.isHyrox||profile?.run_race_type){
-      if(navigator?.geolocation){
-        navigator.geolocation.getCurrentPosition(pos=>{
-          getWeatherPaceAdjustment(pos.coords.latitude,pos.coords.longitude)
+      let _wxDone=false,_wxId=null;
+      BackgroundGeolocation.addWatcher(
+        { requestPermissions:true, stale:true, distanceFilter:0 },
+        (loc,err)=>{
+          if(err||!loc||_wxDone) return;
+          _wxDone=true;
+          if(_wxId!=null){ BackgroundGeolocation.removeWatcher({id:_wxId}).catch(()=>{}); }
+          getWeatherPaceAdjustment(loc.latitude,loc.longitude)
             .then(w=>setWeatherAdjustment(w)).catch(()=>{});
-        },()=>{},{timeout:4000,maximumAge:3600000});
-      }
+        }
+      ).then(id=>{ if(_wxDone) BackgroundGeolocation.removeWatcher({id}).catch(()=>{}); else _wxId=id; })
+       .catch(()=>{});
     }
   },[user?.id]);
 
@@ -4580,22 +4588,25 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                   <><span style={{color:'rgba(255,255,255,0.4)'}}>THIS WEEK</span><span style={{color:'rgba(255,255,255,0.18)',margin:'0 5px'}}>|</span><span style={{color:_ec(_wkPct)}}>{_wkPct}% complete</span></>,
                 ];
                 return(
-                  <div className="header-eyebrow"
-                    style={{overflow:'hidden',userSelect:'none'}}
-                    onPointerDown={e=>{_trainEyeX.current=e.clientX;_trainEyeY.current=e.clientY;}}
-                    onPointerUp={e=>{
-                      const dx=e.clientX-_trainEyeX.current,dy=e.clientY-_trainEyeY.current;
-                      if(Math.abs(dx)>30&&Math.abs(dx)>Math.abs(dy)*1.5)_setTrainEyePg(p=>dx<0?Math.min(1,p+1):Math.max(0,p-1));
-                    }}
-                  >
-                    <motion.div
-                      animate={{x:_trainEyePg===0?'0%':'-50%'}}
-                      transition={_trainEyeRedMo?{duration:0}:{type:'spring',stiffness:500,damping:40}}
-                      style={{display:'flex',width:'200%'}}
+                  <div style={{display:'flex',alignItems:'center',marginBottom:8}}>
+                    <div className="header-eyebrow"
+                      style={{overflow:'hidden',userSelect:'none',flex:1,marginBottom:0}}
+                      onPointerDown={e=>{_trainEyeX.current=e.clientX;_trainEyeY.current=e.clientY;}}
+                      onPointerUp={e=>{
+                        const dx=e.clientX-_trainEyeX.current,dy=e.clientY-_trainEyeY.current;
+                        if(Math.abs(dx)>30&&Math.abs(dx)>Math.abs(dy)*1.5)_setTrainEyePg(p=>dx<0?Math.min(1,p+1):Math.max(0,p-1));
+                      }}
                     >
-                      <div style={{width:'50%'}}>{_pages[0]}</div>
-                      <div style={{width:'50%'}}>{_pages[1]}</div>
-                    </motion.div>
+                      <motion.div
+                        animate={{x:_trainEyePg===0?'0%':'-50%'}}
+                        transition={_trainEyeRedMo?{duration:0}:{type:'spring',stiffness:500,damping:40}}
+                        style={{display:'flex',width:'200%'}}
+                      >
+                        <div style={{width:'50%'}}>{_pages[0]}</div>
+                        <div style={{width:'50%'}}>{_pages[1]}</div>
+                      </motion.div>
+                    </div>
+                    <FlameIcon/>
                   </div>
                 );
               })():(
