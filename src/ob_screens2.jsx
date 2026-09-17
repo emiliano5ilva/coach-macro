@@ -28,6 +28,7 @@ import { getCyclePhase } from "./utils/ait.js";
 import { getCycleNutrition, getConsistencyScore, showConsistencyScore, isCalorieFreeMode } from "./utils/female.js";
 import { getDayType, getDayTypeNutrition, getWeekNutrition, getDailyWaterTarget } from "./utils/dayTypeNutrition.js";
 import { getWaterLogs, addWaterLog, deleteWaterLog, getWaterHistory } from "./services/foodDatabase.js";
+import { computeStreak, saveStreakData, loadFoodLogDates } from "./services/streakService.js";
 import { displayDistance, distanceLabel } from "./utils/units.js";
 import { minSecToInterval, PLAN_TO_RACE_TYPE } from "./utils/runPlanUtils.js";
 import { resolveProgram, inferEntryFromFields } from "./utils/programResolver.js";
@@ -7292,6 +7293,12 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [localRestSecs,setLocalRestSecs]=useState(90);
   const [history,setHistory]=useState({});
   const [workoutLogsRaw,setWorkoutLogsRaw]=useState([]);
+  // Unified streak — food OR workout on a given day counts
+  const [foodLogDates,setFoodLogDates]=useState(()=>new Set());
+  const [streakData,setStreakData]=useState({});
+  const [unifiedStreak,setUnifiedStreak]=useState(0);
+  const _streakInitRef=useRef(false);   // guard: only initialize streakData from profile once
+  const _streakSaveRef=useRef('');      // guard: skip re-saves for already-persisted state
   const [dbPRs,setDbPRs]=useState([]);
   const [deloadActive,setDeloadActive]=useState(profile?.deload_active||false);
   const [deloadStartedAt,setDeloadStartedAt]=useState(profile?.deload_started_at||null);
@@ -7772,6 +7779,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       .then(({data})=>{if(data)setDeloadWeeksHistory(data);});
     // Active plateaus
     getActivePlateaus(user.id).then(data=>{if(data)setActivePlateaus(data);}).catch(()=>{});
+    // Food log dates for streak (last 90 days; lightweight date+entries query)
+    loadFoodLogDates(user.id).then(setFoodLogDates).catch(()=>{});
     // Muscle balance
     getLatestBalance(user.id).then(b=>{if(b){setLatestBalance(b);setBalanceCorrections(getBalanceCorrections(b));}}).catch(()=>{});
     // Bodyweight logs — last 90 days
@@ -7872,6 +7881,42 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       }).catch(()=>{setAdaptationChecking(false);});
     }
   },[user]);
+
+  // ── Streak: initialize streakData from profile on first load ─────────────
+  useEffect(()=>{
+    if(_streakInitRef.current||!profile)return;
+    _streakInitRef.current=true;
+    if(profile.streak_data&&Object.keys(profile.streak_data).length>0){
+      setStreakData(profile.streak_data);
+    }
+  },[profile]);
+
+  // ── Streak: optimistic today update when food log grows ──────────────────
+  useEffect(()=>{
+    if(!user||!log?.length)return;
+    const _d=new Date();
+    const today=`${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`;
+    setFoodLogDates(prev=>{
+      if(prev.has(today))return prev;
+      const next=new Set(prev);next.add(today);return next;
+    });
+  },[log,user]);
+
+  // ── Streak: recompute + persist freeze changes whenever inputs change ─────
+  useEffect(()=>{
+    if(!user)return;
+    const workoutDates=new Set(workoutLogsRaw.map(w=>w.date));
+    const {streak,streakData:newData,changed}=computeStreak(workoutDates,foodLogDates,streakData);
+    setUnifiedStreak(streak);
+    if(changed){
+      const key=JSON.stringify(newData);
+      if(key!==_streakSaveRef.current){
+        _streakSaveRef.current=key;
+        setStreakData(newData);
+        saveStreakData(user.id,newData);
+      }
+    }
+  },[workoutLogsRaw,foodLogDates,streakData,user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(()=>{
     if(!user)return;
@@ -10772,13 +10817,13 @@ Rules:
                 <div style={{width:'33.333%',fontFamily:AF,fontWeight:700,fontSize:11,letterSpacing:'0.13em',textTransform:'uppercase'}}>
                   <span style={{color:'#ffffff'}}>STREAK</span>
                   <span style={{color:'rgba(255,255,255,0.35)',margin:'0 6px'}}>|</span>
-                  <span style={{color:workoutStreak>=3?"#86efac":workoutStreak>=1?"#fcd34d":"rgba(255,255,255,0.35)"}}>
-                    {workoutStreak} day{workoutStreak!==1?"s":""}
+                  <span style={{color:unifiedStreak>=3?"#86efac":unifiedStreak>=1?"#fcd34d":"rgba(255,255,255,0.35)"}}>
+                    {unifiedStreak} day{unifiedStreak!==1?"s":""}
                   </span>
                 </div>
               </motion.div>
             </div>
-            <FlameIcon count={workoutStreak}/>
+            <FlameIcon count={unifiedStreak}/>
           </div>
 
           {/* Greeting */}
@@ -11708,9 +11753,9 @@ Rules:
         {/* Plan — stays conditional (onboarding flow, must remount fresh each time) */}
         {section==="plan"&&GOCLUB_REDESIGN&&<ErrorBoundary><PlanOnboarding profile={profile} wPrefs={wPrefs} user={user} setWPrefs={setWPrefs} setSchedule={setSchedule} setSection={setSection} setPlanBuilt={setPlanBuilt} onProfileUpdate={onProfileUpdate} onProtocolRefetch={()=>{const _d=new Date().toISOString().split("T")[0];sb.from("nutrition_protocols").delete().eq("user_id",user.id).eq("protocol_date",_d).then(()=>{},()=>{});getTodayNutritionProtocol(user.id).then(p=>setTodayProtocol(p||null)).catch(()=>{});}}/></ErrorBoundary>}
         {/* Train — deferred mount (first visit), then kept alive; display:none when inactive */}
-        {trainMounted&&<div style={{display:section==="train"?"block":"none"}}><ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={handleSetTrainScreen} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} pauseWorkout={pauseWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} runDistancePrompt={runDistancePrompt} onRunDistanceChange={handleRunDistanceChange} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} workoutLogsRaw={workoutLogsRaw} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={handleStartLocalRest} onSkipLocalRest={handleSkipLocalRest} onReduceLocalRest={handleReduceLocalRest} onProfileUpdate={handleProfileUpdate}/></ErrorBoundary></div>}
+        {trainMounted&&<div style={{display:section==="train"?"block":"none"}}><ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={handleSetTrainScreen} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} pauseWorkout={pauseWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} runDistancePrompt={runDistancePrompt} onRunDistanceChange={handleRunDistanceChange} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} workoutLogsRaw={workoutLogsRaw} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={handleStartLocalRest} onSkipLocalRest={handleSkipLocalRest} onReduceLocalRest={handleReduceLocalRest} onProfileUpdate={handleProfileUpdate} streakCount={unifiedStreak}/></ErrorBoundary></div>}
         {/* Fuel — deferred mount (first visit), then kept alive; display:none when inactive */}
-        {fuelMounted&&<div style={{display:section==="fuel"?"block":"none"}}><ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={handleOpenPhotoLogger} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} lockedSlots={lockedSlots} onLockSlots={saveLockedSlots} resetSignal={fuelResetSignal} todayProtocol={todayProtocol} pendingTodaySlot={pendingTodaySlot} onClearPendingTodaySlot={handleClearPendingTodaySlot}/></ErrorBoundary></div>}
+        {fuelMounted&&<div style={{display:section==="fuel"?"block":"none"}}><ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={handleOpenPhotoLogger} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} lockedSlots={lockedSlots} onLockSlots={saveLockedSlots} resetSignal={fuelResetSignal} todayProtocol={todayProtocol} pendingTodaySlot={pendingTodaySlot} onClearPendingTodaySlot={handleClearPendingTodaySlot} streakCount={unifiedStreak}/></ErrorBoundary></div>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
         {section==="progress"&&<ErrorBoundary><ProgressSection
           coachScore={coachScore}

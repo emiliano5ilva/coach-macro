@@ -1305,7 +1305,7 @@ function RecipeBrowserScreen({user,onOpenRecipe}){
   );
 }
 
-export const FuelSection=React.memo(function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,removeLog,recs,recsLoading,fetchRecs,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,metabolicProtocol,onOpenPhotoLogger,skippedSlots,onSkipSlots,slotOverages={},onSlotOverage,lockedSlots=[],onLockSlots,resetSignal=0,todayProtocol=null}) {
+export const FuelSection=React.memo(function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,removeLog,recs,recsLoading,fetchRecs,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,metabolicProtocol,onOpenPhotoLogger,skippedSlots,onSkipSlots,slotOverages={},onSlotOverage,lockedSlots=[],onLockSlots,resetSignal=0,todayProtocol=null,streakCount=0}) {
 
   const FUEL_TABS=[{id:"home",label:"Home"},{id:"kitchen",label:"Kitchen"}];
   // Reusable Home/Kitchen toggle — TRUE stadium pill on the red canvas: fully-rounded (999)
@@ -2380,7 +2380,7 @@ Reply with ONLY a valid JSON object, no markdown:
                     <div style={{width:'50%'}}>{_pages[1]}</div>
                   </motion.div>
                 </div>
-                <FlameIcon count={0}/>
+                <FlameIcon count={streakCount}/>
               </div>
             );
           })():(
