@@ -1174,7 +1174,7 @@ export const PROGRAMS_BY_DAYS = {
           ]
         }
       },
-      "Strength Biased Hybrid": {
+      "Strength Based Hybrid": {
         description: "Built for lifters adding a running base without sacrificing strength gains. Heavy compound work comes first in the week when you're freshest. Running fills the recovery days and builds aerobic capacity without interfering with strength progression. Expect to keep hitting PRs while becoming a better runner.",
         days: ["Upper Strength", "Lower Strength", "Easy Run", "Full Body Strength", "Tempo Run"],
         alternating: false,
@@ -1480,7 +1480,7 @@ export const PROGRAMS_BY_DAYS = {
           ]
         }
       },
-      "Run Biased Hybrid": {
+      "Run Based Hybrid": {
         description: "Built for runners adding strength training. Running volume is the priority — four sessions per week including a long run. Strength work is targeted and efficient: upper body sessions that don't destroy legs, lower body work scheduled carefully so legs are recovered for hard run days. Get stronger without losing your aerobic base.",
         days: ["Upper Strength", "Easy Run", "Lower Strength", "Intervals", "Easy Run", "Long Run"],
         alternating: false,
@@ -2499,8 +2499,8 @@ export const PROGRAM_LIBRARY = [
   { id:"hyrox_8w",   name:"8-Week First Timer",           category:"Hyrox",       days:4, weeks:8,  level:"Beginner",     bestFor:"First Hyrox completion — learn every station, build your aerobic base", splitKey:null, isHyrox:true, equipment:["full"], sessionMins:60 },
   { id:"hyrox_elite",name:"16-Week Elite Prep",           category:"Hyrox",       days:6, weeks:16, level:"Advanced",     bestFor:"Sub-60 min Open or Pro category — peak Hyrox performance",              splitKey:null, isHyrox:true, equipment:["full"], sessionMins:90 },
   // HYBRID
-  { id:"strength_run",  name:"Strength-Biased Hybrid",   category:"Hybrid",      days:5, weeks:12, level:"Intermediate", bestFor:"Lifters adding a running base",               splitKey:"Strength Biased Hybrid", isHybrid:true, equipment:["full","home_bar"], sessionMins:65 },
-  { id:"upper_lower_run",name:"Run-Biased Hybrid",        category:"Hybrid",      days:6, weeks:12, level:"Advanced",     bestFor:"Runners adding strength training",             splitKey:"Run Biased Hybrid", isHybrid:true, equipment:["full","home_bar"], sessionMins:65 },
+  { id:"strength_run",  name:"Strength-Based Hybrid",   category:"Hybrid",      days:5, weeks:12, level:"Intermediate", bestFor:"Lifters adding a running base",               splitKey:"Strength Based Hybrid", isHybrid:true, equipment:["full","home_bar"], sessionMins:65 },
+  { id:"upper_lower_run",name:"Run-Based Hybrid",        category:"Hybrid",      days:6, weeks:12, level:"Advanced",     bestFor:"Runners adding strength training",             splitKey:"Run Based Hybrid", isHybrid:true, equipment:["full","home_bar"], sessionMins:65 },
   { id:"balanced_hybrid",name:"Balanced Hybrid",          category:"Hybrid",      days:5, weeks:12, level:"Intermediate", bestFor:"Equal strength and endurance development",     splitKey:"Balanced Hybrid", isHybrid:true, equipment:["full","home_bar"], sessionMins:65 },
   { id:"ppl_hyrox",     name:"Hyrox Hybrid",             category:"Hybrid",      days:5, weeks:12, level:"Advanced",     bestFor:"Strength athletes preparing for Hyrox",       splitKey:"Hyrox Hybrid", isHybrid:true, isHyrox:true, equipment:["full"], sessionMins:75 },
   { id:"hybrid_foundation",name:"Hybrid Foundation",      category:"Hybrid",      days:4, weeks:8,  level:"Beginner",     bestFor:"Build strength and cardio simultaneously — the base every hybrid athlete needs",        splitKey:"Hybrid Foundation",  isHybrid:true, equipment:["full","home_bar"],              sessionMins:60 },

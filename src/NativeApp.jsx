@@ -88,7 +88,7 @@ function AuthScreen({onAuth, startView="welcome", initialError=""}) {
     try{
       if(view==="signup"){
         if(!sb){setLoading(false);return;}
-        const{data,error:e}=await sb.auth.signUp({email,password});
+        const{data,error:e}=await sb.auth.signUp({email,password,options:{data:{full_name:name}}});
         if(e)throw e;
         if(!data?.user?.id)throw new Error("Sign up succeeded but no account was returned. Please try signing in.");
         track(EVENTS.USER_SIGNUP,{method:"email"},data.user.id);
@@ -591,7 +591,10 @@ export default function NativeApp() {
     if(authedUserIdRef.current===authUser.id)return;
     authedUserIdRef.current=authUser.id;
     setPhase("loading");setUser(authUser);
-    if(name)setSignupName(name);
+    // Recover signup name from auth user metadata (written at signUp) so email-verify
+    // → sign-in flows don't lose the name the user entered on the signup form.
+    const effectiveName=name||authUser?.user_metadata?.full_name||"";
+    if(effectiveName)setSignupName(effectiveName);
     if (Capacitor.isNativePlatform()) {
       try {
         if (import.meta.env.MODE !== "production") await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });

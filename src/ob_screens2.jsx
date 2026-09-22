@@ -4933,8 +4933,8 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,setSection,se
           <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>What's your<br/>base?</div>
           <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>Sets the balance between lifting and cardio sessions.</div>
           {[
-            {v:"Strength-Biased Hybrid",l:"Lifter adding cardio",  d:"Strength-first — run sessions build your engine"},
-            {v:"Run-Biased Hybrid",     l:"Runner adding lifting", d:"Running-first — lifting builds strength for your runs"},
+            {v:"Strength-Based Hybrid",l:"Lifter adding cardio",  d:"Strength-first — run sessions build your engine"},
+            {v:"Run-Based Hybrid",     l:"Runner adding lifting", d:"Running-first — lifting builds strength for your runs"},
             {v:"Balanced Hybrid",       l:"Equal mix",              d:"Even split of lifting and endurance sessions"},
             {v:"Tactical Hybrid",       l:"Tactical / Military",   d:"Loaded carries, running, and heavy lifting combined"},
           ].map(o=>optPill(hybridTemplate===o.v,()=>{setHybridTemplate(o.v);setP2Touched(true);},o.l,o.d))}

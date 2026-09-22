@@ -1061,7 +1061,7 @@ export const HYROX_PROGRAM = {
 
 // ── HYBRID ─────────────────────────────────────────────────────────────────────
 export const HYBRID_PROGRAMS = {
-  "Strength-Biased Hybrid": {
+  "Strength-Based Hybrid": {
     goal: "Maintain serious strength while building real running fitness",
     weeks: 12,
     daysPerWeek: 6,
@@ -1092,14 +1092,14 @@ export const HYBRID_PROGRAMS = {
       },
       { day:"Thu", type:"Tempo Run", distance:8, duration:50, zone:"Zone 3-4", description:"1km warm up easy. 6km at comfortably hard pace (7/10 effort). 1km cool down. Sustained threshold work.",
         skill_variants:{
-          novice:{ description:"Rest day — novice Strength-Biased Hybrid runs 4 days/week. Take this as recovery.", duration:0, distance:0, zone:"Rest", notes:"4 days is enough to build both qualities without overreaching." },
+          novice:{ description:"Rest day — novice Strength-Based Hybrid runs 4 days/week. Take this as recovery.", duration:0, distance:0, zone:"Rest", notes:"4 days is enough to build both qualities without overreaching." },
           intermediate:{ description:"1km warm up easy. 6km at comfortably hard pace (7/10 effort). 1km cool down. Sustained threshold work.", duration:50, distance:8, zone:"Zone 3-4", notes:"7/10 effort — you can speak 3-4 words but not a full sentence." },
-          advanced:{ description:"1km warm up. 8km at 7.5/10 effort. 1km cool down. Add 4×20 sec strides before cool down.", duration:60, distance:10, zone:"Zone 3-4 with strides", notes:"Extended tempo with strides builds the top-end speed strength-biased runners often lack." }
+          advanced:{ description:"1km warm up. 8km at 7.5/10 effort. 1km cool down. Add 4×20 sec strides before cool down.", duration:60, distance:10, zone:"Zone 3-4 with strides", notes:"Extended tempo with strides builds the top-end speed strength-based runners often lack." }
         }
       },
       { day:"Fri", type:"Lift", focus:"Legs", duration:60, description:"Squat 4×4-6, Romanian Deadlift 3×6-8, Leg Press 3×10-12, Leg Curl 3×12-15, Calf Raise 4×15. Squat is king.",
         skill_variants:{
-          novice:{ description:"Rest day — novice Strength-Biased Hybrid runs 4 days/week. Take this as recovery.", duration:0, distance:0, zone:"Rest", notes:"Two lift days is enough while your body adapts. Legs get hit by Mon and Wed." },
+          novice:{ description:"Rest day — novice Strength-Based Hybrid runs 4 days/week. Take this as recovery.", duration:0, distance:0, zone:"Rest", notes:"Two lift days is enough while your body adapts. Legs get hit by Mon and Wed." },
           intermediate:{ description:"Squat 4×4-6, Romanian Deadlift 3×6-8, Leg Press 3×10-12, Leg Curl 3×12-15, Calf Raise 4×15. Squat is king.", duration:60, distance:0, zone:"Strength", notes:"Squat is the most important movement in the program — add weight every session." },
           advanced:{ description:"Squat 5×4-6, Romanian Deadlift 4×6-8, Leg Press 4×10-12, Leg Curl 4×12-15, Calf Raise 5×15. +20% volume.", duration:75, distance:0, zone:"Strength", notes:"Heavy legs with Saturday long run teaches your body to run on fatigued legs — race specificity." }
         }
@@ -1108,7 +1108,7 @@ export const HYBRID_PROGRAMS = {
         skill_variants:{
           novice:{ description:"4km easy run. No walk breaks — continuous at very easy pace.", duration:28, distance:4, zone:"Zone 1-2", notes:"Long run starts at 4km for novices and builds slowly. Don't rush to 12km." },
           intermediate:{ description:"Start at 12km. Add 1km per week up to 20km. Conversational pace the ENTIRE run. This is not a race. Fueling practice.", duration:90, distance:14, zone:"Zone 2", notes:"Fuel practice — take water or a gel if over 60 min." },
-          advanced:{ description:"Start at 18km. Build to 25km+. Conversational pace with last 3km at marathon pace.", duration:130, distance:20, zone:"Zone 2 with marathon pace finish", notes:"25km+ long runs make the strength-biased hybrid genuinely complete as an athlete." }
+          advanced:{ description:"Start at 18km. Build to 25km+. Conversational pace with last 3km at marathon pace.", duration:130, distance:20, zone:"Zone 2 with marathon pace finish", notes:"25km+ long runs make the strength-based hybrid genuinely complete as an athlete." }
         }
       },
       { day:"Sun", type:"Rest", description:"Complete rest. This is where adaptation happens. Don't skip it.",
@@ -1123,7 +1123,7 @@ export const HYBRID_PROGRAMS = {
     nutrition_bridge: "Lift days: carbs up for performance and recovery. Long run day: carb load the night before, take carbs during if over 90 min. Easy run days: standard macros. This is exactly what your Coach Macro budget adjusts for automatically."
   },
 
-  "Run-Biased Hybrid": {
+  "Run-Based Hybrid": {
     goal: "Serious runner who wants functional strength without compromising running",
     weeks: 16,
     daysPerWeek: 6,
@@ -1161,7 +1161,7 @@ export const HYBRID_PROGRAMS = {
       },
       { day:"Fri", type:"Tempo Run", distance:8, duration:55, zone:"Zone 3-4", description:"2km warm up. 5km at half marathon pace. 1km cool down. Sustained effort.",
         skill_variants:{
-          novice:{ description:"Rest day — novice Run-Biased Hybrid runs 4 active days/week. Take this as recovery.", duration:0, distance:0, zone:"Rest", notes:"4 active days is enough to build running fitness while adapting to lifting." },
+          novice:{ description:"Rest day — novice Run-Based Hybrid runs 4 active days/week. Take this as recovery.", duration:0, distance:0, zone:"Rest", notes:"4 active days is enough to build running fitness while adapting to lifting." },
           intermediate:{ description:"2km warm up. 5km at half marathon pace. 1km cool down. Sustained effort.", duration:55, distance:8, zone:"Zone 3-4", notes:"Half marathon pace — controlled, sustainable, 7/10 effort." },
           advanced:{ description:"2km warm up. 6km at half marathon pace. 4×20 sec strides. 1km cool down.", duration:65, distance:10, zone:"Zone 3-4 with strides", notes:"Longer tempo with strides adds a speed element to threshold work." }
         }
@@ -1170,12 +1170,12 @@ export const HYBRID_PROGRAMS = {
         skill_variants:{
           novice:{ description:"10km easy. Walk 90 sec every 12 min if needed. Practice taking water on the run.", duration:72, distance:10, zone:"Zone 1-2", notes:"10km long run builds the base before tackling 18-26km distances." },
           intermediate:{ description:"Long run. Start at 18km. Builds to 26km. Conversational pace. Practice fueling — gel every 45 min.", duration:145, distance:22, zone:"Zone 2", notes:"Fueling practice — your gut needs training just like your legs." },
-          advanced:{ description:"Long run. Start at 22km. Build to 30km+. Last 5km at marathon pace.", duration:175, distance:26, zone:"Zone 2 with marathon pace finish", notes:"30km long runs make the run-biased hybrid capable of serious race performance." }
+          advanced:{ description:"Long run. Start at 22km. Build to 30km+. Last 5km at marathon pace.", duration:175, distance:26, zone:"Zone 2 with marathon pace finish", notes:"30km long runs make the run-based hybrid capable of serious race performance." }
         }
       },
       { day:"Sun", type:"Lift", focus:"Full Body Heavy", duration:45, description:"Same as Tuesday. Squat 3×5, Deadlift 2×5, Bench 3×5, Row 3×5. Quick, heavy, done.",
         skill_variants:{
-          novice:{ description:"Rest day — novice Run-Biased Hybrid runs 4 active days/week. Take this as full rest.", duration:0, distance:0, zone:"Rest", notes:"After Saturday's long run, Sunday must be rest for novices." },
+          novice:{ description:"Rest day — novice Run-Based Hybrid runs 4 active days/week. Take this as full rest.", duration:0, distance:0, zone:"Rest", notes:"After Saturday's long run, Sunday must be rest for novices." },
           intermediate:{ description:"Same as Tuesday. Squat 3×5, Deadlift 2×5, Bench 3×5, Row 3×5. Quick, heavy, done.", duration:45, distance:0, zone:"Strength", notes:"45 minutes. Same weights or heavier than Tuesday. In and out." },
           advanced:{ description:"Squat 4×5, Deadlift 3×5, Bench 4×5, Row 4×5. 50 min max.", duration:50, distance:0, zone:"Strength", notes:"Sunday lifting after Saturday long run is a deliberate training stress — it builds race-specific fatigue resistance." }
         }
@@ -1357,15 +1357,15 @@ export const HEAVY_LOWER_CYCLES = {
 const HEAVY_LOWER_LABELS = new Set(["Legs","Lower"]);
 
 // Hybrid-template DISPLAY NAME → an existing HEAVY_LOWER_CYCLES key. A hybrid created via
-// program-switch carries splitType = the template name (e.g. "Strength-Biased Hybrid"), NOT a lift
+// program-switch carries splitType = the template name (e.g. "Strength-Based Hybrid"), NOT a lift
 // split — so without this map buildHybridDayPlan would fall to the generic "upper"-only branch. Each
 // value MUST be a real HEAVY_LOWER_CYCLES key so the rotation covers groups with no duplicate focus
 // across the lift days. Bias is expressed via cycle LENGTH (the heuristic caps lifts at min(len, n-2)):
 // 3-cycle (PPL) → ~3 lift days @5d (strength-leaning); 2-cycle (U/L) → 2 lift days (run-leaning).
 // "Hyrox Hybrid" is intentionally absent — hyrox days aren't run/lift; the switch wiring gates on !isHyrox.
 export const HYBRID_TEMPLATE_CYCLES = {
-  "Strength-Biased Hybrid": "Push/Pull/Legs",   // lifter base → 3 lift days (P/P/L), strength-leaning
-  "Run-Biased Hybrid":      "Upper/Lower",      // runner base → 2 lift days (U/L), more runs
+  "Strength-Based Hybrid": "Push/Pull/Legs",   // lifter base → 3 lift days (P/P/L), strength-leaning
+  "Run-Based Hybrid":      "Upper/Lower",      // runner base → 2 lift days (U/L), more runs
   "Balanced Hybrid":        "Upper/Lower",      // 2 lift / 3 run @5d (heuristic floors at 2 runs; strength owns 3/2)
   "Hybrid Foundation":      "Upper/Lower",      // beginner base → 2 lift / 2 run @4d, even
   "Tactical Hybrid":        "Push/Pull/Legs",   // operator → 3 lift days, full-body strength + running
