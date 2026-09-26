@@ -54,8 +54,8 @@ export default withLogging(async function handler(req, res) {
 
   const token = await getAccessToken();
 
-  const url = new URL('https://platform.fatsecret.com/rest/server.api');
-  url.searchParams.set('method', 'foods.search');
+  // REST v1 endpoint accepts OAuth2 Bearer tokens; the legacy rest/server.api endpoint requires OAuth1 signatures
+  const url = new URL('https://platform.fatsecret.com/rest/foods/search/v1');
   url.searchParams.set('search_expression', query.trim());
   url.searchParams.set('page_number', String(Number(page_number)));
   url.searchParams.set('max_results', String(Math.min(Number(max_results), 50)));
@@ -68,11 +68,17 @@ export default withLogging(async function handler(req, res) {
 
   if (!response.ok) {
     const body = await response.text().catch(() => '');
-    console.error('[fatsecret] search failed:', response.status, body.slice(0, 200));
+    console.error('[fatsecret] search failed HTTP:', response.status, body.slice(0, 200));
     return res.status(200).json({ foods: [], total_results: 0 });
   }
 
   const data = await response.json();
+
+  // FatSecret embeds API errors inside a 200 response — log and degrade gracefully
+  if (data?.error) {
+    console.error('[fatsecret] API error:', JSON.stringify(data.error));
+    return res.status(200).json({ foods: [], total_results: 0 });
+  }
 
   // FatSecret returns food as an array (>=2 results) or a single object (exactly 1 result)
   const raw = data?.foods?.food;
