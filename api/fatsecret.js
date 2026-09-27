@@ -20,7 +20,8 @@ async function getAccessToken() {
       Authorization: `Basic ${credentials}`,
       'Content-Type': 'application/x-www-form-urlencoded',
     },
-    body: 'grant_type=client_credentials&scope=basic',
+    // basic premier scope required for foods.autocomplete.v2
+    body: 'grant_type=client_credentials&scope=basic%20premier',
     signal: AbortSignal.timeout(8000),
   });
 
@@ -47,14 +48,43 @@ export default withLogging(async function handler(req, res) {
     return res.status(200).json({ foods: [], total_results: 0 });
   }
 
-  const { query, page_number = 0, max_results = 20 } = req.query;
+  const { endpoint, query, expression, page_number = 0, max_results = 20 } = req.query;
+  const token = await getAccessToken();
+
+  // ── Autocomplete endpoint ─────────────────────────────────────────────────────
+  if (endpoint === 'autocomplete') {
+    if (!expression || expression.trim().length < 1) {
+      return res.status(400).json({ error: 'expression required' });
+    }
+    const acUrl = new URL('https://platform.fatsecret.com/rest/food/autocomplete/v2');
+    acUrl.searchParams.set('expression', expression.trim());
+    acUrl.searchParams.set('max_results', '8');
+    acUrl.searchParams.set('format', 'json');
+    const acRes = await fetch(acUrl.toString(), {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!acRes.ok) {
+      console.error('[fatsecret] autocomplete HTTP:', acRes.status);
+      return res.status(200).json({ suggestions: [] });
+    }
+    const acData = await acRes.json();
+    if (acData?.error) {
+      console.error('[fatsecret] autocomplete API error:', JSON.stringify(acData.error));
+      return res.status(200).json({ suggestions: [] });
+    }
+    // FatSecret returns { suggestions: { suggestion: [...] | "single string" } }
+    const rawSug = acData?.suggestions?.suggestion;
+    const suggestions = Array.isArray(rawSug) ? rawSug : rawSug ? [rawSug] : [];
+    return res.status(200).json({ suggestions });
+  }
+
+  // ── Food search ───────────────────────────────────────────────────────────────
   if (!query || query.trim().length < 2) {
     return res.status(400).json({ error: 'Query too short' });
   }
 
-  const token = await getAccessToken();
-
-  // REST v1 endpoint accepts OAuth2 Bearer tokens; the legacy rest/server.api endpoint requires OAuth1 signatures
+  // REST v1 endpoint accepts OAuth2 Bearer tokens; the legacy rest/server.api requires OAuth1 signatures
   const url = new URL('https://platform.fatsecret.com/rest/foods/search/v1');
   url.searchParams.set('search_expression', query.trim());
   url.searchParams.set('page_number', String(Number(page_number)));

@@ -34,7 +34,7 @@ import { track, EVENTS } from "./services/analytics.js";
 import { getCyclePhase } from "./utils/ait.js";
 import { getCycleNutrition, PCOS_NOTE, PCOS_FOODS, PERI_NUTRITION, MENO_NUTRITION, isCalorieFreeMode } from "./utils/female.js";
 import {
-  searchFoods, searchByBarcode,
+  searchFoods, searchByBarcode, autocompleteFatSecret,
   getFrequentFoods, getRecentFoods,
   getSmartServings, getUsdaFoodDetail,
   updateUsualPortion, getMealTemplates, saveMealTemplate, deleteMealTemplate, incrementTemplateUse,
@@ -570,6 +570,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
   const [recentFoods,setRecentFoods]=useState([]);
   const [showBarcodeInSearch,setShowBarcodeInSearch]=useState(false);
   const [_dbgText,_setDbgText]=useState("");
+  const [suggestions,setSuggestions]=useState([]);
   const selectedFoodRef=useRef(null);   // guards the async household-measure fetch against tap races
   useEffect(()=>{
     if(!user)return;
@@ -579,10 +580,10 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
 
   useEffect(()=>{
     const q=query.trim();
-    if(!q){setResults([]);return;}
+    if(!q){setResults([]);setSuggestions([]);return;}
     let cancelled=false;
     // Instant layer: prefix-match food_history — surfaces previously logged foods immediately,
-    // before the USDA/OFF network round-trip completes.
+    // before any network round-trip completes.
     if(user&&!/^\d{8,14}$/.test(q)){
       sb.from("food_history")
         .select("food_name,food_data,use_count")
@@ -596,9 +597,20 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
           setResults(prev=>{const api=prev.filter(f=>!f._hist);return[...hist,...api];});
         });
     }
-    // Debounced layer: USDA + Open Food Facts.
+    // Short queries (1-2 chars): FatSecret autocomplete suggestions — instant prefix hints
+    // while the user is still typing. USDA structurally returns nothing useful at this length.
+    if(q.length<=2&&!/^\d{8,14}$/.test(q)){
+      setSuggestions([]);
+      const t=setTimeout(async()=>{
+        const s=await autocompleteFatSecret(q);
+        if(!cancelled)setSuggestions(s);
+      },150);
+      return()=>{cancelled=true;clearTimeout(t);};
+    }
+    // Longer queries: clear suggestions, run full 3-source search (FatSecret + USDA + OFF).
     // cancelled is checked after every await so a superseded keystroke's results
     // never overwrite the current query's results or diagnostic pill.
+    setSuggestions([]);
     const t=setTimeout(async()=>{
       setSearching(true);
       try{
@@ -610,7 +622,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
           if(!cancelled){
             if(import.meta.env.MODE!=="production"){
               const d=r._diag;
-              if(d)_setDbgText(`USDA:${d.usda||"?"} | OFF:${d.off||"?"} | comb:${d.combined} | rank:${d.ranked}`);
+              if(d)_setDbgText(`FS:${d.fs||"?"} | USDA:${d.usda||"?"} | OFF:${d.off||"?"} | comb:${d.combined} | rank:${d.ranked}`);
             }
             setResults(prev=>{
               const hist=prev.filter(f=>f._hist);
@@ -772,6 +784,13 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
           </svg>
         </button>
       </div>
+      {suggestions.length>0&&query.trim().length<=2&&(
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
+          {suggestions.map((s,i)=>(
+            <button key={i} onClick={()=>{setSuggestions([]);setQuery(s);}} style={{padding:"7px 14px",borderRadius:999,border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",background:"rgba(var(--cm-red-rgb,255,59,48),0.06)",color:"var(--cm-red,#FF3B30)",fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>{s}</button>
+          ))}
+        </div>
+      )}
       {searching&&<div style={{marginBottom:16}}><FoodSearchSkeleton/></div>}
       {import.meta.env.MODE!=="production"&&_dbgText&&<div style={{fontSize:11,color:"#fff",padding:"6px 12px",background:"rgba(0,0,0,0.85)",borderRadius:8,marginBottom:8,fontFamily:"monospace",whiteSpace:"pre-wrap",wordBreak:"break-all",lineHeight:1.5}}>🔍 {_dbgText}</div>}
       {!searching&&results.length>0&&(
@@ -1001,8 +1020,11 @@ function toShoppingQty(name, qty, unit, metric){
 }
 
 // Load eligible recipe pool from Supabase (pre-filtered; fitter re-checks allergens).
-async function loadMealPool(diet, allergenTags) {
-  const COLS = 'id,name,meal_slot,diet_tags,allergen_tags,primary_diet,calories_per_serving,protein_per_serving,carbs_per_serving,fat_per_serving,servings_count,ingredients,instructions,recipe_kind,use_count,last_used';
+// budgetTier: 'budget' | 'moderate' | 'pricier' (null/undefined = no filter)
+// Null-safe: recipes without a cost_tier set are always included (ensures pool depth
+// before the classification pass is applied server-side).
+async function loadMealPool(diet, allergenTags, budgetTier) {
+  const COLS = 'id,name,meal_slot,diet_tags,allergen_tags,primary_diet,calories_per_serving,protein_per_serving,carbs_per_serving,fat_per_serving,servings_count,ingredients,instructions,recipe_kind,use_count,last_used,cost_tier';
   const allergenGate = (q) => allergenTags.length > 0 ? q.not('allergen_tags', 'ov', `{${allergenTags.join(',')}}`) : q;
   let q = sb.from('recipes').select(COLS).is('user_id', null);
   if (diet && diet !== 'balanced') {
@@ -1010,6 +1032,13 @@ async function loadMealPool(diet, allergenTags) {
     q = q.overlaps('diet_tags', allowed);
   }
   q = allergenGate(q);
+  // Budget tier filter — include nulls as fallback so unclassified recipes never cause pool starvation
+  if (budgetTier === 'budget') {
+    q = q.or('cost_tier.eq.budget,cost_tier.is.null');
+  } else if (budgetTier === 'moderate') {
+    q = q.or('cost_tier.in.(budget,moderate),cost_tier.is.null');
+  }
+  // 'pricier': no filter — all tiers allowed
   const { data, error } = await q;
   if (error) throw new Error(`Recipe pool load failed: ${error.message}`);
   let pool = data || [];
@@ -1026,7 +1055,10 @@ async function loadMealPool(diet, allergenTags) {
 }
 
 // Convert a single fitDay result + metadata → the shape one plan day expects.
-function fitterDayToShape(fDay, dayName, sessionType) {
+// servingsCount: "cooking for N people" multiplier applied to ingredient quantities only
+// (macros are personal targets and do NOT scale with servingsCount).
+function fitterDayToShape(fDay, dayName, sessionType, servingsCount = 1) {
+  const sc = Math.max(1, servingsCount || 1);
   const meals = fDay.meals.map(slot => {
     if (slot.unfillable) {
       return { name:null, unfillable:true, reason:slot.reason, slot:slot.slot,
@@ -1041,8 +1073,8 @@ function fitterDayToShape(fDay, dayName, sessionType) {
       fat:     Math.round(scaledMacros.fat  * 10) / 10,
       ingredients: (recipe.ingredients || []).map(ing => ({
         item:   ing.item,
-        amount: fmtIngAmt((ing.qty || 0) * servings, ing.unit),
-        qty:    Math.round((ing.qty || 0) * servings * 10) / 10, // numeric scaled qty for grocery merging
+        amount: fmtIngAmt((ing.qty || 0) * servings * sc, ing.unit),
+        qty:    Math.round((ing.qty || 0) * servings * sc * 10) / 10, // numeric scaled qty for grocery merging
         unit:   ing.unit || null,
       })),
       instructions: recipe.instructions || null,   // authored cooking guide (jsonb) or null
@@ -2000,7 +2032,7 @@ Reply with ONLY a valid JSON object, no markdown:
     const profileDietPreset=stored.reduce((a,v)=>a||(DIET_MAP[v]||null),null);
     const dietPreset=wPrefs?.mealPrepDiet||(profileDietPreset||'balanced');
     const dietaryPrefs=stored.filter(v=>!DIET_MAP[v]).map(v=>CHIP_MAP[v]).filter(Boolean);
-    return{mealsPerDay:freq,prepTime:'1hr',dietaryPrefs,dietPreset,selectedDays:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']};
+    return{mealsPerDay:freq,prepTime:'1hr',dietaryPrefs,dietPreset,selectedDays:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],servingsCount:1,meatlessMeals:0,budgetTier:'moderate'};
   });
   const [mealPrepWarning,setMealPrepWarning]=useState(null);
   const [dietExpanded,setDietExpanded]=useState(false); // setup: show all 10 diet styles vs the 2 popular
@@ -2031,6 +2063,11 @@ Reply with ONLY a valid JSON object, no markdown:
   useEffect(()=>{try{if(mealPrepPlan)localStorage.setItem('cm_mp_plan_v2',JSON.stringify(mealPrepPlan));else localStorage.removeItem('cm_mp_plan_v2');}catch{}},[mealPrepPlan]);
   useEffect(()=>{if(fuelScreen!=='mealprep'){setMealPrepScreen('setup');setShowGroceryList(false);setMpSaveConfirm(false);setMealPrepError(null);setMealPrepWarning(null);}},[fuelScreen]);
   useEffect(()=>{if(mealPrepScreen!=='generating')return;setMpStatusIdx(0);const id=setInterval(()=>setMpStatusIdx(i=>(i+1)%MP_STATUSES.length),2000);return()=>clearInterval(id);},[mealPrepScreen]);
+  // Clamp meatlessMeals so it never exceeds the current total week-meal count
+  useEffect(()=>{
+    const total=(mealPrepPrefs.selectedDays||[]).length*(mealPrepPrefs.mealsPerDay||3);
+    if((mealPrepPrefs.meatlessMeals||0)>total) setMealPrepPrefs(p=>({...p,meatlessMeals:total}));
+  },[mealPrepPrefs.selectedDays,mealPrepPrefs.mealsPerDay]); // eslint-disable-line react-hooks/exhaustive-deps
   const [showRegenerateBanner,setShowRegenerateBanner]=useState(()=>localStorage.getItem('__mp_regen_needed')==='1');
   useEffect(()=>{if(mealPrepPlan?.days?.length>0){localStorage.setItem('__mp_exists','1');}else{localStorage.removeItem('__mp_exists');}},[mealPrepPlan]);
   useEffect(()=>{function onClear(){setMealPrepPlan(null);setShowRegenerateBanner(true);localStorage.setItem('__mp_regen_needed','1');localStorage.removeItem('__mp_exists');}window.addEventListener('cm_clear_meal_prep',onClear);return()=>window.removeEventListener('cm_clear_meal_prep',onClear);},[]);
@@ -2100,13 +2137,14 @@ Reply with ONLY a valid JSON object, no markdown:
       });
 
       // Load pool (DB-level pre-filter; fitter re-checks allergen gate internally)
-      const pool=await loadMealPool(diet,allergenTags);
+      const pool=await loadMealPool(diet,allergenTags,mealPrepPrefs.budgetTier||'moderate');
 
       // Run fitter — synchronous, deterministic, allergen-safe
-      const weekResult=fitWeek({dayTargets,mealCount:nMeals,diet,allergens:allergenTags,pool,seed:Date.now()%100000});
+      const weekResult=fitWeek({dayTargets,mealCount:nMeals,diet,allergens:allergenTags,pool,seed:Date.now()%100000,meatlessCount:mealPrepPrefs.meatlessMeals||0});
 
-      // Convert to plan shape the renderer expects
-      const days=sel.map((dayName,i)=>fitterDayToShape(weekResult[i],dayName,schedule?.[dayName]||'rest'));
+      // Convert to plan shape the renderer expects (servingsCount scales ingredient quantities)
+      const sc=mealPrepPrefs.servingsCount||1;
+      const days=sel.map((dayName,i)=>fitterDayToShape(weekResult[i],dayName,schedule?.[dayName]||'rest',sc));
       // P0/P1 — stamp the training signature (staleness) + generatedAt (freshness).
       const plan={days,groceryList:null,trainingSig:_trainingSig(),generatedAt:new Date().toISOString()};
 
@@ -2138,18 +2176,19 @@ Reply with ONLY a valid JSON object, no markdown:
       const dayTarget=_swapEntry?{cal:_swapEntry.calories,pro:_swapEntry.protein,carb:_swapEntry.carbs,fat:_swapEntry.fat}:{cal:macros?.calories||2000,pro:macros?.protein||150,carb:macros?.carbs||200,fat:macros?.fat||70};
       const currentSlot=mealPrepPlan.days[dayIndex].meals[mealIndex]?.slot||'lunch';
       const currentId=mealPrepPlan.days[dayIndex].meals[mealIndex]?._recipeId;
-      const pool=await loadMealPool(diet,allergenTags);
+      const pool=await loadMealPool(diet,allergenTags,mealPrepPrefs.budgetTier||'moderate');
       // Exclude the current recipe so the swap is always a different dish
       const swapPool=currentId?pool.filter(r=>r.id!==currentId):pool;
       const result=fitDay({dayTarget,mealCount:mealPrepPrefs.mealsPerDay||3,diet,allergens:allergenTags,pool:swapPool,seed:Date.now()%100000});
       const replacement=result.meals.find(m=>m.slot===currentSlot&&!m.unfillable);
       if(replacement){
         const{recipe,servings,scaledMacros}=replacement;
+        const sc=mealPrepPrefs.servingsCount||1;
         const newMeal={
           name:recipe.name,
           calories:Math.round(scaledMacros.cal),protein:Math.round(scaledMacros.pro*10)/10,
           carbs:Math.round(scaledMacros.carb*10)/10,fat:Math.round(scaledMacros.fat*10)/10,
-          ingredients:(recipe.ingredients||[]).map(ing=>({item:ing.item,amount:fmtIngAmt((ing.qty||0)*servings,ing.unit)})),
+          ingredients:(recipe.ingredients||[]).map(ing=>({item:ing.item,amount:fmtIngAmt((ing.qty||0)*servings*sc,ing.unit),qty:Math.round((ing.qty||0)*servings*sc*10)/10,unit:ing.unit||null})),
           instructions:recipe.instructions||null,slot:currentSlot,servings,_recipeId:recipe.id,unfillable:false,
         };
         setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex].meals[mealIndex]=newMeal;return u;});
@@ -2166,9 +2205,9 @@ Reply with ONLY a valid JSON object, no markdown:
       const dayName=mealPrepPlan.days[dayIndex].day;
       const _rdEntry=weekMacros?.find(d=>d.day===dayName);
       const dayTarget=_rdEntry?{cal:_rdEntry.calories,pro:_rdEntry.protein,carb:_rdEntry.carbs,fat:_rdEntry.fat}:{cal:macros?.calories||2000,pro:macros?.protein||150,carb:macros?.carbs||200,fat:macros?.fat||70};
-      const pool=await loadMealPool(diet,allergenTags);
+      const pool=await loadMealPool(diet,allergenTags,mealPrepPrefs.budgetTier||'moderate');
       const result=fitDay({dayTarget,mealCount:mealPrepPrefs.mealsPerDay||3,diet,allergens:allergenTags,pool,seed:Date.now()%100000});
-      const updated=fitterDayToShape(result,dayName,schedule?.[dayName]||'rest');
+      const updated=fitterDayToShape(result,dayName,schedule?.[dayName]||'rest',mealPrepPrefs.servingsCount||1);
       setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex]=updated;return u;});
     }catch(e){console.error('[regenerateDay (fitter)]',e);}
     setRegeneratingDay(null);
@@ -2233,7 +2272,7 @@ Reply with ONLY a valid JSON object, no markdown:
       const dayTarget=dayEntry
         ?{cal:dayEntry.calories,pro:dayEntry.protein,carb:dayEntry.carbs,fat:dayEntry.fat}
         :{cal:macros?.calories||2000,pro:macros?.protein||150,carb:macros?.carbs||200,fat:macros?.fat||70};
-      const pool=await loadMealPool(diet,allergenTags);
+      const pool=await loadMealPool(diet,allergenTags,mealPrepPrefs.budgetTier||'moderate');
       const swapPool=currentRecipeId?pool.filter(r=>r.id!==currentRecipeId):pool;
       const mealCount=mealPrepPlan.days[dayIdx].meals.length;
       const result=fitDay({dayTarget,mealCount,diet,allergens:allergenTags,pool:swapPool,seed:Date.now()%100000});
@@ -2241,11 +2280,12 @@ Reply with ONLY a valid JSON object, no markdown:
       const replacement=orderPlanMeals(result.meals)[slot-1];
       if(replacement&&!replacement.unfillable){
         const{recipe,servings,scaledMacros}=replacement;
+        const sc=mealPrepPrefs.servingsCount||1;
         const newMeal={
           name:recipe.name,
           calories:Math.round(scaledMacros.cal),protein:Math.round(scaledMacros.pro*10)/10,
           carbs:Math.round(scaledMacros.carb*10)/10,fat:Math.round(scaledMacros.fat*10)/10,
-          ingredients:(recipe.ingredients||[]).map(ing=>({item:ing.item,amount:fmtIngAmt((ing.qty||0)*servings,ing.unit)})),
+          ingredients:(recipe.ingredients||[]).map(ing=>({item:ing.item,amount:fmtIngAmt((ing.qty||0)*servings*sc,ing.unit),qty:Math.round((ing.qty||0)*servings*sc*10)/10,unit:ing.unit||null})),
           instructions:recipe.instructions||null,slot:targetMeal.slot,servings,_recipeId:recipe.id,unfillable:false,
         };
         setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIdx].meals[mealIdx]=newMeal;return u;});
@@ -3811,6 +3851,27 @@ Reply with ONLY a valid JSON object, no markdown:
                   </div>
                 </motion.div>
 
+                {/* COOKING FOR (servings count) */}
+                <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.16}}
+                  style={{background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)',borderRadius:16,padding:'16px 16px 14px',marginBottom:16,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.45)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:12}}>Cooking for</div>
+                  <div style={{display:'flex',alignItems:'center',gap:0}}>
+                    <motion.button whileTap={{scale:0.88}} onPointerDown={()=>_hL()}
+                      onClick={()=>{_hM();setMealPrepPrefs(p=>({...p,servingsCount:Math.max(1,(p.servingsCount||1)-1)}));}}
+                      disabled={(mealPrepPrefs.servingsCount||1)<=1}
+                      style={{width:44,height:44,borderRadius:12,background:(mealPrepPrefs.servingsCount||1)<=1?'rgba(var(--cm-ink-rgb,10,10,10),0.04)':'var(--cm-paper,#FFFFFF)',border:`1px solid rgba(var(--cm-ink-rgb,10,10,10),${(mealPrepPrefs.servingsCount||1)<=1?0.07:0.15})`,color:(mealPrepPrefs.servingsCount||1)<=1?'rgba(var(--cm-ink-rgb,10,10,10),0.25)':'var(--cm-ink,#0A0A0A)',fontSize:22,fontWeight:300,cursor:(mealPrepPrefs.servingsCount||1)<=1?'not-allowed':'pointer',outline:'none',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>−</motion.button>
+                    <div style={{flex:1,textAlign:'center',padding:'0 8px'}}>
+                      <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:28,color:'var(--cm-ink,#0A0A0A)'}}>{mealPrepPrefs.servingsCount||1}</span>
+                      <span style={{fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.5)',marginLeft:7}}>{(mealPrepPrefs.servingsCount||1)===1?'person':'people'}</span>
+                    </div>
+                    <motion.button whileTap={{scale:0.88}} onPointerDown={()=>_hL()}
+                      onClick={()=>{_hM();setMealPrepPrefs(p=>({...p,servingsCount:Math.min(8,(p.servingsCount||1)+1)}));}}
+                      disabled={(mealPrepPrefs.servingsCount||1)>=8}
+                      style={{width:44,height:44,borderRadius:12,background:(mealPrepPrefs.servingsCount||1)>=8?'rgba(var(--cm-ink-rgb,10,10,10),0.04)':'var(--cm-paper,#FFFFFF)',border:`1px solid rgba(var(--cm-ink-rgb,10,10,10),${(mealPrepPrefs.servingsCount||1)>=8?0.07:0.15})`,color:(mealPrepPrefs.servingsCount||1)>=8?'rgba(var(--cm-ink-rgb,10,10,10),0.25)':'var(--cm-ink,#0A0A0A)',fontSize:22,fontWeight:300,cursor:(mealPrepPrefs.servingsCount||1)>=8?'not-allowed':'pointer',outline:'none',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>+</motion.button>
+                  </div>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)',lineHeight:1.5,marginTop:10}}>Ingredient quantities scale with this number. Your calorie and macro targets don't.</div>
+                </motion.div>
+
                 {/* DIET STYLE */}
                 <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.19}}
                   style={{background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)',borderRadius:16,padding:'16px 16px 14px',marginBottom:16,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
@@ -3847,6 +3908,26 @@ Reply with ONLY a valid JSON object, no markdown:
                   <button onClick={()=>{_hL();setDietExpanded(v=>!v);}} style={{marginTop:12,background:'none',border:'none',fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.04em',textTransform:'uppercase',cursor:'pointer',padding:'4px 0'}}>{dietExpanded?'Fewer styles ↑':'More styles ↓'}</button>
                 </motion.div>
 
+                {/* INGREDIENT COST (budget tier) */}
+                <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.22}}
+                  style={{background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)',borderRadius:16,padding:'16px 16px 14px',marginBottom:16,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.45)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:12}}>Ingredient cost</div>
+                  <div style={{display:'flex',gap:8}}>
+                    {[['budget','Budget-friendly'],['moderate','Moderate'],['pricier','Pricier']].map(([val,label])=>{
+                      const sel=(mealPrepPrefs.budgetTier||'moderate')===val;
+                      return(
+                        <motion.button key={val} whileTap={{scale:0.92}} onPointerDown={()=>_hL()}
+                          onClick={()=>{_hM();setMealPrepPrefs(p=>({...p,budgetTier:val}));}}
+                          style={{flex:1,background:sel?'var(--cm-red,#FF3B30)':'var(--cm-paper,#FFFFFF)',border:sel?'1.5px solid var(--cm-red,#FF3B30)':'1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)',borderRadius:12,padding:'14px 0',fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:sel?'#FFFFFF':'var(--cm-ink,#0A0A0A)',textAlign:'center',cursor:'pointer',outline:'none',transition:'all 0.15s',lineHeight:1.3}}>{label}</motion.button>
+                      );
+                    })}
+                  </div>
+                  <div style={{background:'rgba(var(--cm-ink-rgb,10,10,10),0.03)',border:'1px solid rgba(var(--cm-ink-rgb,10,10,10),0.10)',borderRadius:10,padding:'8px 12px',marginTop:10}}>
+                    <div style={{fontFamily:"'Archivo',sans-serif",fontSize:9,fontWeight:700,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:3}}>Estimate only</div>
+                    <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.6)',lineHeight:1.6}}>Based on typical ingredient costs, not real-time store pricing. Actual cost varies by store and region.</div>
+                  </div>
+                </motion.div>
+
                 {/* PREP TIME */}
                 <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.25}}
                   style={{background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)',borderRadius:16,padding:'16px 16px 14px',marginBottom:16,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
@@ -3864,6 +3945,32 @@ Reply with ONLY a valid JSON object, no markdown:
                     })}
                   </div>
                 </motion.div>
+
+                {/* MEATLESS MEALS SLIDER */}
+                {(()=>{
+                  const totalWeekMeals=Math.max(1,(mealPrepPrefs.selectedDays||[]).length*(mealPrepPrefs.mealsPerDay||3));
+                  const meatless=Math.min(mealPrepPrefs.meatlessMeals||0,totalWeekMeals);
+                  const pct=Math.round(meatless/totalWeekMeals*100);
+                  const meatlessLabel=meatless===0?'None':meatless===totalWeekMeals?'All meatless':`${meatless} meal${meatless!==1?'s':''}`;
+                  return(
+                    <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.28}}
+                      style={{background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)',borderRadius:16,padding:'16px 16px 14px',marginBottom:16,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+                      <style>{`.mp-meatless::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--cm-red,#FF3B30);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18);}.mp-meatless::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:var(--cm-red,#FF3B30);cursor:pointer;border:none;box-shadow:0 2px 8px rgba(0,0,0,.18);}`}</style>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
+                        <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.45)',letterSpacing:'0.14em',textTransform:'uppercase'}}>Meatless meals</div>
+                        <div style={{fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:700,color:meatless>0?'var(--cm-red,#FF3B30)':'rgba(var(--cm-ink-rgb,10,10,10),0.4)'}}>{meatlessLabel}</div>
+                      </div>
+                      <input type="range" min="0" max={totalWeekMeals} value={meatless} className="mp-meatless"
+                        onChange={e=>{_hL();setMealPrepPrefs(p=>({...p,meatlessMeals:parseInt(e.target.value)||0}));}}
+                        style={{WebkitAppearance:'none',appearance:'none',width:'100%',height:6,borderRadius:3,outline:'none',cursor:'pointer',background:`linear-gradient(to right,var(--cm-red,#FF3B30) 0%,var(--cm-red,#FF3B30) ${pct}%,rgba(var(--cm-ink-rgb,10,10,10),0.13) ${pct}%,rgba(var(--cm-ink-rgb,10,10,10),0.13) 100%)`,marginBottom:8}}/>
+                      <div style={{display:'flex',justifyContent:'space-between'}}>
+                        <span style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.35)'}}>None</span>
+                        <span style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.35)'}}>{totalWeekMeals} of {totalWeekMeals}</span>
+                      </div>
+                      {meatless>0&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.45)',lineHeight:1.5,marginTop:8}}>{meatless} slot{meatless!==1?'s':''} will draw from vegetarian and vegan recipes.</div>}
+                    </motion.div>
+                  );
+                })()}
 
                 {/* RESTRICTIONS & ALLERGIES */}
                 <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.30}}

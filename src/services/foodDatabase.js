@@ -222,6 +222,100 @@ export const getUsdaFoodDetail = async (fdcId) => {
   }
 };
 
+// ── FatSecret (proxied through server) ────────────────────────────────────────
+
+// Parse FatSecret food_description string to per-100g macros.
+// Format: "Per 101g - Calories: 197kcal | Fat: 7.79g | Carbs: 0.00g | Protein: 29.80g"
+// Normalises to per 100g to match the internal food object convention.
+const parseFatSecretDesc = (desc) => {
+  if (!desc) return null;
+  const cal  = parseFloat((desc.match(/Calories:\s*([\d.]+)/i)  || [])[1]);
+  const fat  = parseFloat((desc.match(/Fat:\s*([\d.]+)\s*g/i)   || [])[1] || 0);
+  const carb = parseFloat((desc.match(/Carbs:\s*([\d.]+)\s*g/i) || [])[1] || 0);
+  const prot = parseFloat((desc.match(/Protein:\s*([\d.]+)\s*g/i) || [])[1] || 0);
+  if (isNaN(cal)) return null;
+  const sm = desc.match(/Per\s+([\d.]+)\s*(g|oz|ml)/i);
+  let grams = 100;
+  if (sm) {
+    const qty = parseFloat(sm[1]);
+    const unit = sm[2].toLowerCase();
+    if (unit === 'g') grams = qty;
+    else if (unit === 'oz') grams = qty * 28.3495;
+    else if (unit === 'ml') grams = qty;
+  }
+  const f = 100 / (grams || 100);
+  return {
+    calories: Math.round(cal  * f),
+    fat:      Math.round(fat  * f * 10) / 10,
+    carbs:    Math.round(carb * f * 10) / 10,
+    protein:  Math.round(prot * f * 10) / 10,
+  };
+};
+
+const searchFatSecret = async (query, diag) => {
+  try {
+    const API_BASE = typeof import.meta !== "undefined" ? (import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_BASE_URL || "") : "";
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 6000);
+    let res;
+    try { res = await fetch(`${API_BASE}/api/fatsecret?query=${encodeURIComponent(query)}&max_results=20`, { signal: ctrl.signal }); }
+    finally { clearTimeout(timer); }
+    if (!res.ok) {
+      if (import.meta.env.MODE !== "production" && diag) diag.fs = `HTTP:${res.status}`;
+      return [];
+    }
+    const data = await res.json();
+    if (!Array.isArray(data.foods)) {
+      if (import.meta.env.MODE !== "production" && diag) diag.fs = "no foods";
+      return [];
+    }
+    return data.foods.flatMap(f => {
+      const macros = parseFatSecretDesc(f.description);
+      if (!macros || (macros.calories === 0 && macros.protein === 0)) return [];
+      return [{
+        id:              `fs_${f.food_id}`,
+        source:          "fatsecret",
+        fsId:            f.food_id,
+        name:            f.food_name,
+        brand:           f.brand_name || null,
+        dataType:        null,
+        servingSize:     100,
+        servingUnit:     "g",
+        servingQuantity: null,
+        isLiquid:        false,
+        calories:        macros.calories,
+        protein:         macros.protein,
+        carbs:           macros.carbs,
+        fat:             macros.fat,
+        fiber:  0, sugar: 0, sodium: 0,
+      }];
+    });
+  } catch(e) {
+    if (import.meta.env.MODE !== "production") {
+      console.error('[food-search][fatsecret]', e?.name, e?.message);
+      if (diag) diag.fs = `ERR:${e?.name}`;
+    }
+    return [];
+  }
+};
+
+export const autocompleteFatSecret = async (expression) => {
+  if (!expression || expression.trim().length < 1) return [];
+  try {
+    const API_BASE = typeof import.meta !== "undefined" ? (import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_BASE_URL || "") : "";
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 3000);
+    let res;
+    try { res = await fetch(`${API_BASE}/api/fatsecret?endpoint=autocomplete&expression=${encodeURIComponent(expression.trim())}`, { signal: ctrl.signal }); }
+    finally { clearTimeout(timer); }
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.suggestions) ? data.suggestions : [];
+  } catch {
+    return [];
+  }
+};
+
 // ── Open Food Facts ───────────────────────────────────────────────────────────
 
 const searchOpenFoodFacts = async (query, diag) => {
@@ -345,9 +439,9 @@ export const searchFoods = async (query) => {
   // Per-call diagnostic object — isolated so concurrent in-flight searches can't
   // interleave writes. Attached to the returned array; only visible in dev builds.
   const diag = import.meta.env.MODE !== "production"
-    ? { usda: null, off: null, combined: 0, ranked: 0 }
+    ? { fs: null, usda: null, off: null, combined: 0, ranked: 0 }
     : null;
-  const cacheKey = `food_search_v5_${query.toLowerCase().trim()}`;  // v5 → orphans v4 (cooked-boost + lab-qualifier fix)
+  const cacheKey = `food_search_v6_${query.toLowerCase().trim()}`;  // v6 → adds FatSecret as primary source
   try {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
@@ -356,8 +450,10 @@ export const searchFoods = async (query) => {
     }
   } catch {}
   try {
-    // USDA first (English, curated, covers prepared dishes via FNDDS); OFF second (branded/global).
+    // FatSecret primary (broad consumer database); USDA secondary (curated, cooked-state detail);
+    // OFF tertiary (branded/global packaged foods). All run in parallel.
     const settled = await Promise.allSettled([
+      searchFatSecret(query, diag),
       searchUSDA(query, diag),
       searchOpenFoodFacts(query, diag),
     ]);
@@ -365,26 +461,31 @@ export const searchFoods = async (query) => {
       if (r.status === "rejected") console.warn(`[searchFoods] source ${i} failed:`, r.reason);
     });
     if (diag) {
-      // Sources that succeeded without an error write set usda/off null → fill in count.
-      if (diag.usda === null) diag.usda = `OK:${settled[0].value?.length ?? 0}`;
-      if (diag.off === null) diag.off = `OK:${settled[1].value?.length ?? 0}`;
+      if (diag.fs   === null) diag.fs   = `OK:${settled[0].value?.length ?? 0}`;
+      if (diag.usda === null) diag.usda = `OK:${settled[1].value?.length ?? 0}`;
+      if (diag.off  === null) diag.off  = `OK:${settled[2].value?.length ?? 0}`;
     }
     const combined = settled.flatMap(r =>
       r.status === "fulfilled" && Array.isArray(r.value) ? r.value : []
     );
-    // Relevance rank: drop non-matching junk, sort best-match first, USDA wins ties.
+    // Relevance rank: drop non-matching junk, sort best-match first.
+    // On score ties: FatSecret (2) > USDA (1) > OFF (0).
     const ranked = combined
-      .map(f => ({ f, s: scoreRelevance(f.name, query, f.dataType), usda: f.source === "usda" ? 1 : 0 }))
+      .map(f => ({ f, s: scoreRelevance(f.name, query, f.dataType), pri: f.source === "fatsecret" ? 2 : f.source === "usda" ? 1 : 0 }))
       .filter(x => x.s >= 0)
-      .sort((a, b) => (b.s - a.s) || (b.usda - a.usda))
+      .sort((a, b) => (b.s - a.s) || (b.pri - a.pri))
       .map(x => x.f);
     if (diag) { diag.combined = combined.length; diag.ranked = ranked.length; }
     // Fallback: if the strict substring filter dropped EVERYTHING (e.g. a typo/partial
-    // like "Fetuc" that USDA/OFF fuzzy-matched to "Fettuccine…" but our rule didn't),
-    // show the raw source results (USDA first) instead of a blank "no results".
+    // like "Fetuc" that sources fuzzy-matched to "Fettuccine…" but our rule didn't),
+    // show raw source results in priority order instead of a blank "no results".
     const finalList = ranked.length
       ? ranked
-      : combined.slice().sort((a, b) => ((b.source === "usda") - (a.source === "usda")));
+      : combined.slice().sort((a, b) => {
+          const ap = a.source === "fatsecret" ? 2 : a.source === "usda" ? 1 : 0;
+          const bp = b.source === "fatsecret" ? 2 : b.source === "usda" ? 1 : 0;
+          return bp - ap;
+        });
     const results = deduplicateFoods(finalList).slice(0, 20);
     if (diag) results._diag = diag;  // attach per-call snapshot; not JSON-serialised so safe to cache
     if (results.length > 0) {
