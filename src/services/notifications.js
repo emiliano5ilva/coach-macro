@@ -219,3 +219,41 @@ export async function requestNotificationPermission() {
     return false;
   }
 }
+
+const _PHASE_NOTIF_MESSAGES = {
+  build: "Build Phase starts now. Tempo runs are coming.",
+  peak:  "You've entered Peak Phase. Longest run of the cycle ahead.",
+  taper: "Taper has begun. Trust your training and let your legs recover.",
+};
+const _PHASE_DISPLAY_NAMES = {
+  build: "Build", peak: "Peak", taper: "Taper",
+};
+
+export async function schedulePhaseChangeNotification(phase) {
+  const msg = _PHASE_NOTIF_MESSAGES[phase];
+  if (!msg) return; // base = starting phase, no notification needed
+
+  const key = 'cm_last_run_phase';
+  const last = localStorage.getItem(key);
+  if (last === phase) return; // already fired for this transition
+  localStorage.setItem(key, phase);
+
+  const Local = await getLocal();
+  if (!Local) return;
+  try {
+    const { display } = await Local.checkPermissions();
+    if (display !== 'granted') return;
+    await Local.cancel({ notifications: [{ id: 5001 }] }).catch(() => {});
+    await Local.schedule({
+      notifications: [{
+        id: 5001,
+        title: `${_PHASE_DISPLAY_NAMES[phase]} Phase begins.`,
+        body: msg,
+        schedule: { at: new Date(Date.now() + 3000) },
+        extra: { route: 'train' },
+      }],
+    });
+  } catch (e) {
+    console.warn('[PhaseNotif] schedule failed:', e.message);
+  }
+}

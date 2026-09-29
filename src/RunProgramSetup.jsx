@@ -255,6 +255,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
   const [goalM, setGoalM] = useState("00");
   const [goalS, setGoalS] = useState("00");
   const [raceDate, setRaceDate] = useState("");
+  const [raceName, setRaceName] = useState("");
   const [realisticSug, setRealisticSug] = useState(null);
   const [goalError, setGoalError] = useState("");
 
@@ -371,6 +372,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
               goalTime: gs,
               goalDate: null,
               raceDate: raceDate || null,
+              raceName: raceName || null,
               planWeeks: recommendPlanWeeks(vdot, goalVdot),
               planStartDate: today,
               paces: trainingPaces(vdot),
@@ -771,6 +773,18 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
             onChange={e => setRaceDate(e.target.value)}
             min={new Date().toISOString().split('T')[0]}
             style={{ width:"100%", background:"rgba(var(--cm-ink-rgb),.06)", border:"1px solid rgba(var(--cm-ink-rgb),.15)", borderRadius:10, padding:"12px 14px", color:"var(--cm-ink)", fontSize:15, ...MONO, outline:"none", boxSizing:"border-box", colorScheme:"light" }}
+          />
+        </div>
+        {/* Optional race name */}
+        <div style={{ marginTop:16, marginBottom:4 }}>
+          <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:6 }}>Race name <span style={{ color:"rgba(var(--cm-ink-rgb),.35)" }}>(optional)</span></div>
+          <input
+            type="text"
+            value={raceName}
+            onChange={e => setRaceName(e.target.value)}
+            placeholder="e.g. Chicago Marathon"
+            maxLength={60}
+            style={{ width:"100%", background:"rgba(var(--cm-ink-rgb),.06)", border:"1px solid rgba(var(--cm-ink-rgb),.15)", borderRadius:10, padding:"12px 14px", color:"var(--cm-ink)", fontSize:15, outline:"none", boxSizing:"border-box", fontFamily:"inherit" }}
           />
         </div>
         </>)}

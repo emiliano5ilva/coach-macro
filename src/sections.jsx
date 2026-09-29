@@ -91,6 +91,7 @@ import { sb, ai, streamAI } from "./client.js";
 import { track, EVENTS, trackError, setAnalyticsEnabled } from "./services/analytics.js";
 import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS, GLUTE_PROGRAMS, PROGRAM_LIBRARY } from "./programs.js";
 import { getProgramForUser, getTodayRunWorkout, buildRunEngineInputs, getRunWeek, RUN_SESSION_TITLE, deriveDayModality, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS, HYBRID_TEMPLATE_CYCLES, getSkillVariant, HYROX_STATIONS } from "./running_programs.js";
+import { getWeekPhases, buildVolumeProgression } from "./services/runEngine.js";
 import { getHyroxPhase } from "./services/hyroxPeriodisationService.js";
 import { setAIEnabled } from "./services/aiConsent.js";
 import { getRunningPhase } from "./services/runningPeriodisationService.js";
@@ -2781,6 +2782,19 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
     return `${label} · ${distStr}`;
   };
 
+  // ── Phase-change notification ─────────────────────────────────────────────
+  useEffect(() => {
+    if (prescType !== 'running') return;
+    try {
+      const _ei = buildRunEngineInputs(profile, wPrefs, schedule, weekNum);
+      const _phases = getWeekPhases(_ei.totalWeeks, _ei.goalRace.distance);
+      const _curPhase = _phases[Math.min(_ei.weekInPlan - 1, _phases.length - 1)] || 'base';
+      import('./services/notifications.js').then(({ schedulePhaseChangeNotification }) => {
+        schedulePhaseChangeNotification(_curPhase);
+      }).catch(() => {});
+    } catch {}
+  }, [prescType, weekNum]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Build a dayFocus map showing correct labels for all account types
   const resolvedDayFocus = runWeek
     ? WDAYS.reduce((acc, d) => {
@@ -4612,7 +4626,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
               })():(
                 <div className="header-eyebrow">// {todayFocus||cfg.label}</div>
               )}
-              <div className="header-title">{trainScreen==="today"?"Today's Session":trainScreen==="plan"?"My Program":trainScreen==="library"?"Exercise Library":trainScreen==="warmup-protocols"?"Protocols":trainScreen==="builder"?"Lift Smarter":trainScreen==="progress"?"Progress":"Train"}</div>
+              <div className="header-title">{trainScreen==="today"?"Today's Session":trainScreen==="plan"?"My Program":trainScreen==="library"?"Exercise Library":trainScreen==="warmup-protocols"?"Protocols":trainScreen==="builder"?"Lift Smarter":trainScreen==="progress"?"Progress":trainScreen==="plan-overview"?"Training Plan":"Train"}</div>
             </div>
           </div>
         </div>
@@ -5926,6 +5940,184 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                   }}
                 />
               </PaperCard>
+              {/* View full training plan entry point — running-only */}
+              {prescType === "running" && profile?.run_race_type && (
+                <div
+                  onClick={() => { _hL(); setTrainScreen("plan-overview"); }}
+                  style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:"var(--cm-paper)", borderRadius:14, margin:"8px 12px 0", padding:"14px 16px", cursor:"pointer", boxShadow:"0 2px 8px rgba(0,0,0,.08)", border:"1.5px solid rgba(var(--cm-ink-rgb),.08)" }}
+                >
+                  <div>
+                    <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, fontWeight:500, letterSpacing:"0.14em", textTransform:"uppercase", color:"rgba(var(--cm-ink-rgb),.45)", marginBottom:3 }}>TRAINING CYCLE</div>
+                    <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontStyle:"italic", fontWeight:900, fontSize:16, textTransform:"uppercase", color:"var(--cm-ink)" }}>View Full Training Plan</div>
+                  </div>
+                  <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="rgba(var(--cm-ink-rgb),.35)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* ── PLAN OVERVIEW ── */}
+        {trainScreen==="plan-overview"&&prescType==="running"&&GOCLUB_REDESIGN&&(()=>{
+          const _phaseCols={base:'#22c55e',build:'#60a5fa',peak:'#FEA020',taper:'#9933FF'};
+          const _phaseColsRgb={base:'34,197,94',build:'96,165,250',peak:'254,160,32',taper:'153,51,255'};
+          const _phaseNames={base:'Base Building',build:'Build Phase',peak:'Peak Phase',taper:'Taper'};
+          const _phaseDescs={
+            base:'Building aerobic base and weekly mileage. Easy miles are the foundation of every race performance.',
+            build:'Increasing mileage and introducing tempo runs. Lactate threshold work begins.',
+            peak:'Sharpening speed. Shorter, harder workouts. Longest long run of the cycle.',
+            taper:'Reduce volume 40-50%. Keep intensity. Trust the training. You are ready.',
+          };
+          const _phaseChips={
+            base:['Long Runs','Easy Miles'],
+            build:['Tempo Runs','Threshold','Long Runs'],
+            peak:['Race Pace','Longest Run','Speed Work'],
+            taper:['Short Runs','Race Sharpeners'],
+          };
+          const _rtLabels={half:'Half Marathon','5k':'5K','10k':'10K',marathon:'Marathon',general:'General Fitness',full:'Marathon'};
+          const _BC="'Barlow Condensed',sans-serif";
+          const _MO="'DM Mono',monospace";
+          const _AF="'Barlow',sans-serif";
+
+          let ei;
+          try { ei=buildRunEngineInputs(profile,wPrefs,schedule,weekNum); } catch { return null; }
+          if(!ei) return null;
+          const {totalWeeks,weekInPlan,goalRace,experience}=ei;
+          const goalDistance=goalRace.distance;
+          const phases=getWeekPhases(totalWeeks,goalDistance);
+
+          // plan start (mirrors buildRunEngineInputs resolution)
+          let planStart=null;
+          if(wPrefs?.runPlanStartDate){const d=new Date(wPrefs.runPlanStartDate);if(!isNaN(d.getTime()))planStart=d;}
+          const _rdRaw=profile?.runProfile?.raceDate||profile?.run_race_date||null;
+          const raceD=_rdRaw?new Date(_rdRaw):null;
+          if(!planStart&&raceD&&!isNaN(raceD.getTime()))planStart=new Date(raceD.getTime()-totalWeeks*7*86400000);
+          if(!planStart){const fb=profile?.program_start_date?new Date(profile.program_start_date):null;planStart=(fb&&!isNaN(fb.getTime()))?fb:new Date();}
+
+          // phase segments
+          const segs=[];let cp=phases[0];let csw=1;
+          phases.forEach((p,i)=>{if(p!==cp){segs.push({phase:cp,startWeek:csw,endWeek:i,weeks:i-csw+1});cp=p;csw=i+1;}});
+          segs.push({phase:cp,startWeek:csw,endWeek:totalWeeks,weeks:totalWeeks-csw+1});
+
+          const today=new Date();
+          const daysToRace=raceD&&!isNaN(raceD.getTime())?Math.ceil((raceD.getTime()-today.getTime())/86400000):null;
+          const planEnd=new Date(planStart.getTime()+totalWeeks*7*86400000);
+
+          const raceName=profile?.runProfile?.raceName||null;
+          const raceLabel=raceName||_rtLabels[goalDistance]||goalDistance.toUpperCase();
+
+          function _fmtD(d){if(!d||isNaN(d.getTime()))return'';return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});}
+          function _fmtDFull(d){if(!d||isNaN(d.getTime()))return'';return d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});}
+          function _fmtT(secs){if(!secs)return'';const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;if(h>0)return`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;return`${m}:${String(s).padStart(2,'0')}`;}
+
+          const _goalTimeSecs=profile?.runProfile?.goalTime??null;
+          const _goalTimeStr=_goalTimeSecs?_fmtT(Number(_goalTimeSecs)):null;
+          const _projRaw=runWeek?.projectedFinish??null;
+          // projectedFinish is "1:52:34 half" — strip the trailing distance word
+          const _projStr=_projRaw?_projRaw.replace(/\s+\S+$/,''):null;
+
+          return(
+            <div style={{paddingBottom:80}}>
+              {/* HERO */}
+              <div style={{paddingLeft:20,paddingRight:20,paddingTop:14,paddingBottom:80,background:'var(--cm-red)'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                  <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:'0.18em',textTransform:'uppercase',color:'rgba(255,255,255,0.55)'}}>TRAINING CYCLE</div>
+                  {daysToRace!==null&&daysToRace>0&&(
+                    <div style={{background:'rgba(255,255,255,0.18)',borderRadius:20,padding:'4px 12px',fontFamily:_MO,fontSize:9,color:'#fff',letterSpacing:'0.08em',textTransform:'uppercase'}}>{daysToRace}D TO RACE</div>
+                  )}
+                </div>
+                <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:36,lineHeight:0.92,textTransform:'uppercase',color:'#fff',letterSpacing:'-0.01em',marginBottom:8}}>{raceLabel}</div>
+                <div style={{fontFamily:_MO,fontSize:10,color:'rgba(255,255,255,0.50)',letterSpacing:'0.05em'}}>{totalWeeks} weeks · {_fmtD(planStart)} – {_fmtD(planEnd)}</div>
+              </div>
+
+              {/* PHASE TIMELINE */}
+              <div style={{margin:'-54px 12px 0',paddingBottom:8}}>
+                {segs.map((seg,si)=>{
+                  const col=_phaseCols[seg.phase]||'#60a5fa';
+                  const colRgb=_phaseColsRgb[seg.phase]||'96,165,250';
+                  const segStart=new Date(planStart.getTime()+(seg.startWeek-1)*7*86400000);
+                  const segEnd=new Date(planStart.getTime()+seg.endWeek*7*86400000-86400000);
+                  const isHere=weekInPlan>=seg.startWeek&&weekInPlan<=seg.endWeek;
+                  const isPast=weekInPlan>seg.endWeek;
+                  const progressPct=isHere?Math.round(((weekInPlan-seg.startWeek)/Math.max(seg.weeks,1))*100):0;
+                  const chips=_phaseChips[seg.phase]||[];
+                  return(
+                    <div key={seg.phase+si} style={{position:'relative'}}>
+                      {si<segs.length-1&&(
+                        <div style={{position:'absolute',left:31,bottom:-8,width:2,height:16,borderLeft:`2px dashed ${col}50`,zIndex:0}}/>
+                      )}
+                      <div style={{background:isHere?`rgba(${colRgb},0.04)`:'var(--cm-paper)',borderRadius:16,padding:'16px 16px 14px',marginBottom:8,boxShadow:isHere?`0 4px 20px rgba(0,0,0,.10),0 0 0 2px ${col}40`:'0 2px 8px rgba(0,0,0,.08)',border:`1.5px solid ${isHere?col+'55':'rgba(var(--cm-ink-rgb),.08)'}`}}>
+                        <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
+                          {/* dot */}
+                          <div style={{width:22,height:22,borderRadius:11,background:isPast||isHere?col:'rgba(var(--cm-ink-rgb),.12)',flexShrink:0,marginTop:2,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                            {isPast&&<svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                            {isHere&&<div style={{width:7,height:7,borderRadius:'50%',background:'#fff'}}/>}
+                            {!isPast&&!isHere&&<div style={{width:7,height:7,borderRadius:'50%',background:'rgba(var(--cm-ink-rgb),.25)'}}/>}
+                          </div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:2}}>
+                              <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:17,textTransform:'uppercase',color:isHere?col:isPast?'rgba(var(--cm-ink-rgb),.40)':'var(--cm-ink)'}}>{_phaseNames[seg.phase]}</div>
+                              {isHere&&<div style={{fontFamily:_MO,fontSize:8,fontWeight:500,letterSpacing:'0.1em',textTransform:'uppercase',color:col,background:`${col}20`,borderRadius:12,padding:'3px 9px'}}>YOU ARE HERE</div>}
+                            </div>
+                            <div style={{fontFamily:_MO,fontSize:10,color:'rgba(var(--cm-ink-rgb),.40)',letterSpacing:'0.04em',marginBottom:6}}>
+                              Wk {seg.startWeek}–{seg.endWeek} · {_fmtD(segStart)} – {_fmtD(segEnd)}
+                            </div>
+                            <div style={{fontFamily:_AF,fontSize:12,color:'rgba(var(--cm-ink-rgb),.65)',lineHeight:1.5,marginBottom:8}}>{_phaseDescs[seg.phase]}</div>
+                            <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:isHere?10:0}}>
+                              {chips.map(c=>(
+                                <div key={c} style={{fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:'0.06em',textTransform:'uppercase',color:isPast?'rgba(var(--cm-ink-rgb),.30)':col,background:isPast?'rgba(var(--cm-ink-rgb),.05)':`${col}18`,borderRadius:20,padding:'3px 9px'}}>{c}</div>
+                              ))}
+                            </div>
+                            {isHere&&(
+                              <div>
+                                <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                                  <div style={{fontFamily:_MO,fontSize:9,color:'rgba(var(--cm-ink-rgb),.38)',letterSpacing:'0.06em'}}>PHASE PROGRESS</div>
+                                  <div style={{fontFamily:_MO,fontSize:9,color:col,letterSpacing:'0.06em'}}>{progressPct}%</div>
+                                </div>
+                                <div style={{height:4,background:'rgba(var(--cm-ink-rgb),.08)',borderRadius:2,overflow:'hidden'}}>
+                                  <div style={{height:'100%',width:`${progressPct}%`,background:col,borderRadius:2}}/>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* RACE DAY CARD */}
+                {raceD&&!isNaN(raceD.getTime())&&(
+                  <div style={{background:'var(--cm-accent)',borderRadius:16,padding:'20px 18px',marginTop:4,boxShadow:'0 4px 20px rgba(0,0,0,.12)'}}>
+                    <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:'0.18em',textTransform:'uppercase',color:'rgba(255,255,255,0.55)',marginBottom:4}}>RACE DAY</div>
+                    <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:26,textTransform:'uppercase',color:'#fff',lineHeight:0.92,marginBottom:4}}>{raceLabel}</div>
+                    <div style={{fontFamily:_MO,fontSize:11,color:'rgba(255,255,255,0.65)',letterSpacing:'0.04em',marginBottom:_goalTimeStr||_projStr?16:12}}>{_fmtDFull(raceD)} · {_rtLabels[goalDistance]||goalDistance}</div>
+                    {(_goalTimeStr||_projStr)&&(
+                      <div style={{display:'flex',gap:10}}>
+                        {_goalTimeStr&&(
+                          <div style={{flex:1,background:'rgba(255,255,255,0.14)',borderRadius:10,padding:'12px 14px'}}>
+                            <div style={{fontFamily:_MO,fontSize:8,color:'rgba(255,255,255,0.50)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:4}}>GOAL</div>
+                            <div style={{fontFamily:_MO,fontSize:22,fontWeight:700,color:'#fff',letterSpacing:'-0.02em'}}>{_goalTimeStr}</div>
+                          </div>
+                        )}
+                        {_projStr&&(
+                          <div style={{flex:1,background:'rgba(255,255,255,0.14)',borderRadius:10,padding:'12px 14px'}}>
+                            <div style={{fontFamily:_MO,fontSize:8,color:'rgba(255,255,255,0.50)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:4}}>PROJECTED</div>
+                            <div style={{fontFamily:_MO,fontSize:22,fontWeight:700,color:'#fff',letterSpacing:'-0.02em'}}>{_projStr}</div>
+                            <div style={{fontFamily:_MO,fontSize:8,color:'rgba(255,255,255,0.40)',marginTop:2}}>as of today</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {daysToRace!==null&&daysToRace>0&&(
+                      <div style={{fontFamily:_MO,fontSize:10,color:'rgba(255,255,255,0.50)',letterSpacing:'0.08em',textTransform:'uppercase',marginTop:12}}>{daysToRace} days to race day</div>
+                    )}
+                    {daysToRace===0&&(
+                      <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:18,color:'#fff',marginTop:10}}>TODAY IS RACE DAY 🎉</div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           );
         })()}
