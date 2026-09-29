@@ -1154,7 +1154,13 @@ async function _classifyAndCacheFsRecipe(recipe) {
     const { data: cached } = await sb.from('fatsecret_recipe_cache')
       .select('recipe_id,diet_tags,parsed_ingredients,parse_confidence,classified_at')
       .eq('recipe_id', id).maybeSingle();
-    if (cached) return cached;
+    if (cached) {
+      // FatSecret terms: derived content (diet_tags, parsed_ingredients) must not be
+      // stored indefinitely. Treat rows older than 24 h as a miss so they re-classify.
+      const ageMs = Date.now() - new Date(cached.classified_at).getTime();
+      if (ageMs < 24 * 60 * 60 * 1000) return cached;
+      // older than 24 h — fall through; the upsert below will refresh classified_at
+    }
   } catch { /* fall through to classify */ }
 
   const rawIngs = (recipe.ingredients || []).map(i => String(i.ingredient_description || '').trim()).filter(Boolean);
