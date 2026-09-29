@@ -28,7 +28,7 @@ const _FUEL_GOCLUB_CSS=`
 `;
 import { showToast } from "./utils/toast.js";
 import { mealHasAllergen, scanTextAllergens } from "./utils/allergenFilter.js";
-import { fitWeek, fitDay, orderPlanMeals } from "./services/mealFitter.js";
+import { fitWeek, fitDay, orderPlanMeals, slotTargets } from "./services/mealFitter.js";
 import { sb, ai, streamAI, aiWithTools } from "./client.js";
 import { track, EVENTS } from "./services/analytics.js";
 import { getCyclePhase } from "./utils/ait.js";
@@ -1224,7 +1224,9 @@ function _fsRecipeToSlot(recipe) {
   return null;
 }
 
-async function fetchFsBackfillCandidates(slot, diet) {
+// target: optional {cal, pro, carb, fat} for the slot — when provided, candidates are sorted
+// ascending by macro-distance so fbCandidates[0] is the closest match.
+async function fetchFsBackfillCandidates(slot, diet, target) {
   try {
     const query = (diet && diet !== 'balanced') ? `${diet} ${slot}` : slot;
     const r = await fetch(`${_RA_PROXY}/api/fatsecret?endpoint=recipes&query=${encodeURIComponent(query)}&max_results=8&must_have_images=1`);
@@ -1263,13 +1265,27 @@ async function fetchFsBackfillCandidates(slot, diet) {
         fat_per_serving: Number(n.fat || 0),
         servings_count: Number(rec.number_of_servings) || 1,
         ingredients: parsedIngs.map(p => ({ item: p.item || p.raw || '', qty: p.qty ?? null, unit: p.unit || null })),
-        instructions: null,
+        instructions: {
+          sections: [{
+            steps: rec.directions.map(d => ({ n: d.direction_number, text: d.direction_description })),
+          }],
+        },
         recipe_kind: 'fatsecret',
         use_count: 0,
         last_used: null,
         cost_tier: null,
         _source: 'fatsecret',
         _parseConfidence: cached?.parse_confidence || 'partial',
+      });
+    }
+    if (target && candidates.length > 1) {
+      candidates.sort((a, b) => {
+        const score = c =>
+          Math.abs(c.calories_per_serving - target.cal) * 3 +
+          Math.abs(c.protein_per_serving  - target.pro) * 2 +
+          Math.abs(c.carbs_per_serving    - target.carb) +
+          Math.abs(c.fat_per_serving      - target.fat);
+        return score(a) - score(b);
       });
     }
     return candidates;
@@ -1294,7 +1310,7 @@ function _fsBackfillToMeal(candidate, slot, sc) {
       qty: Math.round((ing.qty || 0) * sc * 10) / 10,
       unit: ing.unit || null,
     })),
-    instructions: null,
+    instructions: candidate.instructions || null,
     recipe_kind: 'fatsecret',
     dietTags: candidate.diet_tags || [],
     allergenTags: [],
@@ -2671,13 +2687,15 @@ Reply with ONLY a valid JSON object, no markdown:
       const days=sel.map((dayName,i)=>fitterDayToShape(weekResult[i],dayName,schedule?.[dayName]||'rest',sc));
       // Backfill: for any slot the curated pool left unfillable, try FatSecret (skip if allergens set — no allergen data).
       if(allergenTags.length===0){
-        for(const day of days){
-          for(let mi=0;mi<day.meals.length;mi++){
-            if(!day.meals[mi].unfillable)continue;
-            const fbCandidates=await fetchFsBackfillCandidates(day.meals[mi].slot,diet);
+        for(let di=0;di<days.length;di++){
+          for(let mi=0;mi<days[di].meals.length;mi++){
+            if(!days[di].meals[mi].unfillable)continue;
+            const _fbSlot=days[di].meals[mi].slot;
+            const _fbSlotTarget=slotTargets(dayTargets[di],nMeals).find(s=>s.key===_fbSlot);
+            const _fbTarget=_fbSlotTarget?{cal:_fbSlotTarget.cal,pro:_fbSlotTarget.pro,carb:_fbSlotTarget.carb,fat:_fbSlotTarget.fat}:null;
+            const fbCandidates=await fetchFsBackfillCandidates(_fbSlot,diet,_fbTarget);
             if(fbCandidates.length>0){
-              const pick=fbCandidates[Math.floor(Math.random()*fbCandidates.length)];
-              day.meals[mi]=_fsBackfillToMeal(pick,day.meals[mi].slot,sc);
+              days[di].meals[mi]=_fsBackfillToMeal(fbCandidates[0],_fbSlot,sc);
             }
           }
         }
@@ -2730,11 +2748,12 @@ Reply with ONLY a valid JSON object, no markdown:
         };
         setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex].meals[mealIndex]=newMeal;return u;});
       }else if(allergenTags.length===0){
-        const fbCandidates=await fetchFsBackfillCandidates(currentSlot,diet);
+        const _fbSlotTarget=slotTargets(dayTarget,mealPrepPrefs.mealsPerDay||3).find(s=>s.key===currentSlot);
+        const _fbTarget=_fbSlotTarget?{cal:_fbSlotTarget.cal,pro:_fbSlotTarget.pro,carb:_fbSlotTarget.carb,fat:_fbSlotTarget.fat}:null;
+        const fbCandidates=await fetchFsBackfillCandidates(currentSlot,diet,_fbTarget);
         if(fbCandidates.length>0){
           const sc=mealPrepPrefs.servingsCount||1;
-          const pick=fbCandidates[Math.floor(Math.random()*fbCandidates.length)];
-          const newMeal=_fsBackfillToMeal(pick,currentSlot,sc);
+          const newMeal=_fsBackfillToMeal(fbCandidates[0],currentSlot,sc);
           setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex].meals[mealIndex]=newMeal;return u;});
         }
       }
@@ -2755,12 +2774,15 @@ Reply with ONLY a valid JSON object, no markdown:
       const updated=fitterDayToShape(result,dayName,schedule?.[dayName]||'rest',mealPrepPrefs.servingsCount||1);
       if(allergenTags.length===0){
         const sc=mealPrepPrefs.servingsCount||1;
+        const _mealCount=mealPrepPrefs.mealsPerDay||3;
         for(let mi=0;mi<updated.meals.length;mi++){
           if(!updated.meals[mi].unfillable)continue;
-          const fbCandidates=await fetchFsBackfillCandidates(updated.meals[mi].slot,diet);
+          const _fbSlot=updated.meals[mi].slot;
+          const _fbSlotTarget=slotTargets(dayTarget,_mealCount).find(s=>s.key===_fbSlot);
+          const _fbTarget=_fbSlotTarget?{cal:_fbSlotTarget.cal,pro:_fbSlotTarget.pro,carb:_fbSlotTarget.carb,fat:_fbSlotTarget.fat}:null;
+          const fbCandidates=await fetchFsBackfillCandidates(_fbSlot,diet,_fbTarget);
           if(fbCandidates.length>0){
-            const pick=fbCandidates[Math.floor(Math.random()*fbCandidates.length)];
-            updated.meals[mi]=_fsBackfillToMeal(pick,updated.meals[mi].slot,sc);
+            updated.meals[mi]=_fsBackfillToMeal(fbCandidates[0],_fbSlot,sc);
           }
         }
       }
