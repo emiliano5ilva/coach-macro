@@ -1098,6 +1098,105 @@ function fitterDayToShape(fDay, dayName, sessionType, servingsCount = 1) {
   };
 }
 
+// ── FatSecret classify-and-parse helpers ─────────────────────────────────────
+// Used by DiscoverRecipeBrowser: every detail fetch runs through
+// _classifyAndCacheFsRecipe which reads/writes fatsecret_recipe_cache.
+// Only runs once per recipe_id — all later views hit the cache instantly.
+
+const _FS_UNIT_SET = new Set([
+  'cup','cups','tsp','tbsp','tablespoon','tablespoons','teaspoon','teaspoons',
+  'oz','ounce','ounces','lb','lbs','pound','pounds',
+  'g','gr','gram','grams','kg','kilogram','kilograms',
+  'ml','milliliter','milliliters','l','liter','liters',
+  'can','cans','slice','slices','bunch','bunches','clove','cloves',
+  'stalk','stalks','head','heads','package','packages','pkg',
+  'strip','strips','sprig','sprigs','piece','pieces',
+]);
+
+function _fsFrac(s) {
+  s = (s || '').trim();
+  const mixed = s.match(/^(\d+)\s+(\d+)\/(\d+)$/);
+  if (mixed) return parseInt(mixed[1], 10) + parseInt(mixed[2], 10) / parseInt(mixed[3], 10);
+  const simple = s.match(/^(\d+)\/(\d+)$/);
+  if (simple) return parseInt(simple[1], 10) / parseInt(simple[2], 10);
+  const f = parseFloat(s);
+  return isNaN(f) ? null : f;
+}
+
+// "2 cups flour" → {qty:2, unit:'cups', item:'flour', raw}
+// Falls back to {qty:null, unit:null, item:raw, raw} when pattern doesn't match.
+function _fsParseIngLine(raw) {
+  const s = (raw || '').trim();
+  if (!s) return { qty: null, unit: null, item: '', raw: s };
+  if (/^(to taste|as needed|a pinch|a dash|a handful|optional)/i.test(s))
+    return { qty: null, unit: null, item: s, raw };
+  const numPat = '(\\d+(?:\\.\\d+)?(?:\\s*\\/\\s*\\d+)?(?:\\s+\\d+\\/\\d+)?)';
+  const m1 = s.match(new RegExp(`^${numPat}\\s+([a-zA-Z]+\\.?)\\s+(.+)$`));
+  if (m1) {
+    const qty = _fsFrac(m1[1]);
+    const uRaw = m1[2].replace(/\.$/, '').toLowerCase();
+    if (_FS_UNIT_SET.has(uRaw)) {
+      return { qty, unit: uRaw, item: m1[3].replace(/,\s*(raw|cooked|fresh|dried|chopped|sliced|diced).*$/i, '').trim(), raw };
+    }
+    return { qty, unit: null, item: s.slice(m1[1].length).trim(), raw };
+  }
+  const m2 = s.match(new RegExp(`^${numPat}\\s+(.+)$`));
+  if (m2) return { qty: _fsFrac(m2[1]), unit: null, item: m2[2].trim(), raw };
+  return { qty: null, unit: null, item: s, raw };
+}
+
+const _FS_DIET_VOCAB = ['vegan','vegetarian','pescatarian','mediterranean','keto','paleo','low-carb','carnivore'];
+
+async function _classifyAndCacheFsRecipe(recipe) {
+  const id = String(recipe.recipe_id || '');
+  if (!id) return null;
+  try {
+    const { data: cached } = await sb.from('fatsecret_recipe_cache')
+      .select('recipe_id,diet_tags,parsed_ingredients,parse_confidence,classified_at')
+      .eq('recipe_id', id).maybeSingle();
+    if (cached) return cached;
+  } catch { /* fall through to classify */ }
+
+  const rawIngs = (recipe.ingredients || []).map(i => String(i.ingredient_description || '').trim()).filter(Boolean);
+  const parsed = rawIngs.map(_fsParseIngLine);
+  const needAI = parsed.map((p, i) => p.qty == null ? i : -1).filter(n => n >= 0);
+
+  let dietTags = [];
+  const aiFixMap = {};
+  try {
+    const allIngText = rawIngs.map(l => `- ${l}`).join('\n');
+    const unparsedText = needAI.map((i, n) => `${n}. ${rawIngs[i]}`).join('\n');
+    const prompt = `You are a recipe classifier. Given this recipe's ingredients, do two things:\n1. Return which diet tags from [${_FS_DIET_VOCAB.join(', ')}] this recipe TRULY qualifies for based on actual ingredients. Empty list is fine.\n2. For the numbered lines below that need parsing, return {qty,unit,item} (unit is null for countable items like cloves/garlic).\n\nRecipe: ${recipe.recipe_name}\nAll ingredients:\n${allIngText}${unparsedText ? `\n\nLines needing parse:\n${unparsedText}` : ''}\n\nRespond with JSON only, no markdown: {"diet_tags":[...],"ingredient_fixes":[{"idx":0,"qty":1,"unit":"cup","item":"..."}]}`;
+    const raw = await ai(prompt, 700, 'fatsecret_classify');
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const result = JSON.parse(jsonMatch[0]);
+      dietTags = (result.diet_tags || []).filter(t => _FS_DIET_VOCAB.includes(t));
+      for (const fix of (result.ingredient_fixes || [])) {
+        const realIdx = needAI[fix.idx];
+        if (realIdx != null) aiFixMap[realIdx] = { qty: fix.qty ?? null, unit: fix.unit || null, item: fix.item || rawIngs[realIdx] };
+      }
+    }
+  } catch { /* AI failed — diet_tags empty, unparsed lines stay raw */ }
+
+  const finalIngs = parsed.map((p, i) => {
+    if (p.qty != null) return p;
+    const fix = aiFixMap[i];
+    return fix ? { qty: fix.qty, unit: fix.unit, item: fix.item, raw: p.raw } : p;
+  });
+
+  const parseConfidence = finalIngs.some(p => p.qty == null && (p.raw || '').trim()) ? 'partial' : 'full';
+  const row = {
+    recipe_id: id,
+    diet_tags: dietTags,
+    parsed_ingredients: finalIngs,
+    parse_confidence: parseConfidence,
+    classified_at: new Date().toISOString(),
+  };
+  sb.from('fatsecret_recipe_cache').upsert(row, { onConflict: 'recipe_id' }).then(() => {}, () => {});
+  return row;
+}
+
 // ── RecipeDetailSheet ──────────────────────────────────────────────────────────
 // Extracted from the inline IIFE. Used by the meal-plan flow (showSwap=true)
 // and the recipe browser (showSwap=false). Ingredient check-off is local state
@@ -1220,8 +1319,10 @@ function RecipeDetailSheet({meal,day,sessFull,onClose,showSwap,onSwap,user}){
 }
 
 // ── DiscoverRecipeDetailSheet ─────────────────────────────────────────────────
-// Full-screen detail for a FatSecret recipe. No meal-plan / grocery actions.
-function DiscoverRecipeDetailSheet({recipe,onClose}){
+// Full-screen detail for a FatSecret recipe. Includes diet-tag chips (from
+// _cached data) and "Add to meal plan" slot picker.
+function DiscoverRecipeDetailSheet({recipe,onClose,mealPrepPlan,onAddToMealPlan}){
+  const [showPicker,setShowPicker]=useState(false);
   if(!recipe)return null;
   const n=recipe.nutrition_per_serving||{};
   const cal=n.calories?Math.round(Number(n.calories)):0;
@@ -1235,6 +1336,9 @@ function DiscoverRecipeDetailSheet({recipe,onClose}){
   const card={background:'var(--cm-paper,#FFFFFF)',borderRadius:16,padding:'16px',marginBottom:14,boxShadow:'0 2px 12px rgba(0,0,0,.10)'};
   const chip={fontFamily:"'Archivo',sans-serif",fontSize:10.5,fontWeight:600,color:'rgba(255,255,255,0.92)',background:'rgba(255,255,255,0.14)',borderRadius:999,padding:'5px 11px'};
   const MB=[{label:'Protein',value:pro,color:'var(--cm-red,#FF3B30)'},{label:'Carbs',value:carb,color:'#60a5fa'},{label:'Fat',value:fat,color:'#FEA020'}];
+  const dietTags=recipe._cached?.diet_tags||[];
+  const parseConf=recipe._cached?.parse_confidence;
+  const hasMeta=recipe.number_of_servings||recipe.cooking_time_min||dietTags.length>0;
   return(
     <motion.div key="discover-detail-overlay" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.18}}
       style={{position:'fixed',inset:0,zIndex:500,background:'var(--cm-red,#FF3B30)'}} onClick={()=>{_hL();onClose();}}>
@@ -1251,10 +1355,11 @@ function DiscoverRecipeDetailSheet({recipe,onClose}){
           </div>
           {img&&<img src={img} alt="" style={{width:'100%',height:200,objectFit:'cover',borderRadius:16,marginBottom:16,display:'block'}} onError={e=>{e.currentTarget.style.display='none';}}/>}
           <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:30,letterSpacing:'-0.01em',color:'#fff',lineHeight:1.05,marginBottom:14}}>{recipe.recipe_name}</div>
-          {(recipe.number_of_servings||recipe.cooking_time_min)&&(
+          {hasMeta&&(
             <div style={{display:'flex',flexWrap:'wrap',gap:7,marginBottom:16}}>
               {recipe.number_of_servings&&<span style={chip}>{recipe.number_of_servings} servings</span>}
               {recipe.cooking_time_min&&<span style={chip}>{fmtMin(recipe.cooking_time_min)}</span>}
+              {dietTags.map(t=><span key={'dt'+t} style={chip}>{String(t).replace(/-/g,' ')}</span>)}
             </div>
           )}
           <div style={card}>
@@ -1295,6 +1400,73 @@ function DiscoverRecipeDetailSheet({recipe,onClose}){
               ))}
             </div>
           )}
+          {parseConf==='partial'&&(
+            <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:600,color:'rgba(255,255,255,0.55)',lineHeight:1.5,marginBottom:12,letterSpacing:'0.01em'}}>
+              Some amounts may need a manual check in your grocery list
+            </div>
+          )}
+          <motion.button whileTap={{scale:0.97}} onPointerDown={()=>_hL()}
+            onClick={()=>{_hM();setShowPicker(p=>!p);}}
+            style={{width:'100%',background:'rgba(255,255,255,0.14)',border:'none',borderRadius:14,padding:15,fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,color:'#fff',letterSpacing:'0.02em',cursor:'pointer',marginTop:4,marginBottom:12}}>
+            {showPicker?'Cancel':'Add to meal plan'}
+          </motion.button>
+          {showPicker&&(
+            <div style={card}>
+              <div style={{...eyebrow,fontSize:10,color:'rgba(var(--cm-ink-rgb,10,10,10),0.42)',marginBottom:12}}>Pick a slot to replace</div>
+              {!(mealPrepPlan?.days?.length>0)?(
+                <div style={{fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.6)',lineHeight:1.5}}>
+                  No plan yet — set up a meal plan in Kitchen first.
+                </div>
+              ):(
+                mealPrepPlan.days.flatMap((day,di)=>
+                  (day.meals||[]).map((meal,mi)=>{
+                    if(!meal||meal.unfillable)return null;
+                    return(
+                      <button key={`${di}-${mi}`} onPointerDown={()=>_hL()}
+                        onClick={()=>{
+                          _hM();
+                          setShowPicker(false);
+                          const cachedIngs=recipe._cached?.parsed_ingredients||[];
+                          const planIngs=cachedIngs.length>0
+                            ?cachedIngs.map(pi=>({
+                                item:pi.item||pi.raw||'',
+                                amount:pi.qty!=null?fmtIngAmt(pi.qty,pi.unit):(pi.raw||''),
+                                qty:pi.qty??null,
+                                unit:pi.unit||null,
+                              }))
+                            :(recipe.ingredients||[]).map(i=>({
+                                item:String(i.ingredient_description||''),
+                                amount:String(i.ingredient_description||''),
+                                qty:null,unit:null,
+                              }));
+                          const mealShape={
+                            name:recipe.recipe_name,
+                            calories:cal,protein:pro,carbs:carb,fat:fat,
+                            ingredients:planIngs,
+                            instructions:null,
+                            slot:meal.slot,
+                            servings:1,
+                            _recipeId:`fs_${recipe.recipe_id}`,
+                            _source:'fatsecret',
+                            _parseConfidence:parseConf||'partial',
+                            unfillable:false,
+                            dietTags,
+                            allergenTags:[],
+                          };
+                          if(onAddToMealPlan)onAddToMealPlan(di,mi,mealShape);
+                        }}
+                        style={{width:'100%',textAlign:'left',background:'transparent',border:'none',borderBottom:'1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)',padding:'10px 0',cursor:'pointer',fontFamily:"'Archivo',sans-serif",WebkitTapHighlightColor:'transparent',display:'block'}}>
+                        <div style={{fontWeight:700,fontSize:13,color:'var(--cm-ink,#0A0A0A)',marginBottom:2}}>
+                          {day.day} · <span style={{textTransform:'capitalize'}}>{meal.slot}</span>
+                        </div>
+                        <div style={{fontSize:12,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.5)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{meal.name||'—'}</div>
+                      </button>
+                    );
+                  })
+                )
+              )}
+            </div>
+          )}
         </div>
       </motion.div>
     </motion.div>
@@ -1304,13 +1476,17 @@ function DiscoverRecipeDetailSheet({recipe,onClose}){
 // ── DiscoverRecipeBrowser ─────────────────────────────────────────────────────
 // FatSecret-powered browse. Search + quick chips → fetch top 15 → detail-filter
 // (≥4 steps) → show cards. Never shows food_name; ingredient_description only.
+// Chips with a non-null dietTag trigger classify-and-parse + client-side tag filter.
+// Chips with dietTag:null are plain keyword searches, no tag filtering.
 const _FS_QUICK_CHIPS=[
-  {label:'High Protein',query:'high protein'},
-  {label:'Breakfast',query:'breakfast'},
-  {label:'Vegan',query:'vegan'},
-  {label:'Quick Meals',query:'quick easy'},
-  {label:'Chicken',query:'chicken'},
-  {label:'Vegetarian',query:'vegetarian'},
+  {label:'High Protein',  query:'high protein',   dietTag:null},
+  {label:'Breakfast',     query:'breakfast',       dietTag:null},
+  {label:'Vegan',         query:'vegan',           dietTag:'vegan'},
+  {label:'Quick Meals',   query:'quick easy',      dietTag:null},
+  {label:'Chicken',       query:'chicken',         dietTag:null},
+  {label:'Vegetarian',    query:'vegetarian',      dietTag:'vegetarian'},
+  {label:'Mediterranean', query:'mediterranean',   dietTag:'mediterranean'},
+  {label:'Keto',          query:'keto',            dietTag:'keto'},
 ];
 
 function DiscoverRecipeBrowser({onOpenRecipe}){
@@ -1320,7 +1496,8 @@ function DiscoverRecipeBrowser({onOpenRecipe}){
   const [loading,setLoading]=useState(false);
   const searchIdRef=useRef(0);
 
-  async function runSearch(q){
+  // dietTag: if non-null, results are filtered to only recipes whose cached diet_tags include it.
+  async function runSearch(q,dietTag=null){
     const trimmed=q.trim();
     if(!trimmed)return;
     const sid=++searchIdRef.current;
@@ -1333,14 +1510,27 @@ function DiscoverRecipeBrowser({onOpenRecipe}){
       const data=await r.json();
       const items=Array.isArray(data.recipes)?data.recipes:[];
       if(!items.length){if(sid===searchIdRef.current){setResults([]);setLoading(false);}return;}
+      // Fetch detail for all candidates
       const detailResults=await Promise.allSettled(
         items.map(item=>fetch(`${_RA_PROXY}/api/fatsecret?endpoint=recipe_detail&recipe_id=${item.recipe_id}`).then(rr=>rr.json()))
       );
       if(sid!==searchIdRef.current)return;
-      const passed=detailResults
+      const fetched=detailResults
         .filter(d=>d.status==='fulfilled'&&d.value&&!d.value.error)
-        .map(d=>d.value)
-        .filter(d=>Array.isArray(d.directions)&&d.directions.length>=4);
+        .map(d=>d.value);
+      // Classify-and-parse all fetched recipes (cache-first; AI only for unseen ones)
+      const cacheResults=await Promise.allSettled(fetched.map(rec=>_classifyAndCacheFsRecipe(rec)));
+      if(sid!==searchIdRef.current)return;
+      const enriched=fetched.map((rec,i)=>({
+        ...rec,
+        _cached:cacheResults[i].status==='fulfilled'?cacheResults[i].value:null,
+      }));
+      // Quality filter: ≥4 direction steps
+      let passed=enriched.filter(d=>Array.isArray(d.directions)&&d.directions.length>=4);
+      // Diet-tag filter: only for diet chips
+      if(dietTag){
+        passed=passed.filter(d=>Array.isArray(d._cached?.diet_tags)&&d._cached.diet_tags.includes(dietTag));
+      }
       setResults(passed);
     }catch{
       if(sid===searchIdRef.current)setResults([]);
@@ -1365,7 +1555,7 @@ function DiscoverRecipeBrowser({onOpenRecipe}){
   return(
     <div>
       <div style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500,color:'rgba(255,255,255,0.6)',marginBottom:14,lineHeight:1.45}}>
-        From our recipe partner — browse only for now.
+        From our recipe partner — browse and add to your meal plan.
       </div>
       <div style={{position:'relative',marginBottom:14}}>
         <input value={inputVal} onChange={e=>setInputVal(e.target.value)}
@@ -1379,7 +1569,7 @@ function DiscoverRecipeBrowser({onOpenRecipe}){
       </div>
       <div style={_filterRow}>
         {_FS_QUICK_CHIPS.map(c=>(
-          <button key={c.label} style={_chip(activeQuery===c.query&&!loading)} onPointerDown={()=>_hL()} onClick={()=>{setInputVal(c.query);runSearch(c.query);}}>
+          <button key={c.label} style={_chip(activeQuery===c.query&&!loading)} onPointerDown={()=>_hL()} onClick={()=>{setInputVal(c.query);runSearch(c.query,c.dietTag);}}>
             {c.label}
           </button>
         ))}
@@ -1408,6 +1598,7 @@ function DiscoverRecipeBrowser({onOpenRecipe}){
             const cal=n.calories?Math.round(Number(n.calories)):null;
             const pro=n.protein?Math.round(Number(n.protein)*10)/10:null;
             const img=Array.isArray(r.images)&&r.images.length>0?r.images[0]:null;
+            const rDietTags=r._cached?.diet_tags||[];
             return(
               <button key={r.recipe_id} onClick={()=>{_hM();onOpenRecipe(r);}}
                 style={{width:'100%',background:'var(--cm-paper,#FFFFFF)',border:'none',borderRadius:14,padding:0,overflow:'hidden',boxShadow:'0 2px 10px rgba(0,0,0,.12)',cursor:'pointer',textAlign:'left',fontFamily:"'Archivo',sans-serif",WebkitTapHighlightColor:'transparent'}}>
@@ -1415,9 +1606,10 @@ function DiscoverRecipeBrowser({onOpenRecipe}){
                 <div style={{padding:'12px 14px 14px'}}>
                   <div style={{fontWeight:800,fontSize:15,color:'var(--cm-ink,#0A0A0A)',marginBottom:5,lineHeight:1.2}}>{r.recipe_name}</div>
                   {r.recipe_description&&<div style={{fontSize:12,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.55)',marginBottom:7,lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{r.recipe_description}</div>}
-                  <div style={{display:'flex',gap:10,fontSize:11,fontWeight:600,alignItems:'center'}}>
+                  <div style={{display:'flex',gap:10,fontSize:11,fontWeight:600,alignItems:'center',flexWrap:'wrap'}}>
                     {cal!=null&&<span style={{color:'var(--cm-red,#FF3B30)'}}>{cal}<span style={{fontSize:10,fontWeight:600,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)'}}> kcal</span></span>}
                     {pro!=null&&<span style={{color:'var(--cm-red,#FF3B30)'}}>P {pro}g</span>}
+                    {rDietTags.slice(0,2).map(t=><span key={t} style={{fontSize:10,fontWeight:600,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)',textTransform:'capitalize'}}>{t.replace(/-/g,' ')}</span>)}
                   </div>
                 </div>
               </button>
@@ -2423,6 +2615,21 @@ Reply with ONLY a valid JSON object, no markdown:
       setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex]=updated;return u;});
     }catch(e){console.error('[regenerateDay (fitter)]',e);}
     setRegeneratingDay(null);
+  }
+
+  // ── Add FatSecret recipe to a specific day/slot in the current meal plan ─────
+  function handleAddFsRecipeToMealPlan(dayIndex,mealIndex,mealShape){
+    const dayName=mealPrepPlan?.days?.[dayIndex]?.day||'';
+    setMealPrepPlan(prev=>{
+      if(!prev)return prev;
+      const u=JSON.parse(JSON.stringify(prev));
+      if(u.days[dayIndex]&&u.days[dayIndex].meals[mealIndex]){
+        u.days[dayIndex].meals[mealIndex]=mealShape;
+      }
+      return u;
+    });
+    showToast(`Added to ${dayName}${dayName?' ':''}`+(mealShape.slot||'plan'),'success');
+    setDiscoverDetail(null);
   }
 
   // ── Planned-card part-B actions ──────────────────────────────────────────────
@@ -4904,6 +5111,8 @@ Reply with ONLY a valid JSON object, no markdown:
               key={discoverDetail.recipe_id||'discover-detail'}
               recipe={discoverDetail}
               onClose={()=>setDiscoverDetail(null)}
+              mealPrepPlan={mealPrepPlan}
+              onAddToMealPlan={handleAddFsRecipeToMealPlan}
             />
           )}
         </AnimatePresence>
