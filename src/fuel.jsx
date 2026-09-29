@@ -1203,6 +1203,110 @@ async function _classifyAndCacheFsRecipe(recipe) {
   return row;
 }
 
+// ── FatSecret backfill helpers ────────────────────────────────────────────────
+// Fetch live FatSecret candidates for a slot that the curated pool left unfillable.
+// Never called when allergenTags.length > 0 (FatSecret has no allergen data).
+
+function _fsRecipeToSlot(recipe) {
+  try {
+    const t = recipe.recipe_types;
+    const names = Array.isArray(t?.recipe_type)
+      ? t.recipe_type.map(x => typeof x === 'string' ? x : (x.recipe_type_name || ''))
+      : [];
+    for (const n of names) {
+      const l = (n || '').toLowerCase();
+      if (l === 'breakfast') return 'breakfast';
+      if (l === 'lunch') return 'lunch';
+      if (l === 'dinner') return 'dinner';
+      if (l === 'snack') return 'snack';
+    }
+  } catch { /* */ }
+  return null;
+}
+
+async function fetchFsBackfillCandidates(slot, diet) {
+  try {
+    const query = (diet && diet !== 'balanced') ? `${diet} ${slot}` : slot;
+    const r = await fetch(`${_RA_PROXY}/api/fatsecret?endpoint=recipes&query=${encodeURIComponent(query)}&max_results=8&must_have_images=1`);
+    if (!r.ok) return [];
+    const data = await r.json();
+    const items = Array.isArray(data.recipes) ? data.recipes : [];
+    if (!items.length) return [];
+
+    const detailResults = await Promise.allSettled(
+      items.map(item => fetch(`${_RA_PROXY}/api/fatsecret?endpoint=recipe_detail&recipe_id=${item.recipe_id}`).then(rr => rr.json()))
+    );
+    const fetched = detailResults
+      .filter(d => d.status === 'fulfilled' && d.value && !d.value.error)
+      .map(d => d.value);
+
+    const cacheResults = await Promise.allSettled(fetched.map(rec => _classifyAndCacheFsRecipe(rec)));
+
+    const candidates = [];
+    for (let i = 0; i < fetched.length; i++) {
+      const rec = fetched[i];
+      if (!Array.isArray(rec.directions) || rec.directions.length < 4) continue;
+      const cached = cacheResults[i].status === 'fulfilled' ? cacheResults[i].value : null;
+      if (diet && diet !== 'balanced' && !cached?.diet_tags?.includes(diet)) continue;
+      const n = rec.nutrition_per_serving || {};
+      const parsedIngs = cached?.parsed_ingredients || [];
+      candidates.push({
+        id: `fs_${rec.recipe_id}`,
+        name: rec.recipe_name,
+        meal_slot: _fsRecipeToSlot(rec) || slot,
+        diet_tags: cached?.diet_tags || [],
+        allergen_tags: [],
+        primary_diet: null,
+        calories_per_serving: Number(n.calories || 0),
+        protein_per_serving: Number(n.protein || 0),
+        carbs_per_serving: Number(n.carbohydrate || 0),
+        fat_per_serving: Number(n.fat || 0),
+        servings_count: Number(rec.number_of_servings) || 1,
+        ingredients: parsedIngs.map(p => ({ item: p.item || p.raw || '', qty: p.qty ?? null, unit: p.unit || null })),
+        instructions: null,
+        recipe_kind: 'fatsecret',
+        use_count: 0,
+        last_used: null,
+        cost_tier: null,
+        _source: 'fatsecret',
+        _parseConfidence: cached?.parse_confidence || 'partial',
+      });
+    }
+    return candidates;
+  } catch (e) {
+    console.error('[fetchFsBackfillCandidates]', e);
+    return [];
+  }
+}
+
+// Convert a FatSecret backfill candidate (pool-shape) → the meal shape fitterDayToShape produces.
+// sc = mealPrepPrefs.servingsCount (ingredient quantity multiplier).
+function _fsBackfillToMeal(candidate, slot, sc) {
+  return {
+    name: candidate.name,
+    calories: Math.round(candidate.calories_per_serving || 0),
+    protein: Math.round((candidate.protein_per_serving || 0) * 10) / 10,
+    carbs: Math.round((candidate.carbs_per_serving || 0) * 10) / 10,
+    fat: Math.round((candidate.fat_per_serving || 0) * 10) / 10,
+    ingredients: (candidate.ingredients || []).map(ing => ({
+      item: ing.item,
+      amount: fmtIngAmt((ing.qty || 0) * sc, ing.unit),
+      qty: Math.round((ing.qty || 0) * sc * 10) / 10,
+      unit: ing.unit || null,
+    })),
+    instructions: null,
+    recipe_kind: 'fatsecret',
+    dietTags: candidate.diet_tags || [],
+    allergenTags: [],
+    slot,
+    servings: candidate.servings_count || 1,
+    _recipeId: candidate.id,
+    _source: 'fatsecret',
+    _parseConfidence: candidate._parseConfidence || 'partial',
+    unfillable: false,
+  };
+}
+
 // ── RecipeDetailSheet ──────────────────────────────────────────────────────────
 // Extracted from the inline IIFE. Used by the meal-plan flow (showSwap=true)
 // and the recipe browser (showSwap=false). Ingredient check-off is local state
@@ -1215,6 +1319,8 @@ function RecipeDetailSheet({meal,day,sessFull,onClose,showSwap,onSwap,user}){
   const inst=meal.instructions||null;
   const dietTags=(meal.dietTags||[]).filter(t=>t&&t!=='none');
   const allergenTags=meal.allergenTags||[];
+  const isFatSecret=meal._source==='fatsecret';
+  const fsParseConf=meal._parseConfidence;
   const maxMacro=Math.max(pro,carb,fat)||1;
   const fmtMin=(m)=>{m=Math.round(m||0);return m>=60?`${Math.floor(m/60)}h${m%60?` ${m%60}m`:''}`:`${m}m`;};
   const MB=[{label:'Protein',value:pro,color:'var(--cm-red,#FF3B30)'},{label:'Carbs',value:carb,color:'#60a5fa'},{label:'Fat',value:fat,color:'#FEA020'}];
@@ -1234,7 +1340,10 @@ function RecipeDetailSheet({meal,day,sessFull,onClose,showSwap,onSwap,user}){
             <span style={{...eyebrow,fontSize:10,color:'#fff'}}>Close</span>
           </button>
           {day&&sessFull&&<div style={{...eyebrow,fontSize:10,color:'rgba(255,255,255,0.7)',marginBottom:6}}>{day.day?.slice(0,3)} · {sessFull}</div>}
-          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:30,letterSpacing:'-0.01em',color:'#fff',lineHeight:1.05,marginBottom:18}}>{meal.name}</div>
+          <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10,marginBottom:18}}>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:30,letterSpacing:'-0.01em',color:'#fff',lineHeight:1.05,flex:1}}>{meal.name}</div>
+            {isFatSecret&&<span style={{...eyebrow,fontSize:9,color:'rgba(255,255,255,0.5)',letterSpacing:'0.06em',border:'1px solid rgba(255,255,255,0.22)',borderRadius:999,padding:'4px 10px',flexShrink:0,whiteSpace:'nowrap',marginTop:6}}>via FatSecret</span>}
+          </div>
           <div style={card}>
             <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:14}}>
               <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:30,letterSpacing:'-0.01em',color:'var(--cm-ink,#0A0A0A)',lineHeight:1}}>{cal}</span>
@@ -1309,6 +1418,11 @@ function RecipeDetailSheet({meal,day,sessFull,onClose,showSwap,onSwap,user}){
                   <div style={{fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.7)',lineHeight:1.5}}>{v}</div>
                 </div>
               ))}
+            </div>
+          )}
+          {isFatSecret&&fsParseConf==='partial'&&(
+            <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:600,color:'rgba(255,255,255,0.55)',lineHeight:1.5,marginBottom:12,letterSpacing:'0.01em'}}>
+              Some amounts may need a manual check in your grocery list
             </div>
           )}
           {showSwap&&(
@@ -2555,6 +2669,19 @@ Reply with ONLY a valid JSON object, no markdown:
       // Convert to plan shape the renderer expects (servingsCount scales ingredient quantities)
       const sc=mealPrepPrefs.servingsCount||1;
       const days=sel.map((dayName,i)=>fitterDayToShape(weekResult[i],dayName,schedule?.[dayName]||'rest',sc));
+      // Backfill: for any slot the curated pool left unfillable, try FatSecret (skip if allergens set — no allergen data).
+      if(allergenTags.length===0){
+        for(const day of days){
+          for(let mi=0;mi<day.meals.length;mi++){
+            if(!day.meals[mi].unfillable)continue;
+            const fbCandidates=await fetchFsBackfillCandidates(day.meals[mi].slot,diet);
+            if(fbCandidates.length>0){
+              const pick=fbCandidates[Math.floor(Math.random()*fbCandidates.length)];
+              day.meals[mi]=_fsBackfillToMeal(pick,day.meals[mi].slot,sc);
+            }
+          }
+        }
+      }
       // P0/P1 — stamp the training signature (staleness) + generatedAt (freshness).
       const plan={days,groceryList:null,trainingSig:_trainingSig(),generatedAt:new Date().toISOString()};
 
@@ -2602,6 +2729,14 @@ Reply with ONLY a valid JSON object, no markdown:
           instructions:recipe.instructions||null,slot:currentSlot,servings,_recipeId:recipe.id,unfillable:false,
         };
         setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex].meals[mealIndex]=newMeal;return u;});
+      }else if(allergenTags.length===0){
+        const fbCandidates=await fetchFsBackfillCandidates(currentSlot,diet);
+        if(fbCandidates.length>0){
+          const sc=mealPrepPrefs.servingsCount||1;
+          const pick=fbCandidates[Math.floor(Math.random()*fbCandidates.length)];
+          const newMeal=_fsBackfillToMeal(pick,currentSlot,sc);
+          setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex].meals[mealIndex]=newMeal;return u;});
+        }
       }
     }catch(e){console.error('[regenerateMeal (fitter)]',e);}
     setRegeneratingMeal(null);
@@ -2618,6 +2753,17 @@ Reply with ONLY a valid JSON object, no markdown:
       const pool=await loadMealPool(diet,allergenTags,mealPrepPrefs.budgetTier||'moderate');
       const result=fitDay({dayTarget,mealCount:mealPrepPrefs.mealsPerDay||3,diet,allergens:allergenTags,pool,seed:Date.now()%100000});
       const updated=fitterDayToShape(result,dayName,schedule?.[dayName]||'rest',mealPrepPrefs.servingsCount||1);
+      if(allergenTags.length===0){
+        const sc=mealPrepPrefs.servingsCount||1;
+        for(let mi=0;mi<updated.meals.length;mi++){
+          if(!updated.meals[mi].unfillable)continue;
+          const fbCandidates=await fetchFsBackfillCandidates(updated.meals[mi].slot,diet);
+          if(fbCandidates.length>0){
+            const pick=fbCandidates[Math.floor(Math.random()*fbCandidates.length)];
+            updated.meals[mi]=_fsBackfillToMeal(pick,updated.meals[mi].slot,sc);
+          }
+        }
+      }
       setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex]=updated;return u;});
     }catch(e){console.error('[regenerateDay (fitter)]',e);}
     setRegeneratingDay(null);
@@ -4623,7 +4769,10 @@ Reply with ONLY a valid JSON object, no markdown:
                             >
                               <FoodIcon name={meal.name} size={44} userId={user?.id} />
                               <div style={{flex:1,minWidth:0}}>
-                                <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'rgba(var(--cm-red-rgb,255,59,48),0.55)',letterSpacing:'0.12em',marginBottom:3,textTransform:'uppercase'}}>Meal {mealIndex+1}</div>
+                                <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'rgba(var(--cm-red-rgb,255,59,48),0.55)',letterSpacing:'0.12em',marginBottom:3,textTransform:'uppercase',display:'flex',alignItems:'center',gap:6}}>
+                                Meal {mealIndex+1}
+                                {meal._source==='fatsecret'&&<span style={{background:'rgba(var(--cm-red-rgb,255,59,48),0.08)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.22)',borderRadius:999,padding:'1px 7px',fontSize:9,letterSpacing:'0.06em',fontWeight:700}}>via FatSecret</span>}
+                              </div>
                                 <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:16,letterSpacing:'-0.01em',color:'var(--cm-ink,#0A0A0A)',lineHeight:1.15,marginBottom:7,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{meal.name}</div>
                                 <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
                                   <span style={{background:'rgba(var(--cm-red-rgb,255,59,48),0.1)',borderRadius:20,padding:'3px 9px',fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'var(--cm-red,#FF3B30)'}}>{meal.calories} kcal</span>
