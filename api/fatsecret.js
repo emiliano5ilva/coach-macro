@@ -161,7 +161,11 @@ export default withLogging(async function handler(req, res) {
     }
 
     const r = dData?.recipe ?? dData;
-    const n = r.recipe_nutrition ?? {};
+    // Debug: log nutrition-related keys to diagnose null values
+    console.log('[fatsecret] recipe detail keys:', Object.keys(r));
+    console.log('[fatsecret] recipe_nutrition raw:', JSON.stringify(r.recipe_nutrition));
+    console.log('[fatsecret] serving_sizes raw:', JSON.stringify(r.serving_sizes));
+    const n = r.recipe_nutrition ?? r.serving_sizes?.serving ?? {};
 
     // Ingredients: FatSecret returns ingredient as array or single object
     const rawIng = r.ingredients?.ingredient;
