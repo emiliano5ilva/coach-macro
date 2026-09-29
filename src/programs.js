@@ -2595,7 +2595,13 @@ export function selectDayKey(splitType, daysPerWeek, schedule, programStartDate,
   return dayKeys[((idx % dayKeys.length) + dayKeys.length) % dayKeys.length];
 }
 
-export function getWorkoutForDay(daysPerWeek, splitType, dayIndex, equipment, history, skillLevel, schedule, programStartDate, dayOffset = 0) {
+// focusLabel: when set (e.g. "Legs", "Push", "Upper") and it exactly matches a dayKey in the
+// split, use it directly. This makes WeekEditor drag-and-drop the source of truth — a day
+// labelled "Legs" always serves Legs exercises regardless of the elapsed-session count.
+// Fallback chain: focusLabel match → selectDayKey (schedule+anchor) → positional dayIndex.
+// Weight/progression history is keyed by exercise name (not by dayKey position), so this
+// change has no effect on progressive overload tracking.
+export function getWorkoutForDay(daysPerWeek, splitType, dayIndex, equipment, history, skillLevel, schedule, programStartDate, dayOffset = 0, focusLabel = null) {
   const days = daysPerWeek || 4;
   const split = _resolveSplit(days, splitType);
   if (!split) return null;
@@ -2606,9 +2612,11 @@ export function getWorkoutForDay(daysPerWeek, splitType, dayIndex, equipment, hi
   if (dayKeys.length === 0) return null;
   // Unified selection (same source as the title) when schedule + anchor are available;
   // otherwise fall back to the legacy positional index for older callers.
-  const dayKey = ((schedule && programStartDate)
-    ? selectDayKey(splitType, days, schedule, programStartDate, dayOffset)
-    : null) || dayKeys[((dayIndex % dayKeys.length) + dayKeys.length) % dayKeys.length];
+  const dayKey = (focusLabel && dayKeys.includes(focusLabel) ? focusLabel : null)
+    || ((schedule && programStartDate)
+        ? selectDayKey(splitType, days, schedule, programStartDate, dayOffset)
+        : null)
+    || dayKeys[((dayIndex % dayKeys.length) + dayKeys.length) % dayKeys.length];
   const intermediate = split.workouts[dayKey] || [];
 
   // Resolve skill level → override key

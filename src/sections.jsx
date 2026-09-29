@@ -2821,10 +2821,13 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
   // favorites → GVT overlay → session-length cap → soreness reduction. Pure-lifting calls it with
   // session-index walk (schedule+start anchor); hybrid lift days call it with {positional:true} so
   // dayIndex is used directly (dayKeys[dayIndex]) to index the dayPlan cycle position.
+  // opts.focusLabel (pure-lifting only): when set and it matches a dayKey, overrides selectDayKey —
+  // this makes WeekEditor reorders produce the right content, not the elapsed-session count.
   const buildLiftingPrescription=(splitType,dayIndex,opts={})=>{
     const _sched=opts.positional?null:schedule;
     const _start=opts.positional?null:(profile?.program_start_date||null);
-    let exs=getWorkoutForDay(daysPerWeek,splitType,dayIndex,wPrefs.equipment||"Full Gym",undefined,wPrefs.liftExp||profile?.liftExp,_sched,_start,0);
+    const _focusLabel=opts.positional?null:(opts.focusLabel||null);
+    let exs=getWorkoutForDay(daysPerWeek,splitType,dayIndex,wPrefs.equipment||"Full Gym",undefined,wPrefs.liftExp||profile?.liftExp,_sched,_start,0,_focusLabel);
     exs=applyEquipmentToWorkout(exs?.exercises||exs||[],wPrefs.equipment||"Full Gym");
     exs=exs.map(ex=>{const c=ex.originalName||ex.name;const sw=permanentSwaps[c];return{...ex,name:sw||ex.name,swappedFrom:sw?c:undefined,isFavorite:favorites.includes(c)};});
     if(showGVT&&isGVTWeek)exs=[...exs.slice(0,2).map(e=>({...e,sets:GVT_OVERLAY.sets,reps:GVT_OVERLAY.reps,notes:GVT_OVERLAY.note})),...exs.slice(2)];
@@ -2849,7 +2852,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
   let todayPrescription=null;
   let todayProgObj=null;
   if(prescType==="lifting"&&todayType==="training"){
-    todayPrescription=buildLiftingPrescription(wPrefs.splitType||"Full Body",dayIndex,{});
+    todayPrescription=buildLiftingPrescription(wPrefs.splitType||"Full Body",dayIndex,{focusLabel:dayFocus?.[todayKey]||null});
   }else if(prescType==="running"){
     // ── Generative engine — Phase B ──────────────────────────────────────────
     todayPrescription = getTodayRunWorkout(profile, wPrefs, schedule, todayKey, weekNum);

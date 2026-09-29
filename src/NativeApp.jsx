@@ -884,15 +884,27 @@ export default function NativeApp() {
         })():null;
         if(_hlbl){f[d]=_hlbl;}
         else{
-          const _dk=selectDayKey(wPrefs.splitType,_dpw,schedule,_psd,j-_todayIdx);
-          f[d]=_dk?baseName(_dk):(SPLIT_CYCLES[wPrefs.splitType]?.[0]||"Full Body");
+          // WeekEditor saves the user's explicit session arrangement to wPrefs.dayFocus.
+          // Use it when it holds a valid split-cycle label so that dragging "Legs" onto
+          // Friday makes Friday actually serve Legs exercises (not whatever the elapsed-
+          // session count would say). Falls back to selectDayKey when:
+          //  • wPrefs.dayFocus is absent (users who've never opened WeekEditor)
+          //  • the saved label isn't in the current split (after a program change)
+          const _savedFocus = wPrefs.dayFocus?.[d];
+          const _validCycles = SPLIT_CYCLES[wPrefs.splitType] || [];
+          if(_savedFocus && _validCycles.includes(_savedFocus)){
+            f[d] = _savedFocus;
+          } else {
+            const _dk=selectDayKey(wPrefs.splitType,_dpw,schedule,_psd,j-_todayIdx);
+            f[d]=_dk?baseName(_dk):(SPLIT_CYCLES[wPrefs.splitType]?.[0]||"Full Body");
+          }
         }
       }else if(["cardio","run","hyrox"].includes(schedule[d])){
         f[d]=(lrd&&d===lrd&&(schedule[d]==='run'||schedule[d]==='cardio'))?"Long Run":(DAY_CFG[schedule[d]]||DAY_CFG.rest).label;
       }else f[d]="Rest";
     });
     setDayFocus(f);
-  },[wPrefs.splitType,wPrefs.longRunDay,schedule,profile]);
+  },[wPrefs.splitType,wPrefs.longRunDay,wPrefs.dayFocus,schedule,profile]);
 
   if(phase==="splash")return<SplashScreen onDone={()=>setPhase("session-check")}/>;
 
