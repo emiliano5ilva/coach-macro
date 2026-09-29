@@ -7,43 +7,12 @@ import React, { useState, useCallback, useMemo } from "react";
 import ExerciseBrowser from "./ExerciseBrowser.jsx";
 import { PROGRAMS_BY_DAYS, PROGRAM_LIBRARY } from "../programs.js";
 import { sb } from "../client.js";
+import { computeRoutineBalance } from "../services/muscleBalanceService.js";
 
 const _AF = "'Archivo',sans-serif";
 const _MO = "'DM Mono',monospace";
 
-// ── Push/pull/quad/posterior classifiers (same logic as muscleBalanceService) ──
-const _PUSH = ["Barbell Bench Press","Incline Barbell Bench Press","Dumbbell Bench Press","Incline Dumbbell Press","Overhead Press","Dumbbell Shoulder Press","Cable Fly","Chest Dip","Push-Up","Push Up","Tricep Pushdown","Skull Crusher","Lateral Raise","Front Raise","Dips (Chest)","Close Grip Bench Press","Diamond Push Up","Incline Barbell Press","Decline Bench Press","Dumbbell Fly","DB Fly","Dumbbell Overhead Press","Arnold Press"];
-const _PULL = ["Barbell Row","Dumbbell Row","DB Row","Cable Row","Pull-Up","Pull Up","Weighted Pull-Up","Chin-Up","Lat Pulldown","Face Pull","Band Pull-Apart","Rear Delt Fly","Barbell Curl","Hammer Curl","Deadlift","Romanian Deadlift","Barbell Row","Seated Cable Row","Reverse Fly","Upright Row"];
-const _QUAD = ["Barbell Back Squat","Barbell Squat","Front Squat","Leg Press","Leg Extension","Walking Lunge","Bulgarian Split Squat","Step Up","Hack Squat","Goblet Squat","Bodyweight Squat","Air Squat","Reverse Lunge","Sumo Squat"];
-const _POST = ["Romanian Deadlift","Deadlift","Hip Thrust","Glute Bridge","Leg Curl","Good Morning","Nordic Curl","Cable Pull Through","Barbell Hip Thrust","Dumbbell Hip Thrust","Hip Thrust Pulse","Donkey Kick","Cable Kickback","Glute Kickback","Dumbbell Romanian Deadlift"];
-
-function classifyEx(name) {
-  const cats = [];
-  const n = name.toLowerCase();
-  if (_PUSH.some(e => e.toLowerCase() === n)) cats.push("push");
-  if (_PULL.some(e => e.toLowerCase() === n)) cats.push("pull");
-  if (_QUAD.some(e => e.toLowerCase() === n)) cats.push("quad");
-  if (_POST.some(e => e.toLowerCase() === n)) cats.push("post");
-  return cats;
-}
-
-function computeBalance(exercises) {
-  let push = 0, pull = 0, quad = 0, post = 0;
-  (exercises || []).forEach(ex => {
-    const cats = classifyEx(ex.name || "");
-    if (cats.includes("push")) push++;
-    if (cats.includes("pull")) pull++;
-    if (cats.includes("quad")) quad++;
-    if (cats.includes("post")) post++;
-  });
-  const warnings = [];
-  if (push > 0 && pull === 0) warnings.push(`${push} push exercise${push>1?"s":""}, 0 pull — consider adding a row or pull-up.`);
-  else if (pull > 0 && push === 0) warnings.push(`${pull} pull exercise${pull>1?"s":""}, 0 push — consider adding a press.`);
-  else if (push > 0 && pull > 0 && push / pull >= 2) warnings.push(`${push} push vs ${pull} pull — slightly push-dominant. Consider balancing.`);
-  if (quad > 0 && post === 0) warnings.push(`${quad} quad exercise${quad>1?"s":""}, 0 posterior chain — add a hip hinge or glute movement.`);
-  else if (post > 0 && quad === 0 && quad !== post) { /* posterior-only is fine */ }
-  return warnings;
-}
+// computeBalance deleted — use computeRoutineBalance (muscleBalanceService.js) instead.
 
 // ── Build exercise list from a premade program split-day ──────────────────────
 function exercisesFromProgramDay(splitKey, dayName, daysPerWeek = 4) {
@@ -92,7 +61,7 @@ export default function RoutineBuilder({ user, existingRoutine, onSaved, onCance
   const [error, setError] = useState("");
   const [nextId, setNextId] = useState(existingRoutine?.exercises?.length || 0);
 
-  const balanceWarnings = useMemo(() => computeBalance(exercises), [exercises]);
+  const balanceWarnings = useMemo(() => computeRoutineBalance(exercises), [exercises]);
   const addedNames = useMemo(() => new Set(exercises.map(e => e.name)), [exercises]);
 
   // ── Exercise CRUD ──────────────────────────────────────────────────────────

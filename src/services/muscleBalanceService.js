@@ -1,6 +1,8 @@
 import { sb } from '../client';
 
-const PUSH_EXERCISES = [
+// Exported so callers (e.g. RoutineBuilder) can classify exercises the same way without
+// maintaining a parallel list.  Changes here propagate everywhere automatically.
+export const PUSH_EXERCISES = [
   'Barbell Bench Press', 'Incline Barbell Bench Press',
   'Dumbbell Bench Press', 'Incline Dumbbell Press',
   'Overhead Press', 'Dumbbell Shoulder Press',
@@ -9,26 +11,27 @@ const PUSH_EXERCISES = [
   'Lateral Raise', 'Front Raise',
 ];
 
-const PULL_EXERCISES = [
+export const PULL_EXERCISES = [
   'Barbell Row', 'Dumbbell Row', 'Cable Row',
   'Pull-Up', 'Weighted Pull-Up', 'Lat Pulldown',
   'Face Pull', 'Band Pull-Apart', 'Rear Delt Fly',
   'Bicep Curl', 'Hammer Curl', 'Deadlift',
 ];
 
-const QUAD_EXERCISES = [
+export const QUAD_EXERCISES = [
   'Barbell Back Squat', 'Barbell Front Squat',
   'Leg Press', 'Leg Extension',
   'Walking Lunge', 'Bulgarian Split Squat', 'Step-Up',
 ];
 
-const POSTERIOR_EXERCISES = [
+export const POSTERIOR_EXERCISES = [
   'Romanian Deadlift', 'Deadlift', 'Hip Thrust',
   'Glute Bridge', 'Leg Curl', 'Good Morning',
   'Nordic Curl', 'Cable Pull-Through', 'Reverse Hyper',
 ];
 
-function classifyExercise(name) {
+// Shared classifier — single source of truth for push/pull/quad/posterior assignment.
+export function classifyExercise(name) {
   const cats = [];
   if (PUSH_EXERCISES.includes(name)) cats.push('push');
   if (PULL_EXERCISES.includes(name)) cats.push('pull');
@@ -37,10 +40,48 @@ function classifyExercise(name) {
   return cats;
 }
 
-function getBalanceStatus(ratio) {
+// Shared ratio thresholds — same for both historical-volume checks and routine-build counts.
+export function getBalanceStatus(ratio) {
   if (ratio <= 1.3) return 'balanced';
   if (ratio <= 1.6) return 'warning';
   return 'risk';
+}
+
+// Synchronous check for an in-progress routine (exercise count, not logged volume).
+// Returns an array of warning strings to display inline.  Does NOT write to the DB —
+// that's calculateMuscleBalance's job after a real workout is logged.
+export function computeRoutineBalance(exercises) {
+  let push = 0, pull = 0, quad = 0, post = 0;
+  (exercises || []).forEach(ex => {
+    const cats = classifyExercise(ex.name || '');
+    if (cats.includes('push'))     push++;
+    if (cats.includes('pull'))     pull++;
+    if (cats.includes('quad'))     quad++;
+    if (cats.includes('posterior'))post++;
+  });
+
+  const warnings = [];
+
+  const ppRatio = pull > 0 ? push / pull : push > 0 ? 99 : 1;
+  const ppStatus = getBalanceStatus(ppRatio);
+  if (ppStatus !== 'balanced') {
+    if (push > 0 && pull === 0) {
+      warnings.push(`${push} push exercise${push > 1 ? 's' : ''}, 0 pull — consider adding a row or pull-up.`);
+    } else if (pull > 0 && push === 0) {
+      warnings.push(`${pull} pull exercise${pull > 1 ? 's' : ''}, 0 push — consider adding a press.`);
+    } else {
+      warnings.push(`${push} push vs ${pull} pull — slightly push-dominant. Consider balancing.`);
+    }
+  }
+
+  const qpRatio = post > 0 ? quad / post : quad > 0 ? 99 : 1;
+  if (getBalanceStatus(qpRatio) !== 'balanced') {
+    if (quad > 0 && post === 0) {
+      warnings.push(`${quad} quad exercise${quad > 1 ? 's' : ''}, 0 posterior chain — add a hip hinge or glute movement.`);
+    }
+  }
+
+  return warnings;
 }
 
 export async function calculateMuscleBalance(userId) {

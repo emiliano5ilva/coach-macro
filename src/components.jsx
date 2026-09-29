@@ -186,10 +186,14 @@ export const FOCUS_TO_MUSCLES = {
 
 export const SPLIT_CYCLES = {
   "Push/Pull/Legs":  ["Push","Pull","Legs"],
-  "Upper/Lower":     ["Upper","Lower"],
+  // Full keys match PROGRAMS_BY_DAYS[4].splits["Upper/Lower"].days exactly.
+  // A = strength focus, B = hypertrophy focus — users can distinguish which they dragged.
+  "Upper/Lower":     ["Upper A","Lower A","Upper B","Lower B"],
   "Full Body":       ["Full Body"],
   "Bro Split":       ["Chest","Back","Shoulders","Arms","Legs"],
-  "Arnold Split":    ["Chest & Back","Shoulders & Arms","Legs"],
+  // Full keys match PROGRAMS_BY_DAYS[6].splits["Arnold Split"].days exactly.
+  // Uses "+" separator (not "&") and includes the A/B suffix — both match the real workout keys.
+  "Arnold Split":    ["Chest+Back A","Shoulders+Arms A","Legs A","Chest+Back B","Shoulders+Arms B","Legs B"],
   "Platz Volume":    ["Chest","Back","Legs","Shoulders + Arms"],
 };
 

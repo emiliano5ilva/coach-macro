@@ -899,7 +899,18 @@ export default function NativeApp() {
             f[d] = _savedFocus;
           } else {
             const _dk=selectDayKey(wPrefs.splitType,_dpw,schedule,_psd,j-_todayIdx);
-            f[d]=_dk?baseName(_dk):(SPLIT_CYCLES[wPrefs.splitType]?.[0]||"Full Body");
+            if(_dk){
+              const _stripped=baseName(_dk);
+              const _cycles=SPLIT_CYCLES[wPrefs.splitType]||[];
+              // Keep the full key (e.g. "Upper A", "Chest+Back A") when it appears in SPLIT_CYCLES
+              // but its baseName-stripped form doesn't.  This lets WeekEditor drags and the
+              // focusLabel exercise-resolver both see the exact key from the split's workouts object.
+              // Fall through to baseName for everything else (PPL/Bro/Platz labels don't change;
+              // abstract "Day A"→"Day" / "Workout A"→"Workout" behaviour is preserved).
+              f[d]=(_cycles.includes(_dk)&&!_cycles.includes(_stripped))?_dk:_stripped;
+            }else{
+              f[d]=SPLIT_CYCLES[wPrefs.splitType]?.[0]||"Full Body";
+            }
           }
         }
       }else if(schedule[d]==="custom"){
