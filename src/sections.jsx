@@ -113,6 +113,8 @@ import { COOL_DOWN, GENERAL_WARMUP, MOVEMENT_PREP } from "./utils/warmupProtocol
 import WarmupScreen from "./components/WarmupScreen.jsx";
 import WeekEditor from "./components/WeekEditor.jsx";
 import FeatureStrip from "./components/FeatureStrip.jsx";
+import ExerciseBrowser from "./screens/ExerciseBrowser.jsx";
+import MyRoutines from "./screens/MyRoutines.jsx";
 import { getAIErrorMessage } from "./utils/errors.js";
 import { ProgramLibraryScreen } from "./ProgramLibrary.jsx";
 import { resolveProgram, resolveDisplayWeek } from "./utils/programResolver.js";
@@ -2337,7 +2339,7 @@ function SummaryPortal({completedWorkout,workoutSummary,onClose,todayKey,schedul
   );
 }
 
-export const TrainSection = React.memo(function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,pauseWorkout,getSuggestion,history,workoutLogsRaw=[],planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,completedWorkout=null,clearWorkoutSummary,runDistancePrompt=false,onRunDistanceChange,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert,macros=null,todayProtocol=null,showLocalRest=false,localRestSecs=90,onStartLocalRest,onSkipLocalRest,onReduceLocalRest,onProfileUpdate,streakCount=0}) {
+export const TrainSection = React.memo(function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,pauseWorkout,getSuggestion,history,workoutLogsRaw=[],planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,completedWorkout=null,clearWorkoutSummary,runDistancePrompt=false,onRunDistanceChange,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert,macros=null,todayProtocol=null,showLocalRest=false,localRestSecs=90,onStartLocalRest,onSkipLocalRest,onReduceLocalRest,onProfileUpdate,streakCount=0,customRoutines=[],onCustomRoutinesChange}) {
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [progDetailsExpanded,setProgDetailsExpanded]=useState(false);
   const [exExpanded,setExExpanded]=useState(false);
@@ -2849,9 +2851,40 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
     return exs;
   };
 
+  // ── Part 5/6: Custom day resolution ─────────────────────────────────────────
+  // Resolves wPrefs.dayRoutine[day] → active routine ID, honouring A/B/C rotation.
+  // Uses the same program_start_date epoch as the rest of the training engine.
+  // Custom days bypass getWorkoutForDay / selectDayKey entirely — it's a direct ID lookup.
+  function _getActiveRoutineId(dayRoutineInfo, programStartDate) {
+    if (!dayRoutineInfo) return null;
+    const { routineId, rotation } = dayRoutineInfo;
+    if (rotation?.length > 0) {
+      // Elapsed full weeks since program start → rotation index
+      const anchor = (() => { const d = programStartDate ? new Date(String(programStartDate).slice(0,10)) : new Date(); d.setHours(0,0,0,0); return d; })();
+      const today = new Date(); today.setHours(0,0,0,0);
+      const weeks = Math.max(0, Math.floor((today - anchor) / (7 * 86400000)));
+      return rotation[weeks % rotation.length] || rotation[0];
+    }
+    return routineId || null;
+  }
+
   let todayPrescription=null;
   let todayProgObj=null;
-  if(prescType==="lifting"&&todayType==="training"){
+
+  // Custom day (Part 5): resolve directly from the saved routine — do NOT run through
+  // getWorkoutForDay/selectDayKey/_sessionIndex at all. Falls through to the normal
+  // prescType paths when todayType is not "custom".
+  if (todayType === "custom") {
+    const _drInfo = wPrefs.dayRoutine?.[todayKey];
+    const _rid = _getActiveRoutineId(_drInfo, profile?.program_start_date);
+    const _routine = customRoutines.find(r => r.id === _rid);
+    if (_routine?.exercises?.length) {
+      todayPrescription = (_routine.exercises || []).map(ex => ({
+        name: ex.name, sets: ex.sets || 3, reps: String(ex.reps || 10),
+        notes: ex.notes || "", primary: ex.primary !== false,
+      }));
+    }
+  } else if(prescType==="lifting"&&todayType==="training"){
     todayPrescription=buildLiftingPrescription(wPrefs.splitType||"Full Body",dayIndex,{focusLabel:dayFocus?.[todayKey]||null});
   }else if(prescType==="running"){
     // ── Generative engine — Phase B ──────────────────────────────────────────
@@ -4629,7 +4662,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
               })():(
                 <div className="header-eyebrow">// {todayFocus||cfg.label}</div>
               )}
-              <div className="header-title">{trainScreen==="today"?"Today's Session":trainScreen==="plan"?"My Program":trainScreen==="library"?"Exercise Library":trainScreen==="warmup-protocols"?"Protocols":trainScreen==="builder"?"Lift Smarter":trainScreen==="progress"?"Progress":trainScreen==="plan-overview"?"Training Plan":"Train"}</div>
+              <div className="header-title">{trainScreen==="today"?"Today's Session":trainScreen==="plan"?"My Program":trainScreen==="library"?"Exercise Library":trainScreen==="routines"?"My Routines":trainScreen==="warmup-protocols"?"Protocols":trainScreen==="builder"?"Lift Smarter":trainScreen==="progress"?"Progress":trainScreen==="plan-overview"?"Training Plan":"Train"}</div>
             </div>
           </div>
         </div>
@@ -5932,9 +5965,15 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                   profile={profile}
                   todayKey={todayKey}
                   notify={(msg)=>showToast(msg,"info")}
-                  onSave={async ({schedule:ns,dayFocus:nf,dayPlan:np,balanced})=>{
+                  customRoutines={customRoutines}
+                  user={user}
+                  onSave={async ({schedule:ns,dayFocus:nf,dayPlan:np,dayRoutine:nr,balanced})=>{
                     setSchedule(ns);
-                    const nw={...wPrefs,dayFocus:nf}; if(np!==undefined) nw.dayPlan=np; setWPrefs(nw);
+                    const nw={...wPrefs,dayFocus:nf};
+                    if(np!==undefined) nw.dayPlan=np;
+                    // Only write dayRoutine if non-empty (avoid persisting an empty object every save)
+                    if(nr&&Object.keys(nr).length>0) nw.dayRoutine=nr; else if(nr) delete nw.dayRoutine;
+                    setWPrefs(nw);
                     if(user){
                       const {error}=await sb.from("profiles").upsert({id:user.id,schedule:ns,wprefs:nw},{onConflict:"id"});
                       if(error){console.error('[weekEditor persist]',error);showToast("Couldn't save — check your connection","error");throw error;}
@@ -5943,6 +5982,18 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                   }}
                 />
               </PaperCard>
+              {/* My Routines entry point */}
+              <div
+                onClick={() => { _hL(); setTrainScreen("routines"); }}
+                style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:"var(--cm-paper)", borderRadius:14, margin:"8px 12px 0", padding:"14px 16px", cursor:"pointer", boxShadow:"0 2px 8px rgba(0,0,0,.08)", border:"1.5px solid rgba(var(--cm-ink-rgb),.08)" }}
+              >
+                <div>
+                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, fontWeight:500, letterSpacing:"0.14em", textTransform:"uppercase", color:"rgba(var(--cm-ink-rgb),.45)", marginBottom:3 }}>CUSTOM WORKOUTS</div>
+                  <div style={{ fontFamily:"'Archivo',sans-serif", fontWeight:800, fontSize:16, color:"var(--cm-ink)" }}>My Routines</div>
+                </div>
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="rgba(var(--cm-ink-rgb),.35)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+              </div>
+
               {/* View full training plan entry point — running-only */}
               {prescType === "running" && profile?.run_race_type && (
                 <div
@@ -6153,8 +6204,23 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
           </div>
         )}
 
-        {/* ── LIBRARY ── */}
-        {trainScreen==="library"&&<ProgramLibraryScreen wPrefs={wPrefs} setWPrefs={setWPrefs} profile={profile} setTrainScreen={setTrainScreen} user={user} onProfileUpdate={onProfileUpdate} schedule={schedule} setSchedule={setSchedule}/>}
+        {/* ── EXERCISE LIBRARY ── real exercise browser (replaces the mislabelled Program Library) */}
+        {trainScreen==="library"&&(
+          <div style={{height:"calc(100vh - 120px)",display:"flex",flexDirection:"column"}}>
+            <ExerciseBrowser />
+          </div>
+        )}
+
+        {/* ── MY ROUTINES ── */}
+        {trainScreen==="routines"&&(
+          <div style={{height:"calc(100vh - 120px)",display:"flex",flexDirection:"column"}}>
+            <MyRoutines
+              user={user}
+              onBack={()=>setTrainScreen("plan")}
+              onRoutinesChanged={onCustomRoutinesChange}
+            />
+          </div>
+        )}
 
 
         {/* ── WARM-UP PROTOCOLS VIEWER ── */}

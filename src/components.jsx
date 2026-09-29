@@ -198,6 +198,7 @@ export const DAY_CFG = {
   cardio:  {label:"Cardio",   emoji:"🏃", color:T.carb, bg:`${T.carb}18`},
   run:     {label:"Run",      emoji:"👟", color:"#29B6F6", bg:"#29B6F618"},
   hyrox:   {label:"Hyrox",    emoji:"🔥", color:T.fat,  bg:`${T.fat}18`},
+  custom:  {label:"Custom",   emoji:"⚡", color:"#9C6FFF", bg:"#9C6FFF18"},
   rest:    {label:"Rest",     emoji:"😴", color:T.mu,   bg:"#4A628518"},
 };
 

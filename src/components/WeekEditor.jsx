@@ -24,6 +24,7 @@ import { WDAYS, DAY_CFG } from "../components.jsx";
 import WeekEditorButtons from "./WeekEditorButtons.jsx";
 import RecoveryRibbon from "./RecoveryRibbon.jsx";
 import WeekWarningModal from "./WeekWarningModal.jsx";
+import MyRoutines from "../screens/MyRoutines.jsx";
 import { evaluateWeek, suggestWeek, balanceNote } from "../utils/weekRecovery.js";
 import { themeRoot } from "../utils/portalRoot.js";
 
@@ -68,21 +69,28 @@ function readSafeAreas() {
   } catch (_) { return { safeTop: 0, safeBottom: 0 }; }
 }
 
-function buildOrder(schedule, dayFocus, dayPlan) {
+function buildOrder(schedule, dayFocus, dayPlan, dayRoutine) {
   return WDAYS.map((d) => {
     const mod = schedule?.[d] || "rest";
-    return { id: d, mod, focus: dayFocus?.[d] || (DAY_CFG[mod] || DAY_CFG.rest).label, plan: dayPlan?.[d] || null };
+    return {
+      id: d, mod,
+      focus: dayFocus?.[d] || (DAY_CFG[mod] || DAY_CFG.rest).label,
+      plan: dayPlan?.[d] || null,
+      routineRef: dayRoutine?.[d] || null,  // { routineId, rotation?, name? }
+    };
   });
 }
 
-function DayCard({ session, slotDay, editing, lifted }) {
+function DayCard({ session, slotDay, editing, lifted, onSetCustom, customRoutines }) {
   const cfg = DAY_CFG[session.mod] || DAY_CFG.rest;
+  const isCustom = session.mod === "custom";
+  const customRoutineName = isCustom ? (customRoutines?.find(r => r.id === session.routineRef?.routineId)?.name || session.routineRef?.name || "Custom") : null;
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: 12, padding: "12px 12px", borderRadius: 14,
       background: "var(--cm-paper,#fff)",
       boxShadow: lifted ? "0 14px 34px rgba(0,0,0,.22)" : "0 1px 3px rgba(0,0,0,.06)",
-      border: "1px solid rgba(var(--cm-ink-rgb,10,10,10),.06)",
+      border: isCustom ? "1.5px solid rgba(156,111,255,.3)" : "1px solid rgba(var(--cm-ink-rgb,10,10,10),.06)",
       transform: lifted ? "scale(1.03)" : "none",
       transition: "box-shadow 160ms ease, transform 160ms ease",
       userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none",
@@ -98,17 +106,38 @@ function DayCard({ session, slotDay, editing, lifted }) {
       )}
       <span style={{ fontFamily: _AF, fontWeight: 800, fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", width: 34, flexShrink: 0, color: "rgba(var(--cm-ink-rgb,10,10,10),.55)" }}>{slotDay}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: _AF, fontWeight: 700, fontSize: 15, color: "var(--cm-ink,#0A0A0A)", lineHeight: 1.15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{session.focus}</div>
-        <div style={{ fontFamily: _AF, fontWeight: 800, fontSize: 9.5, letterSpacing: "0.10em", textTransform: "uppercase", color: "rgba(var(--cm-ink-rgb,10,10,10),.40)", marginTop: 2 }}>{cfg.label}{session.plan?.run && session.plan?.lift ? " · RUN + LIFT" : ""}</div>
+        <div style={{ fontFamily: _AF, fontWeight: 700, fontSize: 15, color: isCustom ? "#9C6FFF" : "var(--cm-ink,#0A0A0A)", lineHeight: 1.15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {isCustom ? (customRoutineName || "Custom Routine") : session.focus}
+        </div>
+        <div style={{ fontFamily: _AF, fontWeight: 800, fontSize: 9.5, letterSpacing: "0.10em", textTransform: "uppercase", color: "rgba(var(--cm-ink-rgb,10,10,10),.40)", marginTop: 2 }}>
+          {cfg.label}{session.plan?.run && session.plan?.lift ? " · RUN + LIFT" : ""}
+        </div>
       </div>
+      {/* Custom badge / set-routine tap target */}
+      {editing && (isCustom || session.mod === "training") && onSetCustom && (
+        <button
+          onPointerDown={e => e.stopPropagation()}
+          onClick={e => { e.stopPropagation(); onSetCustom(session); }}
+          style={{
+            flexShrink: 0, background: isCustom ? "rgba(156,111,255,.12)" : "rgba(var(--cm-ink-rgb,10,10,10),.06)",
+            border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer",
+            color: isCustom ? "#9C6FFF" : "rgba(var(--cm-ink-rgb,10,10,10),.4)",
+            fontFamily: _AF, fontWeight: 700, fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase",
+            WebkitTapHighlightColor: "transparent",
+          }}
+        >
+          {isCustom ? "⚡" : "Custom"}
+        </button>
+      )}
     </div>
   );
 }
 
-function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave, notify }) {
+function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave, notify, customRoutines = [], user }) {
   const reduce = useReducedMotion();
   const [editing, setEditing] = useState(false);
-  const [order, setOrder] = useState(() => buildOrder(schedule, dayFocus, wPrefs?.dayPlan));
+  const [order, setOrder] = useState(() => buildOrder(schedule, dayFocus, wPrefs?.dayPlan, wPrefs?.dayRoutine));
+  const [routinePicker, setRoutinePicker] = useState(null); // session whose custom routine is being picked
   const [saving, setSaving] = useState(false);
   const [drag, setDrag] = useState(null);
   const [sheetMaxH, setSheetMaxH] = useState(0); // computed from REAL innerHeight, not 100vh
@@ -128,8 +157,8 @@ function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave,
 
   useEffect(() => {
     if (_justSaved.current) { _justSaved.current = false; return; }
-    if (!editing) setOrder(buildOrder(schedule, dayFocus, wPrefs?.dayPlan));
-  }, [schedule, dayFocus, wPrefs?.dayPlan, editing]);
+    if (!editing) setOrder(buildOrder(schedule, dayFocus, wPrefs?.dayPlan, wPrefs?.dayRoutine));
+  }, [schedule, dayFocus, wPrefs?.dayPlan, wPrefs?.dayRoutine, editing]);
 
   const startEdit = () => {
     _snapshot.current = order;
@@ -146,7 +175,7 @@ function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave,
     setSheetMaxH(Math.max(280, Math.round(window.innerHeight - (safeBottom + 108) - (safeTop + 16))));
     setEditing(true);
   };
-  const cancelEdit = () => { detach(); setDrag(null); setWarnFlags(null); setDenseNote(false); dragMV.set(0); setOrder(_snapshot.current || buildOrder(schedule, dayFocus, wPrefs?.dayPlan)); setEditing(false); };
+  const cancelEdit = () => { detach(); setDrag(null); setWarnFlags(null); setDenseNote(false); dragMV.set(0); setRoutinePicker(null); setOrder(_snapshot.current || buildOrder(schedule, dayFocus, wPrefs?.dayPlan, wPrefs?.dayRoutine)); setEditing(false); };
 
   const onWinMove = useCallback((e) => {
     const st = g.current;
@@ -213,9 +242,20 @@ function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave,
     const newDayFocus = { ...(dayFocus || {}) };
     const hasHybrid = !!wPrefs?.dayPlan;
     const newDayPlan = hasHybrid ? { ...wPrefs.dayPlan } : null;
-    order.forEach((sn, i) => { const d = WDAYS[i]; newSchedule[d] = sn.mod; newDayFocus[d] = sn.focus; if (hasHybrid) { if (sn.plan) newDayPlan[d] = sn.plan; else delete newDayPlan[d]; } });
+    const newDayRoutine = {};
+    order.forEach((sn, i) => {
+      const d = WDAYS[i];
+      newSchedule[d] = sn.mod;
+      newDayFocus[d] = sn.focus;
+      if (hasHybrid) { if (sn.plan) newDayPlan[d] = sn.plan; else delete newDayPlan[d]; }
+      if (sn.routineRef) newDayRoutine[d] = sn.routineRef;
+    });
     setSaving(true);
-    try { _justSaved.current = true; await onSave?.({ schedule: newSchedule, dayFocus: newDayFocus, dayPlan: hasHybrid ? newDayPlan : undefined, balanced }); _haptic(ImpactStyle.Medium); setWarnFlags(null); setDenseNote(false); setEditing(false); }
+    try {
+      _justSaved.current = true;
+      await onSave?.({ schedule: newSchedule, dayFocus: newDayFocus, dayPlan: hasHybrid ? newDayPlan : undefined, dayRoutine: newDayRoutine, balanced });
+      _haptic(ImpactStyle.Medium); setWarnFlags(null); setDenseNote(false); setRoutinePicker(null); setEditing(false);
+    }
     catch (_) { _justSaved.current = false; } finally { setSaving(false); }
   };
 
@@ -325,7 +365,11 @@ function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave,
               animate={drag && !isDragged ? { y: off } : (healing ? undefined : { y: 0 })}
               transition={isDragged ? undefined : (reduce ? { duration: 0 } : (healing ? { type: "spring", bounce: 0.26, duration: 0.5, delay: i * 0.05 } : { type: "spring", bounce: 0, duration: 0.26 }))}
             >
-              <DayCard session={session} slotDay={WDAYS[i]} editing={editing} lifted={!!isDragged} />
+              <DayCard
+                session={session} slotDay={WDAYS[i]} editing={editing} lifted={!!isDragged}
+                customRoutines={customRoutines}
+                onSetCustom={editing && !locked ? (s) => setRoutinePicker(s) : null}
+              />
             </motion.div>
           );
         })}
@@ -362,6 +406,54 @@ function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave,
       </AnimatePresence>,
       themeRoot())}
       <WeekWarningModal flags={warnFlags} slotNames={WDAYS} saving={saving} suggesting={suggesting} hasSuggestion={!!suggestion} onSuggest={applySuggestion} onKeep={() => persist(false)} onAdjust={() => setWarnFlags(null)} />
+
+      {/* ── Routine picker overlay (Part 5) ── */}
+      {createPortal(
+        <AnimatePresence>
+          {routinePicker && (
+            <>
+              <motion.div key="rp-backdrop" onClick={() => setRoutinePicker(null)}
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                style={{ position: "fixed", inset: 0, zIndex: 600, background: "rgba(0,0,0,.6)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" }} />
+              <motion.div key="rp-sheet"
+                initial={{ y: "110%" }} animate={{ y: 0 }} exit={{ y: "110%" }}
+                transition={{ type: "spring", bounce: 0.1, duration: 0.4 }}
+                style={{ position: "fixed", left: 8, right: 8, bottom: "calc(env(safe-area-inset-bottom,0px) + 16px)", zIndex: 601, background: "var(--cm-paper,#fff)", borderRadius: 22, overflow: "hidden", boxShadow: "0 -10px 44px rgba(0,0,0,.4)", maxHeight: "72vh", display: "flex", flexDirection: "column" }}>
+                <MyRoutines
+                  user={user}
+                  pickerMode
+                  onPickRoutine={(routine) => {
+                    // Apply the routine to the slot
+                    setOrder(prev => prev.map(s =>
+                      s.id === routinePicker.id
+                        ? { ...s, mod: "custom", focus: routine.name, routineRef: { routineId: routine.id, name: routine.name } }
+                        : s
+                    ));
+                    setRoutinePicker(null);
+                  }}
+                  onBack={() => setRoutinePicker(null)}
+                />
+                {/* "Clear custom" option when the day is already custom */}
+                {routinePicker.mod === "custom" && (
+                  <button
+                    onClick={() => {
+                      setOrder(prev => prev.map(s =>
+                        s.id === routinePicker.id
+                          ? { ...s, mod: "training", focus: "Training", routineRef: null }
+                          : s
+                      ));
+                      setRoutinePicker(null);
+                    }}
+                    style={{ margin: "8px 16px 16px", background: "rgba(255,59,48,.07)", border: "none", borderRadius: 14, padding: "13px 0", color: "#FF3B30", fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                    Remove custom routine
+                  </button>
+                )}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        themeRoot()
+      )}
     </>
   );
 }

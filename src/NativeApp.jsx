@@ -444,6 +444,7 @@ export default function NativeApp() {
   const [wPrefs,setWPrefs]=useState({splitType:"Push/Pull/Legs",equipment:"Full Gym",isHybrid:false,isHyrox:false});
   const [dayFocus,setDayFocus]=useState(autoFocus({Mon:"training",Tue:"rest",Wed:"training",Thu:"cardio",Fri:"training",Sat:"rest",Sun:"rest"},"Push/Pull/Legs"));
   const [earnedCals,setEarnedCals]=useState(0);
+  const [customRoutines,setCustomRoutines]=useState([]);
   const [signupName,setSignupName]=useState("");
   const [saveErr,setSaveErr]=useState("");
   const [authView,setAuthView]=useState("welcome");
@@ -503,6 +504,8 @@ export default function NativeApp() {
         if(data.schedule)setSchedule(data.schedule);
         if(data.wprefs)setWPrefs(data.wprefs);
         loadAndApplyTheme(data.wprefs);
+        // Load custom routines (non-blocking — app renders while this completes)
+        sb.from("custom_routines").select("*").eq("user_id",uid).order("updated_at",{ascending:false}).then(({data:cr})=>{if(cr)setCustomRoutines(cr);});
         setAnalyticsEnabled(data.analytics_enabled!==false);
         initPushNotifications(uid).catch(()=>{});
         setPhase(expired?"expired":"app");
@@ -899,12 +902,15 @@ export default function NativeApp() {
             f[d]=_dk?baseName(_dk):(SPLIT_CYCLES[wPrefs.splitType]?.[0]||"Full Body");
           }
         }
+      }else if(schedule[d]==="custom"){
+        // Custom days: label comes from wPrefs.dayRoutine[d].name if available, else "Custom"
+        f[d]=wPrefs.dayRoutine?.[d]?.name||"Custom";
       }else if(["cardio","run","hyrox"].includes(schedule[d])){
         f[d]=(lrd&&d===lrd&&(schedule[d]==='run'||schedule[d]==='cardio'))?"Long Run":(DAY_CFG[schedule[d]]||DAY_CFG.rest).label;
       }else f[d]="Rest";
     });
     setDayFocus(f);
-  },[wPrefs.splitType,wPrefs.longRunDay,wPrefs.dayFocus,schedule,profile]);
+  },[wPrefs.splitType,wPrefs.longRunDay,wPrefs.dayFocus,wPrefs.dayRoutine,schedule,profile]);
 
   if(phase==="splash")return<SplashScreen onDone={()=>setPhase("session-check")}/>;
 
@@ -979,5 +985,5 @@ export default function NativeApp() {
     else setPhase("app");
   }}/>;
 
-  return<App profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} onEarnedCals={cals=>setEarnedCals(prev=>prev+cals)} onSignOut={handleSignOut} user={user} onProfileUpdate={patch=>setProfile(p=>({...p,...patch}))}/>;
+  return<App profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} onEarnedCals={cals=>setEarnedCals(prev=>prev+cals)} onSignOut={handleSignOut} user={user} onProfileUpdate={patch=>setProfile(p=>({...p,...patch}))} customRoutines={customRoutines} setCustomRoutines={setCustomRoutines}/>;
 }
