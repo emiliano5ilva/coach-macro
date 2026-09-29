@@ -1219,6 +1219,216 @@ function RecipeDetailSheet({meal,day,sessFull,onClose,showSwap,onSwap,user}){
   );
 }
 
+// ── DiscoverRecipeDetailSheet ─────────────────────────────────────────────────
+// Full-screen detail for a FatSecret recipe. No meal-plan / grocery actions.
+function DiscoverRecipeDetailSheet({recipe,onClose}){
+  if(!recipe)return null;
+  const n=recipe.nutrition_per_serving||{};
+  const cal=n.calories?Math.round(Number(n.calories)):0;
+  const pro=Math.round(Number(n.protein||0)*10)/10;
+  const carb=Math.round(Number(n.carbohydrate||0)*10)/10;
+  const fat=Math.round(Number(n.fat||0)*10)/10;
+  const maxMacro=Math.max(pro,carb,fat)||1;
+  const img=Array.isArray(recipe.images)&&recipe.images.length>0?recipe.images[0]:null;
+  const fmtMin=(m)=>{m=Math.round(m||0);return m>=60?`${Math.floor(m/60)}h${m%60?` ${m%60}m`:''}`:`${m}m`;};
+  const eyebrow={fontFamily:"'Archivo',sans-serif",fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase'};
+  const card={background:'var(--cm-paper,#FFFFFF)',borderRadius:16,padding:'16px',marginBottom:14,boxShadow:'0 2px 12px rgba(0,0,0,.10)'};
+  const chip={fontFamily:"'Archivo',sans-serif",fontSize:10.5,fontWeight:600,color:'rgba(255,255,255,0.92)',background:'rgba(255,255,255,0.14)',borderRadius:999,padding:'5px 11px'};
+  const MB=[{label:'Protein',value:pro,color:'var(--cm-red,#FF3B30)'},{label:'Carbs',value:carb,color:'#60a5fa'},{label:'Fat',value:fat,color:'#FEA020'}];
+  return(
+    <motion.div key="discover-detail-overlay" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.18}}
+      style={{position:'fixed',inset:0,zIndex:500,background:'var(--cm-red,#FF3B30)'}} onClick={()=>{_hL();onClose();}}>
+      <motion.div initial={{y:'100%'}} animate={{y:0}} exit={{y:'100%'}} transition={{type:'spring',damping:28,stiffness:290}}
+        style={{position:'absolute',inset:0,overflowY:'auto',WebkitOverflowScrolling:'touch'}} onClick={e=>e.stopPropagation()}>
+        <div style={{padding:'max(52px,env(safe-area-inset-top,48px)) 18px max(40px,env(safe-area-inset-bottom,28px))'}}>
+          <div style={{display:'flex',alignItems:'center',marginBottom:22}}>
+            <button onPointerDown={()=>_hL()} onClick={()=>{_hM();onClose();}}
+              style={{background:'rgba(255,255,255,0.16)',border:'none',borderRadius:999,padding:'8px 16px',display:'flex',alignItems:'center',gap:7,cursor:'pointer'}}>
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M10 4l-4 4 4 4"/></svg>
+              <span style={{...eyebrow,fontSize:10,color:'#fff'}}>Close</span>
+            </button>
+            <span style={{...eyebrow,fontSize:9,color:'rgba(255,255,255,0.5)',letterSpacing:'0.06em',marginLeft:'auto',border:'1px solid rgba(255,255,255,0.22)',borderRadius:999,padding:'4px 10px'}}>via FatSecret</span>
+          </div>
+          {img&&<img src={img} alt="" style={{width:'100%',height:200,objectFit:'cover',borderRadius:16,marginBottom:16,display:'block'}} onError={e=>{e.currentTarget.style.display='none';}}/>}
+          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:30,letterSpacing:'-0.01em',color:'#fff',lineHeight:1.05,marginBottom:14}}>{recipe.recipe_name}</div>
+          {(recipe.number_of_servings||recipe.cooking_time_min)&&(
+            <div style={{display:'flex',flexWrap:'wrap',gap:7,marginBottom:16}}>
+              {recipe.number_of_servings&&<span style={chip}>{recipe.number_of_servings} servings</span>}
+              {recipe.cooking_time_min&&<span style={chip}>{fmtMin(recipe.cooking_time_min)}</span>}
+            </div>
+          )}
+          <div style={card}>
+            <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:14}}>
+              <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:30,letterSpacing:'-0.01em',color:'var(--cm-ink,#0A0A0A)',lineHeight:1}}>{cal}</span>
+              <span style={{...eyebrow,fontSize:11,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)'}}>kcal per serving</span>
+            </div>
+            {MB.map(({label,value,color})=>(
+              <div key={label} style={{marginBottom:10}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}>
+                  <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.5)',letterSpacing:'0.04em'}}>{label}</span>
+                  <span style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,color}}>{value}g</span>
+                </div>
+                <div style={{height:6,background:'rgba(var(--cm-ink-rgb,10,10,10),0.07)',borderRadius:3,overflow:'hidden'}}>
+                  <motion.div style={{height:'100%',background:color,borderRadius:3}} initial={{width:0}} animate={{width:`${(value/maxMacro)*100}%`}} transition={{duration:0.7,ease:'easeOut'}}/>
+                </div>
+              </div>
+            ))}
+          </div>
+          {recipe.ingredients&&recipe.ingredients.length>0&&(
+            <div style={card}>
+              <div style={{...eyebrow,fontSize:10,color:'rgba(var(--cm-ink-rgb,10,10,10),0.42)',marginBottom:10}}>Ingredients</div>
+              {recipe.ingredients.map((ing,i)=>(
+                <div key={i} style={{fontFamily:"'Archivo',sans-serif",fontSize:14,fontWeight:500,color:'var(--cm-ink,#0A0A0A)',padding:'9px 0',borderBottom:i<recipe.ingredients.length-1?'1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)':'none',lineHeight:1.35}}>
+                  {ing.ingredient_description}
+                </div>
+              ))}
+            </div>
+          )}
+          {recipe.directions&&recipe.directions.length>0&&(
+            <div style={card}>
+              <div style={{...eyebrow,fontSize:10,color:'rgba(var(--cm-ink-rgb,10,10,10),0.42)',marginBottom:12}}>Steps</div>
+              {recipe.directions.map((d,i)=>(
+                <div key={i} style={{display:'flex',gap:11,marginBottom:11}}>
+                  <div style={{width:23,height:23,flexShrink:0,borderRadius:999,background:'rgba(var(--cm-red-rgb,255,59,48),0.1)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:800,color:'var(--cm-red,#FF3B30)',marginTop:1}}>{d.direction_number}</div>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontSize:14,fontWeight:500,color:'var(--cm-ink,#0A0A0A)',lineHeight:1.5,flex:1}}>{d.direction_description}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ── DiscoverRecipeBrowser ─────────────────────────────────────────────────────
+// FatSecret-powered browse. Search + quick chips → fetch top 15 → detail-filter
+// (≥4 steps) → show cards. Never shows food_name; ingredient_description only.
+const _FS_QUICK_CHIPS=[
+  {label:'High Protein',query:'high protein'},
+  {label:'Breakfast',query:'breakfast'},
+  {label:'Vegan',query:'vegan'},
+  {label:'Quick Meals',query:'quick easy'},
+  {label:'Chicken',query:'chicken'},
+  {label:'Vegetarian',query:'vegetarian'},
+];
+
+function DiscoverRecipeBrowser({onOpenRecipe}){
+  const [inputVal,setInputVal]=useState('');
+  const [activeQuery,setActiveQuery]=useState('');
+  const [results,setResults]=useState(null); // null = no search yet; [] = searched, none passed filter
+  const [loading,setLoading]=useState(false);
+  const searchIdRef=useRef(0);
+
+  async function runSearch(q){
+    const trimmed=q.trim();
+    if(!trimmed)return;
+    const sid=++searchIdRef.current;
+    setLoading(true);
+    setResults(null);
+    setActiveQuery(trimmed);
+    try{
+      const r=await fetch(`${_RA_PROXY}/api/fatsecret?endpoint=recipes&query=${encodeURIComponent(trimmed)}&max_results=15`);
+      if(sid!==searchIdRef.current)return;
+      const data=await r.json();
+      const items=Array.isArray(data.recipes)?data.recipes:[];
+      if(!items.length){if(sid===searchIdRef.current){setResults([]);setLoading(false);}return;}
+      const detailResults=await Promise.allSettled(
+        items.map(item=>fetch(`${_RA_PROXY}/api/fatsecret?endpoint=recipe_detail&recipe_id=${item.recipe_id}`).then(rr=>rr.json()))
+      );
+      if(sid!==searchIdRef.current)return;
+      const passed=detailResults
+        .filter(d=>d.status==='fulfilled'&&d.value&&!d.value.error)
+        .map(d=>d.value)
+        .filter(d=>Array.isArray(d.directions)&&d.directions.length>=4);
+      setResults(passed);
+    }catch{
+      if(sid===searchIdRef.current)setResults([]);
+    }
+    if(sid===searchIdRef.current)setLoading(false);
+  }
+
+  const _chip=(active)=>({
+    height:36,padding:'0 16px',borderRadius:18,border:'none',
+    background:active?'var(--cm-red,#FF3B30)':'rgba(255,255,255,0.14)',
+    color:active?'#fff':'rgba(255,255,255,0.8)',
+    fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',
+    whiteSpace:'nowrap',flexShrink:0,display:'inline-flex',alignItems:'center',
+    WebkitTapHighlightColor:'transparent',transition:'background 150ms,color 150ms',
+  });
+  const _filterRow={
+    display:'flex',gap:6,flexWrap:'nowrap',overflowX:'scroll',
+    WebkitOverflowScrolling:'touch',scrollbarWidth:'none',
+    marginLeft:-18,marginRight:-18,paddingLeft:18,paddingRight:18,paddingBottom:2,marginBottom:16,
+  };
+
+  return(
+    <div>
+      <div style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500,color:'rgba(255,255,255,0.6)',marginBottom:14,lineHeight:1.45}}>
+        From our recipe partner — browse only for now.
+      </div>
+      <div style={{position:'relative',marginBottom:14}}>
+        <input value={inputVal} onChange={e=>setInputVal(e.target.value)}
+          onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();runSearch(inputVal);}}}
+          placeholder="Search recipes…"
+          style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.14)',border:'1px solid rgba(255,255,255,0.22)',borderRadius:12,padding:'12px 72px 12px 14px',color:'#fff',fontSize:14,outline:'none',fontFamily:"'Archivo',sans-serif"}}/>
+        <button onClick={()=>runSearch(inputVal)} onPointerDown={()=>_hL()}
+          style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',background:'rgba(255,255,255,0.18)',border:'none',borderRadius:8,padding:'6px 12px',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:"'Archivo',sans-serif",letterSpacing:'0.02em'}}>
+          Search
+        </button>
+      </div>
+      <div style={_filterRow}>
+        {_FS_QUICK_CHIPS.map(c=>(
+          <button key={c.label} style={_chip(activeQuery===c.query&&!loading)} onPointerDown={()=>_hL()} onClick={()=>{setInputVal(c.query);runSearch(c.query);}}>
+            {c.label}
+          </button>
+        ))}
+      </div>
+      {loading&&(
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {[1,2,3].map(i=>(
+            <div key={i} style={{background:'rgba(255,255,255,0.10)',borderRadius:14,height:140,opacity:0.3+i*0.15}}/>
+          ))}
+        </div>
+      )}
+      {!loading&&results===null&&(
+        <div style={{textAlign:'center',padding:'40px 0',fontFamily:"'Archivo',sans-serif",fontSize:14,color:'rgba(255,255,255,0.45)'}}>
+          Search for something or pick a quick filter above.
+        </div>
+      )}
+      {!loading&&results!==null&&results.length<4&&(
+        <div style={{textAlign:'center',padding:'40px 0',fontFamily:"'Archivo',sans-serif",fontSize:14,color:'rgba(255,255,255,0.5)',lineHeight:1.5}}>
+          Not many good matches — try a different search.
+        </div>
+      )}
+      {!loading&&results!==null&&results.length>=4&&(
+        <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:40}}>
+          {results.map(r=>{
+            const n=r.nutrition_per_serving||{};
+            const cal=n.calories?Math.round(Number(n.calories)):null;
+            const pro=n.protein?Math.round(Number(n.protein)*10)/10:null;
+            const img=Array.isArray(r.images)&&r.images.length>0?r.images[0]:null;
+            return(
+              <button key={r.recipe_id} onClick={()=>{_hM();onOpenRecipe(r);}}
+                style={{width:'100%',background:'var(--cm-paper,#FFFFFF)',border:'none',borderRadius:14,padding:0,overflow:'hidden',boxShadow:'0 2px 10px rgba(0,0,0,.12)',cursor:'pointer',textAlign:'left',fontFamily:"'Archivo',sans-serif",WebkitTapHighlightColor:'transparent'}}>
+                {img&&<img src={img} alt="" style={{width:'100%',height:150,objectFit:'cover',display:'block'}} onError={e=>{e.currentTarget.style.display='none';}}/>}
+                <div style={{padding:'12px 14px 14px'}}>
+                  <div style={{fontWeight:800,fontSize:15,color:'var(--cm-ink,#0A0A0A)',marginBottom:5,lineHeight:1.2}}>{r.recipe_name}</div>
+                  {r.recipe_description&&<div style={{fontSize:12,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.55)',marginBottom:7,lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{r.recipe_description}</div>}
+                  <div style={{display:'flex',gap:10,fontSize:11,fontWeight:600,alignItems:'center'}}>
+                    {cal!=null&&<span style={{color:'var(--cm-red,#FF3B30)'}}>{cal}<span style={{fontSize:10,fontWeight:600,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)'}}> kcal</span></span>}
+                    {pro!=null&&<span style={{color:'var(--cm-red,#FF3B30)'}}>P {pro}g</span>}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── RecipeBrowserScreen ────────────────────────────────────────────────────────
 // Browses the 339 curated recipes (user_id IS NULL). Instant Supabase query on
 // every keystroke/filter change — no debounce needed for a local DB read.
@@ -2039,6 +2249,8 @@ Reply with ONLY a valid JSON object, no markdown:
   const [activeMealDetail,setActiveMealDetail]=useState(null); // {day, meal, dayIndex, mealIndex}
   const [detailFrom,setDetailFrom]=useState('plan'); // where the meal detail was opened from → where Close returns
   const [browseDetail,setBrowseDetail]=useState(null); // recipe tapped from library browser (no swap button)
+  const [recipeSubTab,setRecipeSubTab]=useState('library'); // 'library' | 'discover'
+  const [discoverDetail,setDiscoverDetail]=useState(null); // FatSecret recipe tapped from Discover section
   const closeMealDetail=()=>{setActiveMealDetail(null);if(detailFrom==='kitchen')setFuelScreen('kitchen');};
   const [showGroceryList,setShowGroceryList]=useState(false);
   const [groceryFrom,setGroceryFrom]=useState('plan'); // where grocery was opened from → where the X returns
@@ -3735,7 +3947,21 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* RECIPES section */}
             {kitchenSection==='recipes'&&(
-              <RecipeBrowserScreen user={user} onOpenRecipe={r=>setBrowseDetail(r)}/>
+              <div>
+                <div style={{display:'flex',gap:4,background:'rgba(255,255,255,0.13)',border:'1px solid rgba(255,255,255,0.18)',borderRadius:999,padding:4,marginBottom:18}}>
+                  {[{id:'library',label:'Our Library'},{id:'discover',label:'Discover More'}].map(t=>{
+                    const sel=recipeSubTab===t.id;
+                    return(
+                      <button key={t.id} onPointerDown={()=>_hL()} onClick={()=>setRecipeSubTab(t.id)}
+                        style={{flex:1,borderRadius:999,border:'none',cursor:'pointer',fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:12,letterSpacing:'0.04em',textTransform:'uppercase',padding:'8px 0',whiteSpace:'nowrap',transition:'all .15s',WebkitTapHighlightColor:'transparent',background:sel?'#FFFFFF':'transparent',color:sel?'var(--cm-red,#FF3B30)':'rgba(255,255,255,0.65)'}}>
+                        {t.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {recipeSubTab==='library'&&<RecipeBrowserScreen user={user} onOpenRecipe={r=>setBrowseDetail(r)}/>}
+                {recipeSubTab==='discover'&&<DiscoverRecipeBrowser onOpenRecipe={r=>setDiscoverDetail(r)}/>}
+              </div>
             )}
 
           </div>
@@ -4667,6 +4893,17 @@ Reply with ONLY a valid JSON object, no markdown:
               onClose={()=>setBrowseDetail(null)}
               showSwap={false}
               user={user}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* ── DISCOVER RECIPE DETAIL (FatSecret) ── */}
+        <AnimatePresence>
+          {discoverDetail&&(
+            <DiscoverRecipeDetailSheet
+              key={discoverDetail.recipe_id||'discover-detail'}
+              recipe={discoverDetail}
+              onClose={()=>setDiscoverDetail(null)}
             />
           )}
         </AnimatePresence>
