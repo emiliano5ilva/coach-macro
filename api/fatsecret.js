@@ -79,6 +79,141 @@ export default withLogging(async function handler(req, res) {
     return res.status(200).json({ suggestions });
   }
 
+  // ── Recipe search ─────────────────────────────────────────────────────────────
+  if (endpoint === 'recipes') {
+    if (!query || query.trim().length < 2) {
+      return res.status(400).json({ error: 'Query too short' });
+    }
+    const url = new URL('https://platform.fatsecret.com/rest/recipes/search/v3');
+    url.searchParams.set('search_expression', query.trim());
+    url.searchParams.set('page_number', String(Number(page_number)));
+    url.searchParams.set('max_results', String(Math.min(Number(max_results), 50)));
+    url.searchParams.set('must_have_images', '1');
+    url.searchParams.set('format', 'json');
+
+    const rRes = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!rRes.ok) {
+      const body = await rRes.text().catch(() => '');
+      console.error('[fatsecret] recipe search HTTP:', rRes.status, body.slice(0, 200));
+      return res.status(200).json({ recipes: [], total_results: 0 });
+    }
+    const rData = await rRes.json();
+    if (rData?.error) {
+      console.error('[fatsecret] recipe search API error:', JSON.stringify(rData.error));
+      return res.status(200).json({ recipes: [], total_results: 0 });
+    }
+    // FatSecret returns recipe as array (>=2) or single object (exactly 1)
+    const rawR = rData?.recipes?.recipe;
+    const rItems = Array.isArray(rawR) ? rawR : rawR ? [rawR] : [];
+
+    const recipes = rItems.map(r => {
+      const n = r.recipe_nutrition ?? {};
+      return {
+        recipe_id: r.recipe_id,
+        recipe_name: r.recipe_name,
+        recipe_image: r.recipe_image ?? null,
+        recipe_description: r.recipe_description ?? null,
+        recipe_types: r.recipe_types?.recipe_type ?? null,
+        cooking_time_min: r.cooking_time_min ?? null,
+        nutrition_per_serving: {
+          calories: n.calories ?? null,
+          protein: n.protein ?? null,
+          carbohydrate: n.carbohydrate ?? null,
+          fat: n.fat ?? null,
+        },
+      };
+    });
+
+    return res.status(200).json({
+      recipes,
+      total_results: Number(rData?.recipes?.total_results ?? 0),
+      page_number: Number(rData?.recipes?.page_number ?? 0),
+      max_results: Number(rData?.recipes?.max_results ?? 0),
+    });
+  }
+
+  // ── Recipe detail ─────────────────────────────────────────────────────────────
+  if (endpoint === 'recipe_detail') {
+    const { recipe_id } = req.query;
+    if (!recipe_id) {
+      return res.status(400).json({ error: 'recipe_id required' });
+    }
+    const url = new URL('https://platform.fatsecret.com/rest/recipe/v2');
+    url.searchParams.set('recipe_id', String(recipe_id));
+    url.searchParams.set('format', 'json');
+
+    const dRes = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!dRes.ok) {
+      const body = await dRes.text().catch(() => '');
+      console.error('[fatsecret] recipe detail HTTP:', dRes.status, body.slice(0, 200));
+      return res.status(500).json({ error: 'Recipe detail fetch failed' });
+    }
+    const dData = await dRes.json();
+    if (dData?.error) {
+      console.error('[fatsecret] recipe detail API error:', JSON.stringify(dData.error));
+      return res.status(500).json({ error: 'Recipe detail API error' });
+    }
+
+    const r = dData?.recipe ?? dData;
+    // FatSecret recipe.get.v2: nutrition lives under serving_sizes.serving, not recipe_nutrition
+    const n = r.serving_sizes?.serving ?? {};
+
+    // Ingredients: FatSecret returns ingredient as array or single object
+    const rawIng = r.ingredients?.ingredient;
+    const ingredients = (Array.isArray(rawIng) ? rawIng : rawIng ? [rawIng] : []).map(i => ({
+      food_id: i.food_id,
+      food_name: i.food_name,
+      ingredient_description: i.ingredient_description ?? null,
+      serving_description: i.serving_description ?? null,
+      measurement_description: i.measurement_description ?? null,
+      number_of_units: i.number_of_units ?? null,
+      metric_serving_amount: i.metric_serving_amount ?? null,
+      metric_serving_unit: i.metric_serving_unit ?? null,
+    }));
+
+    // Directions: FatSecret returns direction as array or single object
+    const rawDir = r.directions?.direction;
+    const directions = (Array.isArray(rawDir) ? rawDir : rawDir ? [rawDir] : []).map(d => ({
+      direction_number: d.direction_number,
+      direction_description: d.direction_description,
+    }));
+
+    // Images
+    const rawImg = r.recipe_images?.recipe_image;
+    const images = Array.isArray(rawImg) ? rawImg : rawImg ? [rawImg] : [];
+
+    return res.status(200).json({
+      recipe_id: r.recipe_id,
+      recipe_name: r.recipe_name,
+      recipe_url: r.recipe_url ?? null,
+      recipe_description: r.recipe_description ?? null,
+      recipe_types: r.recipe_types?.recipe_type ?? null,
+      cooking_time_min: r.cooking_time_min ?? null,
+      number_of_servings: r.number_of_servings ?? null,
+      rating: r.rating ?? null,
+      images,
+      nutrition_per_serving: {
+        calories: n.calories ?? null,
+        protein: n.protein ?? null,
+        carbohydrate: n.carbohydrate ?? null,
+        fat: n.fat ?? null,
+        saturated_fat: n.saturated_fat ?? null,
+        cholesterol: n.cholesterol ?? null,
+        sodium: n.sodium ?? null,
+        fiber: n.fiber ?? null,
+        sugar: n.sugar ?? null,
+      },
+      ingredients,
+      directions,
+    });
+  }
+
   // ── Food search ───────────────────────────────────────────────────────────────
   if (!query || query.trim().length < 2) {
     return res.status(400).json({ error: 'Query too short' });
