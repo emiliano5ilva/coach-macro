@@ -10520,8 +10520,10 @@ Rules:
       return `Your ${waterTarget} oz goal is based on your ${wLbs} lb body weight (${wLbs} × 0.55 = ${baseOz} oz)${adj}.`;
     })();
 
-    // Muscle tags from FOCUS_MUSCLES[todayFocus]
+    // Muscle tags from FOCUS_MUSCLES[todayFocus] — suppressed for custom days
+    // (routine name won't be a key in FOCUS_MUSCLES; chips derived from exercises would need more work)
     const focusTags = (()=>{
+      if(todayType==="custom") return [];
       const str=(FOCUS_MUSCLES[todayFocus]||"").trim();
       if(!str) return [];
       if(str.includes('·'))
@@ -11044,7 +11046,7 @@ Rules:
               {/* Eyebrow + optional nav link — always present */}
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                 <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"0.16em",textTransform:"uppercase"}}>
-                  {todayType==="rest"||deloadActive?"TODAY":todayIsRunDay?"TODAY'S RUN":todayIsHyrox?"TODAY'S HYROX":"TODAY'S LIFT"}
+                  {todayType==="rest"||deloadActive?"TODAY":todayIsRunDay?"TODAY'S RUN":todayIsHyrox?"TODAY'S HYROX":todayType==="custom"?"TODAY'S SESSION":"TODAY'S LIFT"}
                 </div>
                 {!deloadActive&&todayType!=="rest"&&(
                   <button onClick={()=>handleTabPress("train")} style={{fontFamily:AF,fontSize:10,fontWeight:700,color:"var(--cm-ink,#0A0A0A)",background:"none",border:"none",letterSpacing:"0.10em",textTransform:"uppercase",cursor:"pointer",padding:0,WebkitTapHighlightColor:"transparent"}}>

@@ -3,40 +3,50 @@ import { sb } from '../client';
 // Exported so callers (e.g. RoutineBuilder) can classify exercises the same way without
 // maintaining a parallel list.  Changes here propagate everywhere automatically.
 export const PUSH_EXERCISES = [
-  'Barbell Bench Press', 'Incline Barbell Bench Press',
-  'Dumbbell Bench Press', 'Incline Dumbbell Press',
-  'Overhead Press', 'Dumbbell Shoulder Press',
-  'Cable Fly', 'Chest Dip', 'Push-Up',
+  'Barbell Bench Press', 'Incline Barbell Bench Press', 'Incline Barbell Press',
+  'Decline Bench Press', 'Close Grip Bench Press',
+  'Dumbbell Bench Press', 'Incline Dumbbell Press', 'Dumbbell Fly', 'DB Fly',
+  'Overhead Press', 'Dumbbell Shoulder Press', 'Dumbbell Overhead Press',
+  'Arnold Press',
+  'Cable Fly', 'Chest Dip', 'Dips (Chest)',
+  'Push-Up', 'Push Up', 'Diamond Push Up',
   'Tricep Pushdown', 'Skull Crusher',
   'Lateral Raise', 'Front Raise',
 ];
 
 export const PULL_EXERCISES = [
-  'Barbell Row', 'Dumbbell Row', 'Cable Row',
-  'Pull-Up', 'Weighted Pull-Up', 'Lat Pulldown',
-  'Face Pull', 'Band Pull-Apart', 'Rear Delt Fly',
-  'Bicep Curl', 'Hammer Curl', 'Deadlift',
+  'Barbell Row', 'Dumbbell Row', 'DB Row', 'Cable Row', 'Seated Cable Row',
+  'Pull-Up', 'Pull Up', 'Weighted Pull-Up', 'Chin-Up',
+  'Lat Pulldown',
+  'Face Pull', 'Band Pull-Apart', 'Rear Delt Fly', 'Reverse Fly', 'Upright Row',
+  'Bicep Curl', 'Barbell Curl', 'Hammer Curl',
+  'Deadlift',
 ];
 
 export const QUAD_EXERCISES = [
-  'Barbell Back Squat', 'Barbell Front Squat',
+  'Barbell Back Squat', 'Barbell Squat', 'Barbell Front Squat', 'Front Squat',
+  'Hack Squat', 'Goblet Squat', 'Sumo Squat', 'Bodyweight Squat', 'Air Squat',
   'Leg Press', 'Leg Extension',
-  'Walking Lunge', 'Bulgarian Split Squat', 'Step-Up',
+  'Walking Lunge', 'Reverse Lunge', 'Bulgarian Split Squat', 'Step-Up', 'Step Up',
 ];
 
 export const POSTERIOR_EXERCISES = [
-  'Romanian Deadlift', 'Deadlift', 'Hip Thrust',
-  'Glute Bridge', 'Leg Curl', 'Good Morning',
-  'Nordic Curl', 'Cable Pull-Through', 'Reverse Hyper',
+  'Romanian Deadlift', 'Dumbbell Romanian Deadlift', 'Deadlift', 'Hip Thrust',
+  'Barbell Hip Thrust', 'Dumbbell Hip Thrust', 'Hip Thrust Pulse',
+  'Glute Bridge', 'Leg Curl',
+  'Good Morning', 'Nordic Curl', 'Cable Pull-Through', 'Cable Pull Through',
+  'Reverse Hyper', 'Donkey Kick', 'Cable Kickback', 'Glute Kickback',
 ];
 
 // Shared classifier — single source of truth for push/pull/quad/posterior assignment.
+// Matching is case-insensitive so user-entered names like "push up" or "DB Row" are caught.
 export function classifyExercise(name) {
+  const n = (name || '').toLowerCase();
   const cats = [];
-  if (PUSH_EXERCISES.includes(name)) cats.push('push');
-  if (PULL_EXERCISES.includes(name)) cats.push('pull');
-  if (QUAD_EXERCISES.includes(name)) cats.push('quad');
-  if (POSTERIOR_EXERCISES.includes(name)) cats.push('posterior');
+  if (PUSH_EXERCISES.some(e => e.toLowerCase() === n)) cats.push('push');
+  if (PULL_EXERCISES.some(e => e.toLowerCase() === n)) cats.push('pull');
+  if (QUAD_EXERCISES.some(e => e.toLowerCase() === n)) cats.push('quad');
+  if (POSTERIOR_EXERCISES.some(e => e.toLowerCase() === n)) cats.push('posterior');
   return cats;
 }
 

@@ -5090,6 +5090,42 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                       style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:500,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START HYROX →</motion.button>
                   </div>
                 )}
+                {/* ── CUSTOM action region: custom routine day ── */}
+                {todayType==="custom"&&(
+                  <div style={{marginTop:8}}>
+                    {Array.isArray(todayPrescription)&&todayPrescription.length>0?(
+                      <>
+                        <div onClick={()=>{_hL();setSessionDetailExpanded(s=>!s);}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 14px",background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.12)",borderRadius:10,cursor:"pointer",marginBottom:sessionDetailExpanded?10:0,transition:"margin 0.2s"}}>
+                          <span style={{fontFamily:_AF,fontSize:11,fontWeight:800,color:"#FF3B30",letterSpacing:0,textTransform:"uppercase"}}>{sessionDetailExpanded?"Hide ↑":"See exercises ↓"}</span>
+                          <span style={{fontFamily:_AF,fontWeight:600,fontSize:11,color:"var(--cm-ink)",letterSpacing:0}}>{exCount} exercises · {totalSets} sets</span>
+                        </div>
+                        {sessionDetailExpanded&&(
+                          <div>
+                            <div style={{display:"flex",flexDirection:"column",marginBottom:12}}>
+                              {todayPrescription.map((ex,i)=>(
+                                <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 0",borderBottom:"1px solid rgba(10,10,10,0.06)"}}>
+                                  <div style={{width:26,height:26,borderRadius:"50%",background:"rgba(255,59,48,0.10)",border:"1px solid rgba(255,59,48,0.20)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:_MO,fontSize:10,color:"#FF3B30",fontWeight:500,flexShrink:0}}>{i+1}</div>
+                                  <div style={{flex:1}}>
+                                    <div style={{fontFamily:_AF,fontWeight:700,fontSize:15,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:1}}>{ex.name}</div>
+                                  </div>
+                                  <div style={{fontFamily:_MO,fontSize:12,color:"var(--cm-ink)",letterSpacing:"0.06em",flexShrink:0}}>{Array.isArray(ex.sets)?ex.sets.length:ex.sets}×{ex.reps}</div>
+                                </div>
+                              ))}
+                            </div>
+                            <motion.button onClick={()=>{_hM();startFromProgram();}} onPointerDown={()=>_hL()} whileTap={{scale:0.94}} transition={{type:'spring',stiffness:600,damping:20}} style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:500,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START SESSION →</motion.button>
+                          </div>
+                        )}
+                      </>
+                    ):(
+                      <motion.button
+                        onClick={()=>{_hM();startFromProgram();}}
+                        onPointerDown={()=>_hL()}
+                        whileTap={{scale:0.94}}
+                        transition={{type:'spring',stiffness:600,damping:20}}
+                        style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:500,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START SESSION →</motion.button>
+                    )}
+                  </div>
+                )}
               </PaperCard>
 
               {/* ══ PAPER CARD 2 — EXPLORE + NUTRITION ════════════════════════ */}
