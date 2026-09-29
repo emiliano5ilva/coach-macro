@@ -141,7 +141,7 @@ export default withLogging(async function handler(req, res) {
     if (!recipe_id) {
       return res.status(400).json({ error: 'recipe_id required' });
     }
-    const url = new URL('https://platform.fatsecret.com/rest/recipe/get/v2');
+    const url = new URL('https://platform.fatsecret.com/rest/recipe/v2');
     url.searchParams.set('recipe_id', String(recipe_id));
     url.searchParams.set('format', 'json');
 
