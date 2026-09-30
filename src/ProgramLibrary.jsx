@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { T, getDayMacros, WDAYS, PaperCard, Pill } from "./components.jsx";
 import { sb } from "./client.js";
-import { PROGRAM_LIBRARY, PROGRAMS_BY_DAYS } from "./programs.js";
+import { PROGRAM_LIBRARY, PROGRAMS_BY_DAYS, GLUTE_PROGRAMS } from "./programs.js";
 import { getProgramImage } from "./data/programImages.js";
 import { MUSCLE_GROUP_POOL } from "./exercise_database.js";
 import { showToast } from "./utils/toast.js";
@@ -400,7 +400,8 @@ function Section({ title, children }) {
 
 // ─── PROGRAM OVERVIEW (full-screen detail with hero + tabs) ──────────────────
 
-// Cross-bucket split lookup — mirrors the internal _resolveSplit in programs.js
+// Cross-bucket split lookup — mirrors the internal _resolveSplit in programs.js,
+// extended to cover GLUTE_PROGRAMS (keyed by splitKey, same shape as PROGRAMS_BY_DAYS splits).
 function _resolveSplitForOverview(prog) {
   if (!prog.splitKey) return null;
   const bucket = PROGRAMS_BY_DAYS[prog.days];
@@ -411,6 +412,10 @@ function _resolveSplitForOverview(prog) {
       if (s) { split = s; break; }
     }
   }
+  // Tier 3: glute/lower-body programs whose data lives in GLUTE_PROGRAMS, not PROGRAMS_BY_DAYS
+  if (!split) split = GLUTE_PROGRAMS[prog.splitKey] || null;
+  // Tier 4: last resort — bucket's recommended default (mirrors programs.js _resolveSplit)
+  if (!split) split = bucket?.splits?.[bucket?.recommended] || null;
   return split || null;
 }
 
