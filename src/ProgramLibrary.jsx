@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { T, getDayMacros, WDAYS, PaperCard, Pill } from "./components.jsx";
 import { sb } from "./client.js";
-import { PROGRAM_LIBRARY } from "./programs.js";
+import { PROGRAM_LIBRARY, PROGRAMS_BY_DAYS } from "./programs.js";
 import { getProgramImage } from "./data/programImages.js";
 import { MUSCLE_GROUP_POOL } from "./exercise_database.js";
 import { showToast } from "./utils/toast.js";
@@ -398,6 +398,209 @@ function Section({ title, children }) {
   );
 }
 
+// ─── PROGRAM OVERVIEW (full-screen detail with hero + tabs) ──────────────────
+
+// Cross-bucket split lookup — mirrors the internal _resolveSplit in programs.js
+function _resolveSplitForOverview(prog) {
+  if (!prog.splitKey) return null;
+  const bucket = PROGRAMS_BY_DAYS[prog.days];
+  let split = bucket?.splits?.[prog.splitKey];
+  if (!split) {
+    for (const d of Object.keys(PROGRAMS_BY_DAYS)) {
+      const s = PROGRAMS_BY_DAYS[d]?.splits?.[prog.splitKey];
+      if (s) { split = s; break; }
+    }
+  }
+  return split || null;
+}
+
+const _EQ_LABELS = {
+  full:'Full gym', barbell:'Barbell required', home_bar:'Home barbell',
+  dumbbells:'Dumbbells', cable:'Cables', minimal:'Minimal / bodyweight',
+};
+
+function _equipLabel(prog) {
+  const m = PROG_META[prog.id];
+  if (m?.eq) return m.eq;
+  const parts = (prog.equipment||[]).map(e => _EQ_LABELS[e]||e).filter(Boolean);
+  return parts.join(', ') || null;
+}
+
+function _OverviewStatChip({ label, value }) {
+  return (
+    <div style={{ flex:'1 1 0', textAlign:'center', padding:'10px 8px', background:'rgba(var(--cm-ink-rgb),.05)', borderRadius:10, border:'1px solid rgba(var(--cm-ink-rgb),.08)', minWidth:0 }}>
+      <div style={{ fontSize:9, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:'rgba(var(--cm-ink-rgb),.4)', marginBottom:3 }}>{label}</div>
+      <div style={{ fontSize:12, fontWeight:700, color:'var(--cm-ink)', lineHeight:1.2 }}>{value}</div>
+    </div>
+  );
+}
+
+function _DayCard({ dayKey, exercises, defaultOpen }) {
+  const [open, setOpen] = React.useState(!!defaultOpen);
+  const count = exercises.length;
+  return (
+    <div style={{ background:'rgba(var(--cm-ink-rgb),.04)', border:'1px solid rgba(var(--cm-ink-rgb),.09)', borderRadius:12, overflow:'hidden' }}>
+      <button
+        onClick={() => count > 0 && setOpen(v => !v)}
+        style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 14px', background:'none', border:'none', cursor:count>0?'pointer':'default', color:'inherit', textAlign:'left', fontFamily:'inherit', gap:8 }}
+      >
+        <div>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:14, fontWeight:800, color:'var(--cm-red)', letterSpacing:'.06em', textTransform:'uppercase', lineHeight:1 }}>{dayKey}</div>
+          <div style={{ fontSize:11, color:'rgba(var(--cm-ink-rgb),.45)', marginTop:3 }}>{count===0?'Rest':`${count} exercise${count!==1?'s':''}`}</div>
+        </div>
+        {count > 0 && <span style={{ color:'rgba(var(--cm-ink-rgb),.35)', fontSize:11, transform:open?'rotate(90deg)':'none', transition:'transform .15s', flexShrink:0 }}>▶</span>}
+      </button>
+      {open && count > 0 && (
+        <div style={{ borderTop:'1px solid rgba(var(--cm-ink-rgb),.07)', padding:'8px 14px 12px' }}>
+          {exercises.map((ex, i) => (
+            <div key={i} style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', padding:'7px 0', borderBottom:i<count-1?'1px solid rgba(var(--cm-ink-rgb),.05)':'none', gap:10 }}>
+              <div style={{ flex:1, minWidth:0 }}>
+                <span style={{ fontSize:13, fontWeight:ex.primary!==false?600:400, color:'var(--cm-ink)' }}>{ex.name}</span>
+                {ex.notes ? <div style={{ fontSize:11, color:'rgba(var(--cm-ink-rgb),.45)', marginTop:2, lineHeight:1.4 }}>{ex.notes}</div> : null}
+              </div>
+              {(ex.sets||ex.reps) && (
+                <div style={{ fontSize:11, color:'rgba(var(--cm-ink-rgb),.55)', fontWeight:600, flexShrink:0 }}>
+                  {[ex.sets?`${ex.sets}×`:null, ex.reps||null].filter(Boolean).join(' ')}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProgramOverview({ prog, onStart, onClose }) {
+  const [tab, setTab] = React.useState('overview');
+  const meta = PROG_META[prog.id] || {};
+  const img = getProgramImage(prog.id);
+  const split = _resolveSplitForOverview(prog);
+  const eq = _equipLabel(prog);
+  const lvlColor = prog.level==='Beginner'?'#34D399':prog.level==='Advanced'?'#F87171':'#FBbF24';
+  const lvlBg = prog.level==='Beginner'?'rgba(52,211,153,.2)':prog.level==='Advanced'?'rgba(248,113,113,.2)':'rgba(251,191,36,.2)';
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'var(--cm-paper)', zIndex:400, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+
+      {/* ── Scrollable body ── */}
+      <div style={{ flex:1, overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
+
+        {/* Hero image */}
+        <div style={{ position:'relative', width:'100%', height:240, flexShrink:0 }}>
+          {img
+            ? <img src={img} alt={prog.name} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', display:'block' }} />
+            : <div style={{ width:'100%', height:'100%', background:'rgba(var(--cm-red-rgb),.12)' }} />
+          }
+          <div style={{ position:'absolute', inset:0, background:'linear-gradient(to bottom,rgba(0,0,0,.15) 0%,transparent 35%,rgba(9,11,17,.92) 100%)', pointerEvents:'none' }} />
+          {/* Back button */}
+          <button onClick={onClose} style={{ position:'absolute', top:16, left:16, background:'rgba(0,0,0,.45)', border:'none', borderRadius:20, padding:'6px 14px 6px 10px', display:'flex', alignItems:'center', gap:5, cursor:'pointer', color:'#fff', fontSize:13, fontWeight:600, fontFamily:'inherit', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)' }}>
+            <span style={{ fontSize:18, lineHeight:1 }}>‹</span> Back
+          </button>
+          {/* Name + level pill */}
+          <div style={{ position:'absolute', bottom:20, left:20, right:20 }}>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:30, fontWeight:900, color:'#fff', lineHeight:1.1, marginBottom:10 }}>{prog.name}</div>
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+              <span style={{ background:lvlBg, border:`1px solid ${lvlColor}80`, borderRadius:6, padding:'3px 10px', fontSize:11, color:lvlColor, fontWeight:700 }}>{prog.level}</span>
+              <span style={{ background:'rgba(255,255,255,.12)', borderRadius:6, padding:'3px 10px', fontSize:11, color:'rgba(255,255,255,.85)', fontWeight:600 }}>{prog.category}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Highlights strip */}
+        <div style={{ display:'flex', gap:8, padding:'14px 20px 16px', borderBottom:'1px solid rgba(var(--cm-ink-rgb),.08)' }}>
+          <_OverviewStatChip label="Days/Week" value={`${prog.days} Days`} />
+          {prog.sessionMins && <_OverviewStatChip label="Session" value={`~${prog.sessionMins} Min`} />}
+          {prog.weeks && <_OverviewStatChip label="Duration" value={`${prog.weeks} Wks`} />}
+        </div>
+
+        {/* Tab bar */}
+        <div style={{ display:'flex', borderBottom:'1px solid rgba(var(--cm-ink-rgb),.09)', padding:'0 20px', gap:28 }}>
+          {['overview','program'].map(t => (
+            <button key={t} onClick={() => setTab(t)} style={{ background:'none', border:'none', padding:'14px 0 12px', fontFamily:'inherit', fontSize:12, fontWeight:700, letterSpacing:'.07em', textTransform:'uppercase', color:tab===t?'var(--cm-red)':'rgba(var(--cm-ink-rgb),.4)', borderBottom:tab===t?'2px solid var(--cm-red)':'2px solid transparent', cursor:'pointer', marginBottom:-1 }}>
+              {t==='overview'?'Overview':'Program'}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab content */}
+        <div style={{ padding:'20px 20px 120px' }}>
+          {tab === 'overview' && (
+            <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
+              {/* About */}
+              <div>
+                <div style={{ fontSize:10, fontWeight:700, letterSpacing:'.14em', textTransform:'uppercase', color:'rgba(var(--cm-ink-rgb),.4)', marginBottom:8 }}>About</div>
+                {meta.who && <div style={{ fontSize:13, color:'var(--cm-ink)', lineHeight:1.65, marginBottom:8 }}><strong>Who it's for:</strong> {meta.who}.</div>}
+                <div style={{ fontSize:13, color:'rgba(var(--cm-ink-rgb),.75)', lineHeight:1.65 }}>{prog.bestFor}</div>
+              </div>
+              {/* Equipment */}
+              {eq && (
+                <div>
+                  <div style={{ fontSize:10, fontWeight:700, letterSpacing:'.14em', textTransform:'uppercase', color:'rgba(var(--cm-ink-rgb),.4)', marginBottom:8 }}>Equipment</div>
+                  <div style={{ fontSize:13, color:'var(--cm-ink)', background:'rgba(var(--cm-ink-rgb),.04)', borderRadius:10, padding:'12px 14px', border:'1px solid rgba(var(--cm-ink-rgb),.08)' }}>{eq}</div>
+                </div>
+              )}
+              {/* Nutrition note */}
+              {meta.nuNote && (
+                <div>
+                  <div style={{ fontSize:10, fontWeight:700, letterSpacing:'.14em', textTransform:'uppercase', color:'rgba(var(--cm-ink-rgb),.4)', marginBottom:8 }}>Nutrition Impact</div>
+                  <div style={{ display:'flex', gap:10, alignItems:'flex-start', background:'rgba(52,211,153,.05)', border:'1px solid rgba(52,211,153,.15)', borderRadius:10, padding:'12px 14px' }}>
+                    <span style={{ fontSize:16, flexShrink:0 }}>🥗</span>
+                    <div style={{ fontSize:13, color:'var(--cm-ink)', lineHeight:1.6 }}>{meta.nuNote}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {tab === 'program' && (
+            <div>
+              {!split ? (
+                <div style={{ textAlign:'center', padding:'32px 16px' }}>
+                  <div style={{ fontSize:40, marginBottom:14 }}>{prog.isRun?'🏃':prog.isHyrox?'🔥':prog.isHybrid?'⚡':'🔄'}</div>
+                  <div style={{ fontSize:13, color:'rgba(var(--cm-ink-rgb),.6)', lineHeight:1.7, maxWidth:280, margin:'0 auto' }}>
+                    {prog.isRun
+                      ? 'This is a running program. Sessions are structured around run types — easy runs, tempo runs, and long runs — not a fixed lifting split.'
+                      : prog.isHyrox
+                        ? 'This is a Hyrox-specific program. Sessions include station work, aerobic conditioning, and race simulations.'
+                        : prog.isHybrid
+                          ? 'This is a hybrid run/lift program. The weekly layout is personalised to your chosen training days during setup.'
+                          : 'This program uses a flexible conditioning format, not a fixed day-by-day lifting split.'}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {split.description && (
+                    <div style={{ fontSize:13, color:'rgba(var(--cm-ink-rgb),.7)', lineHeight:1.6, marginBottom:16, padding:'12px 14px', background:'rgba(var(--cm-ink-rgb),.04)', borderRadius:10, border:'1px solid rgba(var(--cm-ink-rgb),.08)' }}>{split.description}</div>
+                  )}
+                  {split.alternating && (
+                    <div style={{ fontSize:12, color:'rgba(var(--cm-ink-rgb),.55)', background:'rgba(var(--cm-ink-rgb),.04)', borderRadius:8, padding:'8px 12px', marginBottom:14, border:'1px solid rgba(var(--cm-ink-rgb),.08)', display:'flex', gap:8, alignItems:'flex-start' }}>
+                      <span style={{ flexShrink:0 }}>↺</span>
+                      <span>These day labels rotate across the week rather than being fixed to specific weekdays — the program alternates between them.</span>
+                    </div>
+                  )}
+                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                    {split.days.map((dayKey, i) => (
+                      <_DayCard key={i} dayKey={dayKey} exercises={split.workouts[dayKey]||[]} defaultOpen={i===0} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Sticky CTA ── */}
+      <div style={{ flexShrink:0, padding:'12px 20px', paddingBottom:'max(16px, env(safe-area-inset-bottom))', background:'var(--cm-paper)', borderTop:'1px solid rgba(var(--cm-ink-rgb),.08)' }}>
+        {prog.comingSoon
+          ? <div style={{ width:'100%', padding:15, background:'rgba(var(--cm-ink-rgb),.06)', color:'rgba(var(--cm-ink-rgb),.45)', fontWeight:700, fontSize:14, border:'1px solid rgba(var(--cm-ink-rgb),.10)', borderRadius:12, textAlign:'center', fontFamily:'inherit' }}>Coming Soon</div>
+          : <button onClick={onStart} style={{ width:'100%', padding:15, background:'var(--cm-red)', color:'#fff', fontWeight:700, fontSize:15, border:'none', borderRadius:12, cursor:'pointer', fontFamily:"'Barlow Condensed',sans-serif", textTransform:'uppercase', letterSpacing:1 }}>Switch to this Program →</button>
+        }
+      </div>
+    </div>
+  );
+}
+
 // ─── PROGRAM TYPE ICON ───────────────────────────────────────────────────────
 function ProgIcon({prog, size=28, color="rgba(245,245,240,0.75)"}) {
   const sw = "1.8";
@@ -700,15 +903,12 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
     </div>
   ) : null;
 
-  // Show detail modal
+  // Show program overview
   if (detailProg && !confirmProg) {
     return (
       <>
-        <ProgramDetailModal
+        <ProgramOverview
           prog={detailProg}
-          profile={profile}
-          ratings={ratings}
-          userRating={userRatings[detailProg.id] || 0}
           onStart={() => {
             if (detailProg.comingSoon) return;
             if (SETUP_CATEGORIES.has(detailProg.category)) {
@@ -717,7 +917,6 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
               setConfirmProg(detailProg);
             }
           }}
-          onRate={rating => rateProgram(detailProg.id, rating)}
           onClose={() => setDetailProg(null)}
         />
         {confirmProg && (()=>{ const {modeChange,newModeLabel}=getModeInfo(confirmProg); return (
