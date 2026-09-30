@@ -3,6 +3,7 @@ import { getTodayInsights } from './validationService.js';
 import { recallApplicableLearnings } from './coachMemoryService.js';
 import { getHyroxPhase } from './hyroxPeriodisationService.js';
 import { getTodayNutritionProtocol } from './nutritionPeriodisationService.js';
+import { resolveTodaysExercises } from './exerciseResolver.js';
 import { getRunningPhase } from './runningPeriodisationService.js';
 import { getStrengthPhase } from './strengthPeriodisationService.js';
 import { getActiveDeload, getUpcomingDeload } from './deloadService.js';
@@ -32,7 +33,7 @@ function withTimeout(promise, ms, fallback, label) {
 export async function gatherBriefContext(userId) {
   const { data: row } = await withTimeout(
     sb.from('profiles')
-      .select('profile_data, wprefs, first_name, goal, skill_level, hyrox_race_date, hyrox_category, hyrox_experience, hyrox_weak_stations, schedule, run_race_type, run_race_date, program_start_date')
+      .select('profile_data, wprefs, first_name, goal, skill_level, hyrox_race_date, hyrox_category, hyrox_experience, hyrox_weak_stations, schedule, run_race_type, run_race_date, program_start_date, deload_active')
       .eq('id', userId)
       .maybeSingle(),
     6000, { data: null }, 'profiles');
@@ -122,6 +123,15 @@ export async function gatherBriefContext(userId) {
   const strengthCompDate = row?.strength_comp_date || wp.strengthCompDate || null;
   const strengthPhase = strengthCompDate ? getStrengthPhase(strengthCompDate) : null;
 
+  // Resolve today's exercises before the Promise.all so the nutrition protocol can use them.
+  // customRoutines aren't available here (would need a separate query), so custom days fall
+  // back to the flat +150 kcal bump inside getTodayNutritionProtocol (null = no data).
+  const _briefExercises = resolveTodaysExercises({
+    todayType, todayKey, schedule, dayFocus: dayFocus, wPrefs: wp,
+    customRoutines: [], programStartDate: row?.program_start_date || null,
+  });
+  const _briefDeloadActive = !!row?.deload_active;
+
   // Each enrichment is timeout-guarded → a hanging/slow service degrades to its fallback instead
   // of stalling the whole gather (every ctx field has a template fallback, so absence is safe).
   const [activeDeload, upcomingDeload, plateaus, latestBalance, recentAdjs, rpeTrends, nutritionProtocol, todayCheckinRow, adaptiveProfileRow, rawValidationInsights, yWorkoutRow] = await Promise.all([
@@ -131,7 +141,7 @@ export async function gatherBriefContext(userId) {
     withTimeout(getLatestBalance(userId).catch(() => null), 4000, null, 'latestBalance'),
     withTimeout(getRecentAdjustments(userId).catch(() => []), 4000, [], 'recentAdjs'),
     withTimeout(analyseRPETrends(userId).catch(() => null), 4000, null, 'rpeTrends'),
-    withTimeout(getTodayNutritionProtocol(userId).catch(() => null), 4000, null, 'nutritionProtocol'),
+    withTimeout(getTodayNutritionProtocol(userId, _briefExercises, _briefDeloadActive).catch(() => null), 4000, null, 'nutritionProtocol'),
     withTimeout(sb.from('morning_checkins').select('*').eq('user_id', userId).eq('date', todayStr).maybeSingle().then(r=>r.data).catch(()=>null), 4000, null, 'morningCheckin'),
     withTimeout(sb.from('profiles').select('adaptive_profile').eq('id', userId).maybeSingle().then(r=>r.data?.adaptive_profile).catch(()=>null), 4000, null, 'adaptiveProfile'),
     withTimeout(getTodayInsights(userId).catch(() => []), 4000, [], 'todayInsights'),

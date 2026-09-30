@@ -1,8 +1,54 @@
 import { sb } from '../client';
+import { computeSessionLoad } from './exerciseResolver.js';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export async function getTodayNutritionProtocol(userId) {
+// Load-tier thresholds (sets × avgReps × compound-factor):
+//   Light    < 120  (1–3 exercises or very short session) → +75 kcal / +19g carbs
+//   Moderate 120–200 (typical 4–5 exercise session)       → +150 kcal / +38g carbs
+//   Heavy    ≥ 200  (6+ exercises, several compounds)     → +225 kcal / +56g carbs
+//   Fallback (no exercise data)                           → +150 kcal / +38g carbs (pre-existing flat)
+// Deload discount: all tiers halved (volume is reduced ~50%).
+function _trainingBump(todaysExercises, deloadActive) {
+  const load = todaysExercises === null ? null : computeSessionLoad(todaysExercises);
+  if (load !== null && load === 0) return null; // empty array → no exercises, no bump
+
+  let calBump, carbBump;
+  if (load === null) {
+    // No exercise data available — fall back to the existing flat value
+    calBump = 150; carbBump = 38;
+  } else if (load < 120) {
+    calBump = 75; carbBump = 19;
+  } else if (load < 200) {
+    calBump = 150; carbBump = 38;
+  } else {
+    calBump = 225; carbBump = 56;
+  }
+
+  if (deloadActive) {
+    calBump = Math.round(calBump / 2);
+    carbBump = Math.round(carbBump / 2);
+  }
+
+  const tierLabel = load === null ? 'training day'
+    : load < 120 ? 'light session'
+    : load < 200 ? 'moderate session'
+    : 'heavy session';
+  const deloadNote = deloadActive ? ' (deload week — reduced)' : '';
+  const reason = `${tierLabel}${deloadNote} — carb and calorie increase to support today's training.`;
+
+  return { calBump, carbBump, reason };
+}
+
+/**
+ * Compute today's nutrition override protocol for a user.
+ *
+ * @param {string} userId
+ * @param {Array|null} todaysExercises - resolved exercise list from resolveTodaysExercises,
+ *   or null when the caller couldn't resolve exercises (triggers flat-bump fallback).
+ * @param {boolean} deloadActive - whether the user is in a deload week.
+ */
+export async function getTodayNutritionProtocol(userId, todaysExercises = null, deloadActive = false) {
   if (!userId) return null;
   const today = new Date().toISOString().split('T')[0];
 
@@ -35,14 +81,10 @@ export async function getTodayNutritionProtocol(userId) {
 
   const todayKey = DAYS[new Date().getDay()];
   const schedule = profileRow.schedule || wp.schedule || {};
-  const dayFocus = wp.dayFocus || {};
   const todayType = schedule[todayKey] || 'rest';
-  const todayFocusVal = (dayFocus[todayKey] || '').toLowerCase();
   const isTrainingDay = todayType !== 'rest';
 
   const refeedInterval = wp.refeed_day_interval ?? profileRow.refeed_day_interval ?? 7;
-  // calorie_cycling_enabled (build_muscle +250 branch) removed in Phase 4 rationalisation.
-  // getDayTypeNutrition is now the single per-day target system for ring + plan.
 
   let protocolType = 'standard';
   let adjustedCalories = baseCalories;
@@ -58,7 +100,7 @@ export async function getTodayNutritionProtocol(userId) {
   const raceIsToday = raceDate === today;
   const raceIsTomorrow = raceDate === tomorrowStr;
 
-  // P1: Race day / carb load
+  // P1: Race day / carb load — untouched
   if (raceIsToday || raceIsTomorrow) {
     protocolType = raceIsToday ? 'race_day' : 'carb_load';
     const carbBoost = 65;
@@ -71,7 +113,7 @@ export async function getTodayNutritionProtocol(userId) {
       : 'Race tomorrow — carb loading to top up glycogen stores.';
   }
 
-  // P2: Refeed day (lose_fat / recomp)
+  // P2: Refeed day (lose_fat / recomp) — untouched
   else if (goal === 'lose_fat' || goal === 'recomp') {
     const lastRefeed = profileRow.last_refeed_date;
     const daysSince = lastRefeed
@@ -94,14 +136,17 @@ export async function getTodayNutritionProtocol(userId) {
     }
   }
 
-  // P4: Heavy session boost (leg / lower / full body day)
-  else if (isTrainingDay && (
-    todayFocusVal.includes('leg') || todayFocusVal.includes('lower') || todayFocusVal.includes('full')
-  )) {
-    protocolType = 'training_day';
-    adjustedCalories = baseCalories + 150;
-    adjustedCarbs = baseCarbs + Math.round(150 / 4);
-    reason = 'Heavy session today — slight carb increase to support leg/full body training.';
+  // P4: Training-day bump — load-scaled from actual exercises, with deload discount.
+  // Fires for any lifting training day (including Push/Pull/Upper/Lower, not just Legs/Full).
+  // Falls back to a flat +150 kcal / +38g carbs when todaysExercises is null (no data).
+  else if (isTrainingDay) {
+    const bump = _trainingBump(todaysExercises, deloadActive);
+    if (bump) {
+      protocolType = 'training_day';
+      adjustedCalories = baseCalories + bump.calBump;
+      adjustedCarbs = baseCarbs + bump.carbBump;
+      reason = bump.reason;
+    }
   }
 
   if (protocolType === 'standard') return null;

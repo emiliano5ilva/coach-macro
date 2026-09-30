@@ -105,6 +105,7 @@ import { calculateMuscleBalance, getBalanceCorrections, getLatestBalance } from 
 import { checkPeriodisationAdjustment, getRecentAdjustments } from "./services/periodisationService.js";
 import { analyseRPETrends } from "./services/rpeTrendingService.js";
 import { getTodayNutritionProtocol } from "./services/nutritionPeriodisationService.js";
+import { resolveTodaysExercises } from "./services/exerciseResolver.js";
 import { getRunningPhase, getRunTimePredictor } from "./services/runningPeriodisationService.js";
 import { getStrengthPhase, getStrengthPredictor } from "./services/strengthPeriodisationService.js";
 import MuscleRecovery from "./components/MuscleRecovery.jsx";
@@ -9138,14 +9139,22 @@ Rules:
       }).catch(()=>{});
     }
 
-    getTodayNutritionProtocol(user.id).then(proto=>{
+    // Custom days need customRoutines loaded to resolve exercises. Skip the first
+    // fire when we're on a custom day but routines haven't arrived yet — the dep on
+    // customRoutines below ensures we re-run once they load.
+    if(todayType==='custom'&&customRoutines.length===0)return;
+    const _todaysExercises=resolveTodaysExercises({
+      todayType,todayKey,schedule,dayFocus,wPrefs,
+      customRoutines,programStartDate:profile?.program_start_date,
+    });
+    getTodayNutritionProtocol(user.id,_todaysExercises,deloadActive).then(proto=>{
       if(proto){
         setTodayProtocol(proto);
         triggerEventUnlock(user.id,'protocol_triggered').catch(()=>{});
       }
     }).catch(()=>{});
 
-  },[user?.id]);
+  },[user?.id,customRoutines]);
 
   // App tour — fires ONCE, only when the user first reaches the full 5-tab app
   // (plan_built flips true after the SECOND onboarding; 3→5 tab transition). Not
@@ -11753,7 +11762,7 @@ Rules:
         {/* Today — always mounted (default tab); hidden when inactive */}
         <div style={{display:section==="today"?"block":"none"}}><ErrorBoundary>{GOCLUB_REDESIGN?<HomeSectionGoClub/>:<HomeSection/>}</ErrorBoundary></div>
         {/* Plan — stays conditional (onboarding flow, must remount fresh each time) */}
-        {section==="plan"&&GOCLUB_REDESIGN&&<ErrorBoundary><PlanOnboarding profile={profile} wPrefs={wPrefs} user={user} setWPrefs={setWPrefs} setSchedule={setSchedule} setSection={setSection} setPlanBuilt={setPlanBuilt} onProfileUpdate={onProfileUpdate} onProtocolRefetch={()=>{const _d=new Date().toISOString().split("T")[0];sb.from("nutrition_protocols").delete().eq("user_id",user.id).eq("protocol_date",_d).then(()=>{},()=>{});getTodayNutritionProtocol(user.id).then(p=>setTodayProtocol(p||null)).catch(()=>{});}}/></ErrorBoundary>}
+        {section==="plan"&&GOCLUB_REDESIGN&&<ErrorBoundary><PlanOnboarding profile={profile} wPrefs={wPrefs} user={user} setWPrefs={setWPrefs} setSchedule={setSchedule} setSection={setSection} setPlanBuilt={setPlanBuilt} onProfileUpdate={onProfileUpdate} onProtocolRefetch={()=>{const _d=new Date().toISOString().split("T")[0];sb.from("nutrition_protocols").delete().eq("user_id",user.id).eq("protocol_date",_d).then(()=>{},()=>{});const _exs=resolveTodaysExercises({todayType,todayKey,schedule,dayFocus,wPrefs,customRoutines,programStartDate:profile?.program_start_date});getTodayNutritionProtocol(user.id,_exs,deloadActive).then(p=>setTodayProtocol(p||null)).catch(()=>{});}}/></ErrorBoundary>}
         {/* Train — deferred mount (first visit), then kept alive; display:none when inactive */}
         {trainMounted&&<div style={{display:section==="train"?"block":"none"}}><ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={handleSetTrainScreen} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} pauseWorkout={pauseWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} runDistancePrompt={runDistancePrompt} onRunDistanceChange={handleRunDistanceChange} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} workoutLogsRaw={workoutLogsRaw} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={handleStartLocalRest} onSkipLocalRest={handleSkipLocalRest} onReduceLocalRest={handleReduceLocalRest} onProfileUpdate={handleProfileUpdate} streakCount={unifiedStreak} customRoutines={customRoutines} onCustomRoutinesChange={setCustomRoutines}/></ErrorBoundary></div>}
         {/* Fuel — deferred mount (first visit), then kept alive; display:none when inactive */}
