@@ -97,6 +97,7 @@ import { setAIEnabled } from "./services/aiConsent.js";
 import { getRunningPhase } from "./services/runningPeriodisationService.js";
 import { getStrengthPhase } from "./services/strengthPeriodisationService.js";
 import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, getSwapOptionsForEquipment, EXERCISE_MUSCLE_GROUP, getMuscleGroup } from "./exercise_database.js";
+import { resolveTodaysExercises } from "./services/exerciseResolver.js";
 import { getPacesFromTime, resolvePaceTokens, computeGoalPace, formatRaceTime, getRacePredictions, enrichRunSession, parseTimeInput } from "./utils/runningPaces.js";
 import { renderWithPaces } from "./services/paceService.js";
 import { buildAdaptiveSession } from "./services/adaptiveSessionService.js";
@@ -2819,18 +2820,27 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
         }, {})
       : dayFocus;
 
-  // Shared lifting-content builder (Stage-1): getWorkoutForDay → equipment → permanentSwaps/
-  // favorites → GVT overlay → session-length cap → soreness reduction. Pure-lifting calls it with
-  // session-index walk (schedule+start anchor); hybrid lift days call it with {positional:true} so
-  // dayIndex is used directly (dayKeys[dayIndex]) to index the dayPlan cycle position.
-  // opts.focusLabel (pure-lifting only): when set and it matches a dayKey, overrides selectDayKey —
-  // this makes WeekEditor reorders produce the right content, not the elapsed-session count.
+  // Shared lifting-content builder (Stage-1): base exercises from resolveTodaysExercises →
+  // equipment substitution → permanentSwaps/favorites → GVT overlay → session-length cap →
+  // soreness reduction. Positional (hybrid) path calls getWorkoutForDay directly since it
+  // uses a pre-computed lift-day index into the hybrid split cycle.
   const buildLiftingPrescription=(splitType,dayIndex,opts={})=>{
-    const _sched=opts.positional?null:schedule;
-    const _start=opts.positional?null:(profile?.program_start_date||null);
-    const _focusLabel=opts.positional?null:(opts.focusLabel||null);
-    let exs=getWorkoutForDay(daysPerWeek,splitType,dayIndex,wPrefs.equipment||"Full Gym",undefined,wPrefs.liftExp||profile?.liftExp,_sched,_start,0,_focusLabel);
-    exs=applyEquipmentToWorkout(exs?.exercises||exs||[],wPrefs.equipment||"Full Gym");
+    let baseExs;
+    if(opts.positional){
+      // Hybrid lift day: positional index directly into the hybrid split cycle.
+      // Null schedule/start forces the positional dayIndex path in getWorkoutForDay.
+      const _raw=getWorkoutForDay(daysPerWeek,splitType,dayIndex,wPrefs.equipment||"Full Gym",undefined,wPrefs.liftExp||profile?.liftExp,null,null,0,null);
+      const _rawArr=_raw?.exercises||(Array.isArray(_raw)?_raw:[])||[];
+      baseExs=_rawArr.map(ex=>({...ex,sets:Array.isArray(ex.sets)?ex.sets.length:(Number(ex.sets)||3)}));
+    }else{
+      // Standard lifting day: delegate to the shared resolver so this path and the
+      // nutrition/morning-brief services stay in sync — one implementation, no drift.
+      baseExs=resolveTodaysExercises({
+        todayType:'training',todayKey,schedule,dayFocus,wPrefs,
+        customRoutines,programStartDate:profile?.program_start_date,
+      })||[];
+    }
+    let exs=applyEquipmentToWorkout(baseExs,wPrefs.equipment||"Full Gym");
     exs=exs.map(ex=>{const c=ex.originalName||ex.name;const sw=permanentSwaps[c];return{...ex,name:sw||ex.name,swappedFrom:sw?c:undefined,isFavorite:favorites.includes(c)};});
     if(showGVT&&isGVTWeek)exs=[...exs.slice(0,2).map(e=>({...e,sets:GVT_OVERLAY.sets,reps:GVT_OVERLAY.reps,notes:GVT_OVERLAY.note})),...exs.slice(2)];
     const _sl=wPrefs.sessionLength||60;
@@ -2851,41 +2861,20 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
     return exs;
   };
 
-  // ── Part 5/6: Custom day resolution ─────────────────────────────────────────
-  // Resolves wPrefs.dayRoutine[day] → active routine ID, honouring A/B/C rotation.
-  // Uses the same program_start_date epoch as the rest of the training engine.
-  // Custom days bypass getWorkoutForDay / selectDayKey entirely — it's a direct ID lookup.
-  function _getActiveRoutineId(dayRoutineInfo, programStartDate) {
-    if (!dayRoutineInfo) return null;
-    const { routineId, rotation } = dayRoutineInfo;
-    if (rotation?.length > 0) {
-      // Elapsed full weeks since program start → rotation index
-      const anchor = (() => { const d = programStartDate ? new Date(String(programStartDate).slice(0,10)) : new Date(); d.setHours(0,0,0,0); return d; })();
-      const today = new Date(); today.setHours(0,0,0,0);
-      const weeks = Math.max(0, Math.floor((today - anchor) / (7 * 86400000)));
-      return rotation[weeks % rotation.length] || rotation[0];
-    }
-    return routineId || null;
-  }
-
   let todayPrescription=null;
   let todayProgObj=null;
 
-  // Custom day (Part 5): resolve directly from the saved routine — do NOT run through
-  // getWorkoutForDay/selectDayKey/_sessionIndex at all. Falls through to the normal
+  // Custom day (Part 5): resolve via the shared resolver — single implementation
+  // shared with the nutrition service, no duplication. Falls through to the normal
   // prescType paths when todayType is not "custom".
   if (todayType === "custom") {
-    const _drInfo = wPrefs.dayRoutine?.[todayKey];
-    const _rid = _getActiveRoutineId(_drInfo, profile?.program_start_date);
-    const _routine = customRoutines.find(r => r.id === _rid);
-    if (_routine?.exercises?.length) {
-      todayPrescription = (_routine.exercises || []).map(ex => ({
-        name: ex.name, sets: ex.sets || 3, reps: String(ex.reps || 10),
-        notes: ex.notes || "", primary: ex.primary !== false,
-      }));
-    }
+    const _resolved=resolveTodaysExercises({
+      todayType:'custom',todayKey,schedule,dayFocus,wPrefs,
+      customRoutines,programStartDate:profile?.program_start_date,
+    });
+    if(_resolved?.length)todayPrescription=_resolved;
   } else if(prescType==="lifting"&&todayType==="training"){
-    todayPrescription=buildLiftingPrescription(wPrefs.splitType||"Full Body",dayIndex,{focusLabel:dayFocus?.[todayKey]||null});
+    todayPrescription=buildLiftingPrescription(wPrefs.splitType||"Full Body",dayIndex,{});
   }else if(prescType==="running"){
     // ── Generative engine — Phase B ──────────────────────────────────────────
     todayPrescription = getTodayRunWorkout(profile, wPrefs, schedule, todayKey, weekNum);
