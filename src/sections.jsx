@@ -97,7 +97,7 @@ import { setAIEnabled } from "./services/aiConsent.js";
 import { getRunningPhase } from "./services/runningPeriodisationService.js";
 import { getStrengthPhase } from "./services/strengthPeriodisationService.js";
 import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, getSwapOptionsForEquipment, EXERCISE_MUSCLE_GROUP, getMuscleGroup } from "./exercise_database.js";
-import { resolveTodaysExercises } from "./services/exerciseResolver.js";
+import { resolveTodaysExercises, resolveTodaysRunSession } from "./services/exerciseResolver.js";
 import { getPacesFromTime, resolvePaceTokens, computeGoalPace, formatRaceTime, getRacePredictions, enrichRunSession, parseTimeInput } from "./utils/runningPaces.js";
 import { renderWithPaces } from "./services/paceService.js";
 import { buildAdaptiveSession } from "./services/adaptiveSessionService.js";
@@ -2877,8 +2877,6 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
     todayPrescription=buildLiftingPrescription(wPrefs.splitType||"Full Body",dayIndex,{});
   }else if(prescType==="running"){
     // ── Generative engine — Phase B ──────────────────────────────────────────
-    todayPrescription = getTodayRunWorkout(profile, wPrefs, schedule, todayKey, weekNum);
-
     // Resolve pace tokens and apply VDOT/weather adjustments
     const _5kSecs = wPrefs.current5KTime || profile?.current5KTime || profile?.profile_data?.current5KTime;
     let runPaces = getPacesFromTime(_5kSecs);
@@ -2887,8 +2885,8 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
       const _gpSecs = parseTimeInput(profile.run_target_time);
       if (_gpSecs > 0) runPaces = { ...runPaces, goalPace: computeGoalPace(_gpSecs, profile?.run_race_type || '5k', runPaces.tempo) };
     }
+    todayPrescription = resolveTodaysRunSession({ todayType, schedule, wPrefs, profile, todayKey, weekNum, hybridRunDay: false });
     if (todayPrescription) {
-      todayPrescription = enrichRunSession(todayPrescription);
       if (runPaces) todayPrescription = { ...todayPrescription, description: resolvePaceTokens(todayPrescription.description || "", runPaces) };
       const _rawPaces = profile?.runProfile?.paces ?? null;
       const _vdotPaces = weatherAdjustment?.adjustmentFactor > 1.0 ? applyWeatherToPaces(_rawPaces, weatherAdjustment.adjustmentFactor) : _rawPaces;
@@ -2898,7 +2896,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
   }else if(prescType==="hyrox"){
     const _hyroxProgramName=wPrefs.hyroxProgram||"12-Week Race Prep";
     todayProgObj=HYROX_PROGRAM[_hyroxProgramName]||HYROX_PROGRAM["12-Week Race Prep"];
-    todayPrescription=getTodayHyroxWorkout(_hyroxProgramName,weekNum,todayKey);
+    todayPrescription=resolveTodaysRunSession({todayType,schedule,wPrefs,profile,todayKey,weekNum,hybridRunDay:false});
     if(todayPrescription){
       const _vdotPaces=profile?.runProfile?.paces??null;
       if(_vdotPaces) todayPrescription={...todayPrescription,description:renderWithPaces(todayPrescription.description||"",_vdotPaces)};
@@ -2907,7 +2905,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
     }
   }else if(prescType==="hybrid-hyrox"){
     todayProgObj=HYBRID_PROGRAMS["Hyrox Hybrid"];
-    todayPrescription=getTodayHybridWorkout("Hyrox Hybrid",todayKey,weekNum);
+    todayPrescription=resolveTodaysRunSession({todayType,schedule,wPrefs,profile,todayKey,weekNum,hybridRunDay:false});
     if(todayPrescription){
       const _vdotPaces=profile?.runProfile?.paces??null;
       if(_vdotPaces) todayPrescription={...todayPrescription,description:renderWithPaces(todayPrescription.description||"",_vdotPaces)};
@@ -2917,15 +2915,14 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
   }else if(prescType==="hybrid"){
     if(hybridRunDay){
       // Engine path for run days — same pace resolution as the run-only branch
-      todayPrescription = getTodayRunWorkout(profile, wPrefs, schedule, todayKey, weekNum);
       const _5kSecs = wPrefs.current5KTime || profile?.current5KTime || profile?.profile_data?.current5KTime;
       let runPaces = getPacesFromTime(_5kSecs);
       if(runPaces && profile?.run_target_time){
         const _gpSecs = parseTimeInput(profile.run_target_time);
         if(_gpSecs > 0) runPaces = { ...runPaces, goalPace: computeGoalPace(_gpSecs, profile?.run_race_type || '5k', runPaces.tempo) };
       }
+      todayPrescription = resolveTodaysRunSession({ todayType, schedule, wPrefs, profile, todayKey, weekNum, hybridRunDay: true });
       if(todayPrescription){
-        todayPrescription = enrichRunSession(todayPrescription);
         if(runPaces) todayPrescription = { ...todayPrescription, description: resolvePaceTokens(todayPrescription.description || "", runPaces) };
         const _rawPaces = profile?.runProfile?.paces ?? null;
         const _vdotPaces = weatherAdjustment?.adjustmentFactor > 1.0 ? applyWeatherToPaces(_rawPaces, weatherAdjustment.adjustmentFactor) : _rawPaces;
@@ -4952,16 +4949,16 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                         <div style={{fontFamily:_AF,fontSize:10,color:"rgba(var(--cm-ink-rgb),0.55)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:6}}>YOUR PACES TODAY</div>
                         <div style={{display:"flex",flexWrap:"wrap",gap:"6px 14px"}}>
                           {[["Easy",runPaces.easy.display],["Tempo",runPaces.tempo.display],["Long Run",runPaces.longRun.display],["Intervals",runPaces.interval5K.display]].map(([l,v])=>(
-                            <div key={l} style={{fontSize:13,lineHeight:1.6}}><span style={{color:"rgba(var(--cm-ink-rgb),0.8)"}}>{l}: </span><span style={{color:"var(--cm-ink)",fontWeight:700,fontFamily:"monospace"}}>{v}</span></div>
+                            <div key={l} style={{fontSize:13,lineHeight:1.6}}><span style={{color:"rgba(var(--cm-ink-rgb),0.8)"}}>{l}: </span><span style={{color:"var(--cm-ink)",fontWeight:500,fontFamily:_MO}}>{v}</span></div>
                           ))}
                         </div>
                       </div>}
-                      {preFuel&&<div style={{background:"rgba(245,158,11,.06)",border:"1px solid rgba(245,158,11,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
-                        <div style={{fontFamily:_AF,fontSize:10,color:"rgba(var(--cm-ink-rgb),0.55)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:3}}>PRE-RUN FUEL</div>
+                      {preFuel&&<div style={{background:"rgba(245,158,11,.06)",border:"1px solid rgba(245,158,11,.2)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
+                        <div style={{fontFamily:_AF,fontSize:10,color:"rgba(var(--cm-ink-rgb),0.55)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>PRE-RUN FUEL</div>
                         <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb),0.8)",lineHeight:1.6}}>{preFuel}</div>
                       </div>}
-                      {postFuel&&<div style={{background:"rgba(52,211,153,.06)",border:"1px solid rgba(52,211,153,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
-                        <div style={{fontFamily:_AF,fontSize:10,color:"rgba(var(--cm-ink-rgb),0.55)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:3}}>RECOVERY FUEL</div>
+                      {postFuel&&<div style={{background:"rgba(52,211,153,.06)",border:"1px solid rgba(52,211,153,.2)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
+                        <div style={{fontFamily:_AF,fontSize:10,color:"rgba(var(--cm-ink-rgb),0.55)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>RECOVERY FUEL</div>
                         <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb),0.8)",lineHeight:1.6}}>{postFuel}</div>
                       </div>}
                       {!preFuel&&!postFuel&&todayProgObj?.nutritionNote&&(

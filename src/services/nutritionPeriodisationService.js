@@ -43,12 +43,14 @@ function _trainingBump(todaysExercises, deloadActive) {
 /**
  * Compute today's nutrition override protocol for a user.
  *
- * @param {string} userId
- * @param {Array|null} todaysExercises - resolved exercise list from resolveTodaysExercises,
+ * @param {string}      userId
+ * @param {Array|null}  todaysExercises  - resolved exercise list from resolveTodaysExercises,
  *   or null when the caller couldn't resolve exercises (triggers flat-bump fallback).
- * @param {boolean} deloadActive - whether the user is in a deload week.
+ * @param {boolean}     deloadActive     - whether the user is in a deload week.
+ * @param {Object|null} todaysRunSession - enriched run session from resolveTodaysRunSession,
+ *   or null for non-run days / when the caller can't resolve a run session.
  */
-export async function getTodayNutritionProtocol(userId, todaysExercises = null, deloadActive = false) {
+export async function getTodayNutritionProtocol(userId, todaysExercises = null, deloadActive = false, todaysRunSession = null) {
   if (!userId) return null;
   const today = new Date().toISOString().split('T')[0];
 
@@ -147,6 +149,29 @@ export async function getTodayNutritionProtocol(userId, todaysExercises = null, 
       adjustedCarbs = baseCarbs + bump.carbBump;
       reason = bump.reason;
     }
+  }
+
+  // P4b: Run/cardio/hyrox day bump — uses the macroAdjustment from enrichRunSession.
+  // Mutually exclusive with P4 (run/cardio/hyrox days are never lifting days per todayType).
+  // macroAdjustment is carbs-only; convert to calories at 4 kcal/g (standard carb conversion).
+  // Deload discount: halved, same proportion as the lifting branch.
+  // Falls through to standard (null) when todaysRunSession is absent or macroAdjustment ≤ 0.
+  else if (
+    (todayType === 'run' || todayType === 'cardio' || todayType === 'hyrox') &&
+    todaysRunSession?.macroAdjustment > 0
+  ) {
+    let carbBump = todaysRunSession.macroAdjustment;
+    let calBump = carbBump * 4;
+    if (deloadActive) {
+      carbBump = Math.round(carbBump / 2);
+      calBump = Math.round(calBump / 2);
+    }
+    const deloadNote = deloadActive ? ' (deload week — reduced)' : '';
+    const sessionLabel = todaysRunSession.type || 'run session';
+    protocolType = 'training_day';
+    adjustedCalories = baseCalories + calBump;
+    adjustedCarbs = baseCarbs + carbBump;
+    reason = `run day${deloadNote} — +${carbBump}g carbs to support today's ${sessionLabel}.`;
   }
 
   if (protocolType === 'standard') return null;

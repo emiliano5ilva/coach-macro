@@ -1,5 +1,7 @@
 import { getWorkoutForDay } from '../programs.js';
-import { HYBRID_TEMPLATE_CYCLES } from '../running_programs.js';
+import { HYBRID_TEMPLATE_CYCLES, getTodayRunWorkout, getTodayHyroxWorkout, getTodayHybridWorkout } from '../running_programs.js';
+import { resolveProgram } from '../utils/programResolver.js';
+import { enrichRunSession } from '../utils/runningPaces.js';
 
 const WDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -153,4 +155,44 @@ export function resolveTodaysExercises({
   }
 
   return null;
+}
+
+/**
+ * Resolve today's run/hyrox/hybrid-run session and enrich it with fuel guidance.
+ *
+ * Parallel to resolveTodaysExercises but for run-type programs. Calls the appropriate
+ * session builder (getTodayRunWorkout / getTodayHyroxWorkout / getTodayHybridWorkout)
+ * then enrichRunSession to attach preFuel / postFuel / macroAdjustment.
+ *
+ * @param {string}  todayType     - schedule[todayKey]: 'run'|'hyrox'|'training'|'rest'|...
+ * @param {Object}  schedule      - full Mon–Sun schedule map
+ * @param {Object}  wPrefs        - user workout preferences
+ * @param {Object}  profile       - user profile (program_start_date, current5KTime, etc.)
+ * @param {string}  todayKey      - 'Mon'|'Tue'|...|'Sun'
+ * @param {number}  weekNum       - current training week (computed from program_start_date)
+ * @param {boolean} hybridRunDay  - whether today is an engine run day in a hybrid program
+ * @returns enriched session ({…, preFuel, postFuel, macroAdjustment}) or null
+ */
+export function resolveTodaysRunSession({
+  todayType, schedule, wPrefs, profile, todayKey, weekNum, hybridRunDay = false,
+}) {
+  const programMode = resolveProgram(wPrefs, profile).mode;
+  const prescType = programMode === 'conditioning' ? 'lifting' : programMode;
+
+  let raw = null;
+
+  if (prescType === 'running') {
+    // getTodayRunWorkout returns null for rest/unmapped days — let it decide.
+    raw = getTodayRunWorkout(profile, wPrefs, schedule, todayKey, weekNum);
+  } else if (prescType === 'hyrox') {
+    const hyroxProgramName = wPrefs?.hyroxProgram || '12-Week Race Prep';
+    raw = getTodayHyroxWorkout(hyroxProgramName, weekNum, todayKey);
+  } else if (prescType === 'hybrid-hyrox') {
+    raw = getTodayHybridWorkout('Hyrox Hybrid', todayKey, weekNum);
+  } else if (prescType === 'hybrid' && hybridRunDay) {
+    raw = getTodayRunWorkout(profile, wPrefs, schedule, todayKey, weekNum);
+  }
+
+  if (!raw) return null;
+  return enrichRunSession(raw);
 }
