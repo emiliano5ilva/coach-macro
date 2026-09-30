@@ -80,7 +80,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   RUN_PLANS, FASTING_PROTOCOLS,
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
   SectionCard, Spinner, Logo, CC, MuscleMap, FAQItem, BodyFigure,
-  calcTDEE, lookupBarcode, useCountUp, autoFocus, getDayMacros,
+  calcTDEE, lookupBarcode, useCountUp, autoFocus, getDayMacros, getTodayKey,
   Badge, getTier,
   hap, hapMed, hapSuccess, hapPR,
   PaperCard, Pill, MusclePills,
@@ -355,7 +355,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
     const daysPerWeek=Object.values(schedule||{}).filter(v=>v==="training").length||3;
     const startD=new Date(profile?.program_start_date||Date.now()); // [B] today-bootstrap; never tenure startDate
     const dayIdx=Math.max(0,Math.floor((Date.now()-startD.getTime())/86400000))%(daysPerWeek||1);
-    let exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIdx,wPrefs.equipment||"Full Gym",undefined,wPrefs.liftExp||profile?.liftExp,schedule,profile?.program_start_date||null,0);
+    let exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIdx,wPrefs.equipment||"Full Gym",undefined,wPrefs.liftExp||profile?.liftExp,schedule,profile?.program_start_date||null,0,wPrefs.dayFocus?.[getTodayKey()]||null);
     exs=applyEquipmentToWorkout(exs?.exercises||exs||[],wPrefs.equipment||"Full Gym");
     setGenExercises(exs.length?exs:[{name:"Session Ready",sets:3,reps:"8-12",weight:"",notes:"Start your session"}]);
     generateWorkout(type,split,runPlanLocal,hybridTemplate); // still call AI for notes in background
