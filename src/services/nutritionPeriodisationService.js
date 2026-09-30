@@ -82,7 +82,7 @@ export async function getTodayNutritionProtocol(userId, todaysExercises = null, 
   const todayKey = DAYS[new Date().getDay()];
   const schedule = profileRow.schedule || wp.schedule || {};
   const todayType = schedule[todayKey] || 'rest';
-  const isTrainingDay = todayType !== 'rest';
+  const isLiftingDay = todayType === 'training' || todayType === 'custom';
 
   const refeedInterval = wp.refeed_day_interval ?? profileRow.refeed_day_interval ?? 7;
 
@@ -137,9 +137,9 @@ export async function getTodayNutritionProtocol(userId, todaysExercises = null, 
   }
 
   // P4: Training-day bump — load-scaled from actual exercises, with deload discount.
-  // Fires for any lifting training day (including Push/Pull/Upper/Lower, not just Legs/Full).
+  // Fires only for lifting days ('training' / 'custom'); cardio/run/hyrox days are excluded.
   // Falls back to a flat +150 kcal / +38g carbs when todaysExercises is null (no data).
-  else if (isTrainingDay) {
+  else if (isLiftingDay) {
     const bump = _trainingBump(todaysExercises, deloadActive);
     if (bump) {
       protocolType = 'training_day';

@@ -22,7 +22,7 @@ function _getActiveRoutineId(dayRoutineInfo, programStartDate) {
 }
 
 function _avgReps(r) {
-  const s = String(r || 10);
+  const s = String(r == null || (typeof r === 'number' && !Number.isFinite(r)) ? 10 : r);
   const m = s.match(/^(\d+)\s*[-–]\s*(\d+)$/);
   if (m) return (parseInt(m[1]) + parseInt(m[2])) / 2;
   const n = parseFloat(s);
