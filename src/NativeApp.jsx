@@ -551,7 +551,7 @@ export default function NativeApp() {
         trial_ends_at:prof.trialEndsAt||null,
         subscription_tier:'trial',
         first_name:prof.name||null,
-        goal:(prof.goal||'').toLowerCase().replace(/\s+/g,'_')||null,
+        goal:(prof.primaryGoal||'').toLowerCase().replace(/\s+/g,'_')||null,
         skill_level:(prof.liftExp||'').toLowerCase()||null,
         weight_kg:_weightKg,
         goal_weight_kg:_goalWtKg,
