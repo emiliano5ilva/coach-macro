@@ -6,56 +6,33 @@ import { RECOVERY_MESO_MAP, getMesoLength } from "./utils/ait.js";
 // ─── FUEL ONBOARDING ──────────────────────────────────────────────────────────
 export function FuelOnboarding({d, onComplete, onBack}) {
   const [sc,setSc]=useState(0);
+  // Part 1: seed from Phase-1 answers carried on the d prop.
+  // goal is capitalized in handleProfileDone ("Cut") but screens compare lowercase ("cut").
   const [data,setData]=useState({
-    goal:"", goalWeight:"", goalTimeline:"", why:"", whyOther:"",
-    dietary:[], mealFreq:"", fasting:"", alcohol:"", goalRate:"", macroExp:"",
-    waterMode:"calculate", waterCustomOz:"",
+    goal: d.goal ? d.goal.toLowerCase() : "",
+    goalWeight: d.goalWeight || "",
+    goalTimeline: "",
+    why: d.why || "",
+    whyOther: "",
+    dietary: [],
+    mealFreq: "",
+    fasting: "",
+    alcohol: "",
+    goalRate: d.goalRate || "",
+    macroExp: "",
+    waterMode: "calculate",
+    waterCustomOz: "",
   });
   const upd=(k,v)=>setData(p=>({...p,[k]:v}));
   const auto=(k,v)=>{upd(k,v);setTimeout(()=>setSc(s=>s+1),260);};
   const next=()=>setSc(s=>s+1);
   const back=()=>sc===0?onBack():setSc(s=>s-1);
-  const SCREENS=9;
+  // Part 2: removed screens 0 (Goal), 1 (Goal Weight), 3 (Why), 6 (Calorie Rate)
+  // Remaining: 0=Timeline, 1=MacroExp, 2=Water, 3=Dietary, 4=MealFreq+Done
+  const SCREENS=5;
   const pct=Math.round((sc/SCREENS)*100);
   const rateMap={"−750":-750,"−500":-500,"−250":-250,"−125":-125,"0":0,"+125":125,"+250":250,"+500":500};
   const goalCals=(d.baseTDEE||2000)+(rateMap[data.goalRate]||0);
-
-  const WHY_OPTIONS=[
-    {v:"health",e:"❤️",l:"Health & Longevity",sub:"Feel better, live longer"},
-    {v:"confidence",e:"💪",l:"Confidence",sub:"Look and feel my best"},
-    {v:"performance",e:"⚡",l:"Athletic Performance",sub:"Get stronger, faster, better"},
-    {v:"aesthetic",e:"🔥",l:"Look Better",sub:"Body composition goals"},
-    {v:"discipline",e:"🎯",l:"Discipline & Habits",sub:"Build a lifestyle, not a diet"},
-    {v:"compete",e:"🏆",l:"Compete",sub:"Sport, Hyrox, powerlifting"},
-  ];
-
-  const RATE_INFO={
-    cut:{
-      "−500":{label:"−500 kcal/day",result:"~1 lb fat loss/week",rec:false},
-      "−250":{label:"−250 kcal/day",result:"~0.5 lb/week",rec:false},
-      "−125":{label:"−125 kcal/day",result:"~0.25 lb/week — gentlest",rec:false},
-    },
-    bulk:{
-      "+125":{label:"+125 kcal/day",result:"~0.25 lb muscle/week — lean bulk",rec:false},
-      "+250":{label:"+250 kcal/day",result:"~0.5 lb/week",rec:false},
-      "+500":{label:"+500 kcal/day",result:"~1 lb/week — aggressive",rec:false},
-    },
-  };
-
-  // Expert recommendation based on profile
-  const getRec=()=>{
-    if(data.goal==="cut"){
-      if(d.metHistory==="3plus"||d.metHistory==="offon")return{rate:"−250",why:"You've dieted before — a smaller deficit prevents adaptation and preserves more muscle."};
-      if(["4-6","7+"].includes(d.freq))return{rate:"−500",why:"You train frequently. A moderate deficit keeps performance high while losing fat."};
-      return{rate:"−500",why:"A 500 kcal deficit produces ~1 lb/week fat loss — the most researched rate for maintaining muscle."};
-    }
-    if(data.goal==="bulk"){
-      if(d.liftExp==="beginner")return{rate:"+250",why:"Beginners gain muscle fastest. A small surplus maximizes muscle while minimizing fat gain."};
-      return{rate:"+125",why:"Advanced lifters gain muscle slowly regardless of surplus. Small surplus = more muscle, less fat."};
-    }
-    return null;
-  };
-  const rec=getRec();
 
   return(
     <div className="ob-page">
@@ -74,53 +51,8 @@ export function FuelOnboarding({d, onComplete, onBack}) {
         </div>
         {sc>0&&<button onClick={back} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:18,padding:"0 0 16px",fontFamily:"inherit"}}>← Back</button>}
 
-        {/* SCREEN 0 — Goal */}
-        {sc===0&&<div style={{animation:"fadeIn .3s ease"}}>
-          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 1</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
-            YOUR FUEL<br/><span style={{color:T.carb}}>GOAL.</span>
-          </div>
-          <p style={{fontSize:13,color:T.mu,marginBottom:24,lineHeight:1.65}}>Your base metabolic rate is <b style={{color:"#fff"}}>{(d.baseTDEE||2000).toLocaleString()} kcal/day</b>. Now let's set your target.</p>
-          <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:8}}>
-            {[
-              {v:"cut",l:"Lose Fat",e:"🔥",sub:"Create a calorie deficit and reveal muscle"},
-              {v:"bulk",l:"Build Muscle",e:"💪",sub:"Lean bulk phase for maximum muscle growth"},
-              {v:"maintain",l:"Maintain",e:"⚖️",sub:"Keep your current weight and body composition"},
-              {v:"recomp",l:"Recomposition",e:"🔄",sub:"Lose fat and build muscle simultaneously"},
-            ].map(o=>(
-              <div key={o.v} onClick={()=>auto("goal",o.v)} style={{background:data.goal===o.v?`${T.carb}12`:T.s2,border:`2px solid ${data.goal===o.v?T.carb:T.bd}`,borderRadius:14,padding:"16px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:14}}>
-                <div style={{fontSize:28,flexShrink:0}}>{o.e}</div>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:16,fontWeight:700,color:data.goal===o.v?T.carb:"#fff"}}>{o.l}</div>
-                  <div style={{fontSize:12,color:T.mu,marginTop:3,lineHeight:1.4}}>{o.sub}</div>
-                </div>
-                {data.goal===o.v&&<div style={{color:T.carb,fontSize:16,flexShrink:0}}>✓</div>}
-              </div>
-            ))}
-          </div>
-        </div>}
-
-        {/* SCREEN 1 — Goal Weight */}
-        {sc===1&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 2</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
-            TARGET<br/><span style={{color:T.carb}}>WEIGHT.</span>
-          </div>
-          <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Current: <b style={{color:"#fff"}}>{d.startWeight} {d.wUnit||"lbs"}</b>. Where do you want to be?</p>
-          <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"16px",marginBottom:16}}>
-            <input value={data.goalWeight} onChange={e=>upd("goalWeight",e.target.value)} type="number" placeholder={data.goal==="cut"?String(Math.round((d.startWeight||180)*0.9)):String(Math.round((d.startWeight||180)*1.1))}
-              style={{width:"100%",background:"none",border:"none",color:"#fff",fontSize:32,fontWeight:700,outline:"none",fontFamily:"inherit",textAlign:"center",boxSizing:"border-box"}}/>
-            <div style={{textAlign:"center",fontSize:13,color:T.mu,marginTop:4}}>{d.wUnit||"lbs"}</div>
-          </div>
-          {data.goalWeight&&<div style={{background:`${T.carb}08`,border:`1px solid ${T.carb}20`,borderRadius:10,padding:"12px 14px",marginBottom:16,fontSize:13,color:T.mu}}>
-            Difference: <b style={{color:data.goal==="cut"?T.carb:T.prot}}>{data.goal==="cut"?"-":"+"}{ Math.abs(parseFloat(data.goalWeight)-(d.startWeight||0)).toFixed(1)} {d.wUnit||"lbs"}</b>
-          </div>}
-          <PrimaryBtn onClick={next} label="Continue →" disabled={!data.goalWeight} style={{background:T.carb}}/>
-          <button onClick={next} style={{width:"100%",padding:"11px",background:"none",color:T.mu,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,marginTop:8}}>Skip — I don't have a specific target</button>
-        </div>}
-
-        {/* SCREEN 2 — Timeline (math-based, no impossible options) */}
-        {sc===2&&(()=>{
+        {/* SCREEN 0 — Timeline (was sc===2; Goal/GoalWeight removed as confirmed Phase-1 duplicates) */}
+        {sc===0&&(()=>{
           const startW=parseFloat(d.startWeight)||parseFloat(d.weight)||0;
           const goalW=parseFloat(data.goalWeight)||startW;
           const diff=Math.abs(startW-goalW);
@@ -179,30 +111,9 @@ export function FuelOnboarding({d, onComplete, onBack}) {
           );
         })()}
 
-        {/* SCREEN 3 — The WHY */}
-        {sc===3&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 4</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:8}}>
-            WHY DOES<br/><span style={{color:T.carb}}>THIS MATTER?</span>
-          </div>
-          <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>We use this for daily motivation, pre-workout messages, and hard-day reminders. Pick the one that hits hardest.</p>
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {WHY_OPTIONS.map(o=>(
-              <div key={o.v} onClick={()=>auto("why",o.v)} style={{background:data.why===o.v?`${T.carb}12`:T.s2,border:`1.5px solid ${data.why===o.v?T.carb:T.bd}`,borderRadius:11,padding:"14px 16px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:14}}>
-                <div style={{fontSize:22,width:32,textAlign:"center",flexShrink:0}}>{o.e}</div>
-                <div>
-                  <div style={{fontSize:14,fontWeight:700,color:data.why===o.v?T.carb:"#fff"}}>{o.l}</div>
-                  <div style={{fontSize:11,color:T.mu,marginTop:2}}>{o.sub}</div>
-                </div>
-                {data.why===o.v&&<div style={{marginLeft:"auto",color:T.carb,fontSize:16}}>✓</div>}
-              </div>
-            ))}
-          </div>
-        </div>}
-
-        {/* SCREEN 4 — Macro tracking experience */}
-        {sc===4&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 5</div>
+        {/* SCREEN 1 — Macro tracking experience (was sc===4; Why removed as confirmed Phase-1 duplicate) */}
+        {sc===1&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 2</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             HAVE YOU TRACKED<br/><span style={{color:T.carb}}>MACROS BEFORE?</span>
           </div>
@@ -226,14 +137,14 @@ export function FuelOnboarding({d, onComplete, onBack}) {
           </div>
         </div>}
 
-        {/* SCREEN 5 — Water goal */}
-        {sc===5&&(()=>{
+        {/* SCREEN 2 — Water goal (was sc===5) */}
+        {sc===2&&(()=>{
           const wLbs=d.wUnit==="kg"?(parseFloat(d.weight||70)*2.205):parseFloat(d.weight||160);
           const calcOz=Math.round(wLbs*0.5);
           const weightDisplay=d.wUnit==="kg"?`${parseFloat(d.weight||70)}kg`:`${parseFloat(d.weight||160)}lbs`;
           return(
             <div style={{animation:"fadeIn .25s ease"}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--red)",fontWeight:700,letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:8}}>// STEP 5b of 9</div>
+              <div style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--red)",fontWeight:500,letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:8}}>// STEP 3 of 5</div>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:48,lineHeight:.88,marginBottom:16,color:"var(--white)",textTransform:"uppercase"}}>
                 Water<br/><span style={{color:"var(--red)"}}>Target.</span>
               </div>
@@ -263,46 +174,9 @@ export function FuelOnboarding({d, onComplete, onBack}) {
           );
         })()}
 
-        {/* SCREEN 6 — Calorie target / Rate */}
-        {sc===6&&data.goal!=="maintain"&&data.goal!=="recomp"&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 7</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:8}}>
-            YOUR CALORIE<br/><span style={{color:T.carb}}>RATE.</span>
-          </div>
-          <p style={{fontSize:13,color:T.mu,marginBottom:16}}>TDEE: <b style={{color:"#fff"}}>{(d.baseTDEE||2000).toLocaleString()} kcal</b>. Choose your deficit or surplus.</p>
-          {rec&&<div style={{background:`${T.carb}08`,border:`1.5px solid ${T.carb}35`,borderRadius:12,padding:"14px 16px",marginBottom:14}}>
-            <div style={{fontSize:10,color:T.carb,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>⭐ Expert pick for you</div>
-            <div style={{fontSize:13,color:"#ccc",lineHeight:1.65,marginBottom:10}}>{rec.why}</div>
-            <button onClick={()=>upd("goalRate",rec.rate)} style={{padding:"8px 16px",background:data.goalRate===rec.rate?T.carb:`${T.carb}18`,color:data.goalRate===rec.rate?"#000":T.carb,border:`1px solid ${T.carb}40`,borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,fontFamily:"inherit"}}>
-              {data.goalRate===rec.rate?"✓ Selected":rec.rate+" — Select This"}
-            </button>
-          </div>}
-          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-            {Object.entries(RATE_INFO[data.goal]||{}).map(([rate,info])=>(
-              <div key={rate} onClick={()=>upd("goalRate",rate)} style={{background:data.goalRate===rate?`${T.carb}10`:T.s2,border:`1.5px solid ${data.goalRate===rate?T.carb:rec&&rate===rec.rate?`${T.carb}30`:T.bd}`,borderRadius:10,padding:"12px 15px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all .2s"}}>
-                <div>
-                  <div style={{fontSize:13,fontWeight:600,color:data.goalRate===rate?T.carb:"#fff"}}>{info.label}</div>
-                  <div style={{fontSize:11,color:T.mu,marginTop:2}}>{info.result}</div>
-                </div>
-                <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                  {rec&&rate===rec.rate&&<div style={{fontSize:9,color:T.carb,background:`${T.carb}15`,border:`1px solid ${T.carb}30`,borderRadius:6,padding:"2px 7px",fontWeight:700}}>Recommended</div>}
-                  {data.goalRate===rate&&<div style={{color:T.carb}}>✓</div>}
-                </div>
-              </div>
-            ))}
-          </div>
-          {data.goalRate&&<div style={{background:"#070E1A",border:`1px solid ${T.carb}30`,borderRadius:12,padding:"16px",marginBottom:16}}>
-            <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:6}}>Daily Target</div>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:52,fontWeight:900,color:T.carb,lineHeight:1}}>{goalCals.toLocaleString()}</div>
-            <div style={{fontSize:13,color:T.mu,marginTop:4}}>kcal/day · {data.goal} phase</div>
-          </div>}
-          <PrimaryBtn onClick={next} label="Continue →" disabled={!data.goalRate} style={{background:T.carb}}/>
-        </div>}
-        {sc===6&&(data.goal==="maintain"||data.goal==="recomp")&&(()=>{setTimeout(next,100);return null;})()}
-
-        {/* SCREEN 7 — Dietary preferences */}
-        {sc===7&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 8</div>
+        {/* SCREEN 3 — Dietary preferences (was sc===7; Calorie Rate removed as confirmed Phase-1 duplicate) */}
+        {sc===3&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 4</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             ANY DIETARY<br/><span style={{color:T.carb}}>NEEDS?</span>
           </div>
@@ -320,9 +194,9 @@ export function FuelOnboarding({d, onComplete, onBack}) {
           <PrimaryBtn onClick={next} label="Continue →" style={{background:T.carb}}/>
         </div>}
 
-        {/* SCREEN 8 — Meal frequency + fasting */}
-        {sc===8&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 9</div>
+        {/* SCREEN 4 — Meal frequency + fasting + done (was sc===8) */}
+        {sc===4&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 5</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             HOW OFTEN<br/><span style={{color:T.carb}}>DO YOU EAT?</span>
           </div>
@@ -365,6 +239,28 @@ export function FuelOnboarding({d, onComplete, onBack}) {
 
 
 // ─── TRAIN ONBOARDING ─────────────────────────────────────────────────────────
+
+// Part 1 helpers: map ob_new.jsx Phase-1 field formats to TrainOnboarding formats.
+// Pass-through when value is already in TrainOnboarding format (e.g. returning users).
+function _mapTrainType(v) {
+  return {run:"running", strength:"lifting", metcon:"lifting", sport:"lifting"}[v] || v || "lifting";
+}
+function _mapFreqToTrain(v) {
+  return {n0:"1-2","1-3":"3","4-6":"5","7+":"7"}[v] || v || "";
+}
+function _mapEquipToTrain(v) {
+  if (!v) return "Full Gym";
+  return {full:"Full Gym",home_bar:"Home Gym",dumbbells:"Dumbbells Only",minimal:"Bodyweight Only"}[v] || v;
+}
+function _mapSessionLen(v) {
+  if (!v) return 60;
+  const map = {"20":30,"45":45,"60":60,"90":90, 20:30, 45:45, 60:60, 90:90};
+  return map[v] ?? (typeof v === "number" ? v : 60);
+}
+function _mapCycleToTracking(v) {
+  return {regular:true, irregular:true, peri:"menopause", hbc:true, prefer:"prefer_not"}[v] ?? null;
+}
+
 export const SPLITS_WITH_DAYS = {
   3: [
     {id:"full_body",l:"Full Body 3×",e:"🏋️",desc:"Hit every major muscle pattern every session. Best for beginners. Squat, hinge, push, pull, carry — all 3 days.",rec:true,levels:["beginner","intermediate"],gvt:false},
@@ -444,40 +340,57 @@ function DomsTooltip() {
 }
 
 export function TrainOnboarding({d, onComplete, onBack}) {
-  const [sc,setSc]=useState(0);
-  const [runSc,setRunSc]=useState(null); // null = not in run sub-flow; 0-8 = screens A-I
-  const [hyroxSc,setHyroxSc]=useState(null); // null = inactive; 0-7 = screens A-H
+  // Part 1: compute mapped trainType before useState so init values are correct.
+  const _initTrainType = _mapTrainType(d.trainType || "");
+  // Part 2: sc starts at 1 for lifting (Training Type screen removed as confirmed Phase-1 duplicate).
+  // For running/hybrid/hyrox, sc=0 with the sub-flow already active.
+  const [sc,setSc]=useState(
+    (_initTrainType==="running"||_initTrainType==="hybrid"||_initTrainType==="hyrox") ? 0 : 1
+  );
+  const [runSc,setRunSc]=useState(
+    (_initTrainType==="running"||_initTrainType==="hybrid") ? 0 : null
+  );
+  const [hyroxSc,setHyroxSc]=useState(_initTrainType==="hyrox" ? 0 : null);
   const [hyroxPath,setHyroxPath]=useState([]); // history for back nav
   const [strengthCompSc,setStrengthCompSc]=useState(null); // null = inactive; 0-6 = screens A-G
   const [strengthCompPath,setStrengthCompPath]=useState([]);
+  // Part 1: seed all fields from Phase-1 answers where matching keys exist on d.
   const [data,setData]=useState({
-    freq:"", trainType:"lifting", split:"", equipment:"Full Gym",
-    sessionLength:60, weakPoints:[], injuries:[], longRunDay:"Sunday",
-    liftExp:"", cardioExp:"", gvt:false, hybridStyle:"", primaryGoal:"",
-    selectedDays:{Mon:"rest",Tue:"rest",Wed:"rest",Thu:"rest",Fri:"rest",Sat:"rest",Sun:"rest"},
+    freq: _mapFreqToTrain(d.freq || ""),
+    trainType: _initTrainType,
+    split: "",
+    equipment: _mapEquipToTrain(d.equipment || ""),
+    sessionLength: _mapSessionLen(d.sessionLength || ""),
+    weakPoints: [], injuries: [], longRunDay: "Sunday",
+    liftExp: d.liftExp==="none" ? "beginner" : (d.liftExp || d.experience || ""),
+    cardioExp: d.liftExp==="none" ? "beginner" : (d.liftExp || d.experience || ""),
+    gvt: false, hybridStyle: "", primaryGoal: "",
+    selectedDays: {Mon:"rest",Tue:"rest",Wed:"rest",Thu:"rest",Fri:"rest",Sat:"rest",Sun:"rest"},
     // running-specific fields
-    current5KTime:null, unknownFitness:"", runningGoal:"", raceDate:"",
-    goalRaceTime:"", terrain:"road", trackAccess:false,
-    timeInputMin:"", timeInputSec:"",
-    runPrevTimeMin:"", runPrevTimeSec:"", runHasPrevTime:null,
+    current5KTime: null, unknownFitness: "", runningGoal: "", raceDate: "",
+    goalRaceTime: "", terrain: "road", trackAccess: false,
+    timeInputMin: "", timeInputSec: "",
+    runPrevTimeMin: "", runPrevTimeSec: "", runHasPrevTime: null,
     // AIT fields
-    recoveryCapacity:"", musclePriorities:[], trainingAge:"",
-    blackoutDays:[], mobilityLimitations:[],
-    stressLevel:"", sleepQuality:"", jobPhysicality:"",
-    cycleTracking:null, hybridBias:"",
+    recoveryCapacity: "", musclePriorities: [], trainingAge: "",
+    blackoutDays: [], mobilityLimitations: [],
+    stressLevel: "", sleepQuality: "", jobPhysicality: "",
+    cycleTracking: _mapCycleToTracking(d.cycle || ""),
+    hybridBias: "",
     // hyrox-specific fields
-    hyroxExp:"", hyroxCategory:"", hyroxPrevTimeMin:"", hyroxPrevTimeSec:"",
-    hyroxWeakStations:[], hyroxRaceDate:"", hyroxTargetTimeMin:"", hyroxTargetTimeSec:"",
-    hyroxEquipment:[], hyroxFitnessLevel:"",
+    hyroxExp: "", hyroxCategory: "", hyroxPrevTimeMin: "", hyroxPrevTimeSec: "",
+    hyroxWeakStations: [], hyroxRaceDate: "", hyroxTargetTimeMin: "", hyroxTargetTimeSec: "",
+    hyroxEquipment: [], hyroxFitnessLevel: "",
     // strength competition fields
-    strengthCompeting:"", strengthCompType:"", strengthFederation:"",
-    strengthCompDate:"", squatMaxInput:"", benchMaxInput:"", deadliftMaxInput:"",
-    strengthWeightClass:"", strengthTargetTotal:"",
+    strengthCompeting: "", strengthCompType: "", strengthFederation: "",
+    strengthCompDate: "", squatMaxInput: "", benchMaxInput: "", deadliftMaxInput: "",
+    strengthWeightClass: "", strengthTargetTotal: "",
   });
   const upd=(k,v)=>setData(p=>({...p,[k]:v}));
   const auto=(k,v)=>{upd(k,v);setTimeout(()=>setSc(s=>s+1),260);};
   const next=()=>setSc(s=>s+1);
-  const back=()=>sc===0?onBack():setSc(s=>s-1);
+  // sc<=1 catches both sc===0 (running/hyrox entry) and sc===1 (lifting entry after Training Type removed).
+  const back=()=>sc<=1&&runSc===null&&hyroxSc===null?onBack():setSc(s=>s-1);
   const SCREENS=19;
   const pct=Math.round((sc/SCREENS)*100);
 
@@ -527,34 +440,8 @@ export function TrainOnboarding({d, onComplete, onBack}) {
         </div>
         {sc>0&&<button onClick={back} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:18,padding:"0 0 16px",fontFamily:"inherit"}}>← Back</button>}
 
-        {/* SCREEN 0 — Training Type */}
-        {sc===0&&runSc===null&&hyroxSc===null&&<div style={{animation:"fadeIn .3s ease"}}>
-          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 1</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
-            WHAT'S YOUR<br/><span style={{color:T.prot}}>TRAINING FOCUS?</span>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            {[
-              {v:"lifting",e:"🏋️",l:"Lifting / Strength",sub:"Hypertrophy, powerlifting, bodybuilding — weights are your primary focus"},
-              {v:"running",e:"🏃",l:"Running",sub:"5K, 10K, half marathon, marathon — structured run programming"},
-              {v:"hybrid",e:"⚡",l:"Hybrid Athlete",sub:"Lift AND run — structured mix of strength and endurance"},
-              {v:"hyrox",e:"🔥",l:"Hyrox",sub:"8 functional stations + 1km run between each — race-specific prep"},
-            ].map(o=>(
-              <div key={o.v} onClick={()=>{
-                upd("trainType",o.v);
-                setTimeout(()=>{
-                  if(o.v==="running"||o.v==="hybrid") setRunSc(0);
-                  else if(o.v==="hyrox"){setHyroxPath([]);setHyroxSc(0);}
-                  else setSc(s=>s+1);
-                },260);
-              }} style={{background:data.trainType===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.trainType===o.v?T.prot:T.bd}`,borderRadius:12,padding:"16px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:16}}>
-                <div style={{fontSize:28,flexShrink:0}}>{o.e}</div>
-                <div><div style={{fontSize:15,fontWeight:700,color:data.trainType===o.v?T.prot:"#fff"}}>{o.l}</div><div style={{fontSize:12,color:T.mu,marginTop:3,lineHeight:1.5}}>{o.sub}</div></div>
-                {data.trainType===o.v&&<div style={{marginLeft:"auto",color:T.prot}}>✓</div>}
-              </div>
-            ))}
-          </div>
-        </div>}
+        {/* SCREEN 0 (Training Type) removed — Part 2: confirmed Phase-1 duplicate (ob_new.jsx screen 12).
+            Routing to run/hyrox sub-flows now happens at mount via useState init above. */}
 
         {/* ─── RUNNING SUB-FLOW (Screens A–H) ─────────────────────────────── */}
         {runSc!==null&&(()=>{
@@ -680,7 +567,8 @@ export function TrainOnboarding({d, onComplete, onBack}) {
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
                   DO YOU HAVE<br/><span style={{color:T.prot}}>A RACE DATE?</span>
                 </div>
-                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>We'll build your plan backward from race day — taper, long run peaks, and everything.</p>
+                <p style={{fontSize:13,color:T.mu,marginBottom:6,lineHeight:1.65}}>We'll build your plan backward from race day — taper, long run peaks, and everything.</p>
+                <p style={{fontSize:11,color:T.mu,opacity:.6,marginBottom:14,lineHeight:1.5}}>You can change this anytime in Settings</p>
                 <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"20px",marginBottom:16}}>
                   <input type="date" value={data.raceDate} onChange={e=>upd("raceDate",e.target.value)} style={{width:"100%",background:"none",border:"none",color:"#fff",fontSize:20,fontWeight:600,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
                 </div>
@@ -782,7 +670,8 @@ export function TrainOnboarding({d, onComplete, onBack}) {
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
                   LONG RUN<br/><span style={{color:T.prot}}>DAY.</span>
                 </div>
-                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>Your long run needs a full rest day after it. We'll build your whole schedule around this anchor day.</p>
+                <p style={{fontSize:13,color:T.mu,marginBottom:6,lineHeight:1.65}}>Your long run needs a full rest day after it. We'll build your whole schedule around this anchor day.</p>
+                <p style={{fontSize:11,color:T.mu,opacity:.6,marginBottom:14,lineHeight:1.5}}>You can change this anytime in Settings</p>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:16}}>
                   {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(day=>(
                     <div key={day} onClick={()=>upd("longRunDay",day)} style={{background:data.longRunDay===day?`${T.prot}12`:T.s2,border:`1.5px solid ${data.longRunDay===day?T.prot:T.bd}`,borderRadius:11,padding:"16px 8px",textAlign:"center",cursor:"pointer",transition:"all .2s"}}>
@@ -1197,7 +1086,8 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             PICK YOUR<br/><span style={{color:T.prot}}>TRAINING DAYS.</span>
           </div>
-          <p style={{fontSize:13,color:T.mu,marginBottom:16,lineHeight:1.6}}>Tap each day to assign it. We've pre-filled a recommendation — override it completely.</p>
+          <p style={{fontSize:13,color:T.mu,marginBottom:6,lineHeight:1.6}}>Tap each day to assign it. We've pre-filled a recommendation — override it completely.</p>
+          <p style={{fontSize:11,color:T.mu,opacity:.6,marginBottom:16,lineHeight:1.5}}>You can edit your training days anytime from the Train tab</p>
           {(()=>{
             const sch=data.selectedDays;
             const isHybrid=data.trainType==="hybrid";
@@ -1480,7 +1370,7 @@ export function TrainOnboarding({d, onComplete, onBack}) {
             <div style={{animation:"fadeIn .25s ease"}}>
               <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:24}}>
                 <div style={{flex:1}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>// Strength Competition · {strengthCompSc+1}/7</div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:T.prot,fontWeight:500,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>// Strength Competition · {strengthCompSc+1}/7</div>
                   <div style={{height:3,background:T.s3,borderRadius:2,overflow:"hidden"}}>
                     <div style={{height:"100%",background:T.prot,width:`${Math.round((strengthCompSc/7)*100)}%`,transition:"width .5s ease"}}/>
                   </div>
@@ -1490,7 +1380,7 @@ export function TrainOnboarding({d, onComplete, onBack}) {
 
               {/* Screen A — Competing? */}
               {strengthCompSc===0&&<div>
-                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>// Strength Competition</div>
+                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:T.prot,fontWeight:500,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>// Strength Competition</div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
                   ARE YOU TRAINING FOR<br/><span style={{color:T.prot}}>A COMPETITION<span style={{color:"#e8341c"}}>?</span></span>
                 </div>
@@ -1543,7 +1433,7 @@ export function TrainOnboarding({d, onComplete, onBack}) {
                 <p style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.4)",lineHeight:1.6,marginBottom:16,textTransform:"uppercase",letterSpacing:"0.06em"}}>This sets the equipment rules and lift standards for your program.</p>
                 <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:24}}>
                   {["USPA","IPF/USAPL","RPS","WRPF","OTHER"].map(f=>(
-                    <button key={f} onClick={()=>upd("strengthFederation",f)} style={{padding:"10px 18px",borderRadius:8,background:data.strengthFederation===f?"rgba(232,52,28,0.15)":T.s2,border:`1.5px solid ${data.strengthFederation===f?T.prot:T.bd}`,color:data.strengthFederation===f?T.prot:"rgba(245,245,240,0.7)",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,cursor:"pointer",letterSpacing:"0.08em"}}>
+                    <button key={f} onClick={()=>upd("strengthFederation",f)} style={{padding:"10px 18px",borderRadius:8,background:data.strengthFederation===f?"rgba(232,52,28,0.15)":T.s2,border:`1.5px solid ${data.strengthFederation===f?T.prot:T.bd}`,color:data.strengthFederation===f?T.prot:"rgba(245,245,240,0.7)",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:500,cursor:"pointer",letterSpacing:"0.08em"}}>
                       {f}
                     </button>
                   ))}
@@ -1587,7 +1477,7 @@ export function TrainOnboarding({d, onComplete, onBack}) {
                     {k:"deadliftMaxInput",l:"DEADLIFT",    ph:"Your best deadlift"},
                   ].map(({k,l,ph})=>(
                     <div key={k} style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px 16px"}}>
-                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.4)",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>{l}</div>
+                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.4)",fontWeight:500,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>{l}</div>
                       <div style={{display:"flex",alignItems:"center",gap:10}}>
                         <input type="number" value={data[k]} onChange={e=>upd(k,e.target.value)} placeholder={ph} style={{flex:1,background:"none",border:"none",color:"#fff",fontSize:22,fontWeight:700,outline:"none",fontFamily:"inherit"}}/>
                         <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:12,color:"rgba(245,245,240,0.4)"}}>{d?.wUnit||"lbs"}</span>
@@ -1595,7 +1485,7 @@ export function TrainOnboarding({d, onComplete, onBack}) {
                     </div>
                   ))}
                 </div>
-                {estTotal>0&&<div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:16}}>Estimated Total: {estTotal} {d?.wUnit||"lbs"}</div>}
+                {estTotal>0&&<div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",fontWeight:500,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:16}}>Estimated Total: {estTotal} {d?.wUnit||"lbs"}</div>}
                 <PrimaryBtn onClick={scAdvance} label="Continue →" style={{marginBottom:8}}/>
                 <button onClick={()=>{upd("squatMaxInput","");upd("benchMaxInput","");upd("deadliftMaxInput","");scAdvance();}} style={{width:"100%",padding:"11px",background:"none",color:T.mu,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13}}>I don't know my maxes — skip</button>
               </div>}
@@ -1609,7 +1499,7 @@ export function TrainOnboarding({d, onComplete, onBack}) {
                 <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:16}}>
                   {weightClasses.map(wc=>(
                     <div key={wc} onClick={()=>upd("strengthWeightClass",wc)} style={{background:data.strengthWeightClass===wc?`${T.prot}15`:T.s2,border:`1.5px solid ${data.strengthWeightClass===wc?T.prot:T.bd}`,borderRadius:10,padding:"12px 6px",textAlign:"center",cursor:"pointer",transition:"all .2s"}}>
-                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:data.strengthWeightClass===wc?T.prot:"rgba(245,245,240,0.7)"}}>{wc}</div>
+                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:500,color:data.strengthWeightClass===wc?T.prot:"rgba(245,245,240,0.7)"}}>{wc}</div>
                     </div>
                   ))}
                 </div>
@@ -1636,45 +1526,13 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           );
         })()}
 
-        {/* SCREEN 7 — Equipment */}
-        {sc===7&&strengthCompSc===null&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 8</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
-            EQUIPMENT<br/><span style={{color:T.prot}}>ACCESS.</span>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
-            {[
-              {v:"Full Gym",e:"🏢",l:"Full Gym",sub:"Barbells, cables, machines, dumbbells — everything"},
-              {v:"Home Gym",e:"🏠",l:"Home Gym",sub:"Dumbbells, barbell, maybe a rack"},
-              {v:"Dumbbells Only",e:"🏃",l:"Dumbbells Only",sub:"Limited equipment — we'll substitute intelligently"},
-              {v:"Bodyweight Only",e:"💪",l:"Bodyweight Only",sub:"No equipment — calisthenics progressions"},
-            ].map(o=>(
-              <div key={o.v} onClick={()=>auto("equipment",o.v)} style={{background:data.equipment===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.equipment===o.v?T.prot:T.bd}`,borderRadius:12,padding:"14px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:14}}>
-                <div style={{fontSize:24,flexShrink:0}}>{o.e}</div>
-                <div><div style={{fontSize:14,fontWeight:700,color:data.equipment===o.v?T.prot:"#fff"}}>{o.l}</div><div style={{fontSize:11,color:T.mu,marginTop:2}}>{o.sub}</div></div>
-                {data.equipment===o.v&&<div style={{marginLeft:"auto",color:T.prot}}>✓</div>}
-              </div>
-            ))}
-          </div>
-        </div>}
+        {/* SCREEN 7 — Equipment: Part 3 — near-duplicate of ob_new.jsx screen 12b.
+            Value seeded from d.equipment via _mapEquipToTrain. Auto-skip — no question shown. */}
+        {sc===7&&strengthCompSc===null&&(()=>{setTimeout(next,50);return null;})()}
 
-        {/* SCREEN 8 — Session Length */}
-        {sc===8&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 9</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
-            SESSION<br/><span style={{color:T.prot}}>LENGTH.</span>
-          </div>
-          <p style={{fontSize:13,color:T.mu,marginBottom:20}}>How long do you have per session? We'll size the workout accordingly.</p>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginBottom:20}}>
-            {[{v:30,l:"30 min",sub:"Quick — compounds only"},{v:45,l:"45 min",sub:"Efficient — 4-5 exercises"},{v:60,l:"60 min",sub:"Standard — full session"},{v:75,l:"75 min",sub:"Extended — high volume"},{v:90,l:"90 min",sub:"Full send — everything"},{v:120,l:"2+ hours",sub:"Dedicated athlete"}].map(o=>(
-              <div key={o.v} onClick={()=>upd("sessionLength",o.v)} style={{background:data.sessionLength===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.sessionLength===o.v?T.prot:T.bd}`,borderRadius:11,padding:"14px",cursor:"pointer",transition:"all .2s"}}>
-                <div style={{fontSize:16,fontWeight:700,color:data.sessionLength===o.v?T.prot:"#fff"}}>{o.l}</div>
-                <div style={{fontSize:11,color:T.mu,marginTop:3}}>{o.sub}</div>
-              </div>
-            ))}
-          </div>
-          <PrimaryBtn onClick={next} label="Continue →"/>
-        </div>}
+        {/* SCREEN 8 — Session Length: Part 3 — near-duplicate of ob_new.jsx screen 12c.
+            Value seeded from d.sessionLength via _mapSessionLen. Auto-skip — no question shown. */}
+        {sc===8&&(()=>{setTimeout(next,50);return null;})()}
 
         {/* SCREEN 9 — Weak Points */}
         {sc===9&&<div style={{animation:"fadeIn .25s ease"}}>
@@ -1701,7 +1559,8 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:8}}>
             HOW QUICKLY<br/><span style={{color:T.prot}}>DO YOU RECOVER?</span>
           </div>
-          <p style={{fontSize:13,color:T.mu,marginBottom:14,lineHeight:1.65}}>This sets your training block length. Longer recovery means more time to peak before the next deload.</p>
+          <p style={{fontSize:13,color:T.mu,marginBottom:6,lineHeight:1.65}}>This sets your training block length. Longer recovery means more time to peak before the next deload.</p>
+          <p style={{fontSize:11,color:T.mu,opacity:.6,marginBottom:14,lineHeight:1.5}}>You can change this anytime in Settings</p>
           <DomsTooltip />
 
           <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>

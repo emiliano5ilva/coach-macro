@@ -633,6 +633,10 @@ export default function NativeApp() {
       is_older_adult:a!==null&&a>=65,
       runProfile:null,
       hyroxProfile:null,
+      // Phase-1 fields needed by FuelOnboarding/TrainOnboarding for seeding
+      goalWeight:od.goalWeight||"",
+      equipment:od.equipment||"",
+      sessionLength:od.sessionLength||"",
     };
     if(NEW_ONBOARDING){
       // Augment with fuel + training fields collected by the new single-flow onboarding.
