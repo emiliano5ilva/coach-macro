@@ -7396,7 +7396,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
     if(!user)return;
     try{
       const{error}=await sb.from("profiles").upsert({id:user.id,[field]:value},{onConflict:"id"});
-      if(!error)showToast("Saved","success");
+      if(!error){showToast("Saved","success");if(onProfileUpdate)onProfileUpdate({[field]:value});}
       else showToast("Couldn't save","error");
     }catch{showToast("Couldn't save","error");}
   }
@@ -8159,6 +8159,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                   const kg=pickerWUnit==='lbs'?lbsToKg(pickerWVal):pickerWVal;
                   setLocalWeight(String(kg));
                   await saveProfileField("weight_kg",kg);
+                  sb.from("bodyweight_logs").upsert({user_id:user.id,date:new Date().toISOString().split("T")[0],weight:pickerWVal},{onConflict:"user_id,date"});
                   if(pickerWUnit!==wUnit){const wp={...wPrefs,wUnit:pickerWUnit,hUnit:pickerWUnit==='kg'?'cm':'ft'};setWPrefs(wp);await saveSettings(wp,null);}
                 } else if(editModal==="height"){
                   const cm=pickerHUnit==='cm'?pickerHCm:ftInToCm(pickerFt,pickerHIn);
