@@ -6,8 +6,9 @@ import { getProgramImage } from "./data/programImages.js";
 import { MUSCLE_GROUP_POOL } from "./exercise_database.js";
 import { showToast } from "./utils/toast.js";
 import RunProgramSetup from "./RunProgramSetup.jsx";
-import { deriveProgramFields } from "./utils/programResolver.js";
-import { buildHybridDayPlan } from "./running_programs.js";
+import { deriveProgramFields, resolveProgram } from "./utils/programResolver.js";
+import { buildHybridDayPlan, getRunWeek, RUN_SESSION_TITLE } from "./running_programs.js";
+import { getPacesFromTime, resolveSessionPace } from "./utils/runningPaces.js";
 
 const SETUP_CATEGORIES = new Set(["Running", "Hyrox", "Hybrid"]);
 
@@ -476,7 +477,7 @@ function _DayCard({ dayKey, exercises, defaultOpen }) {
   );
 }
 
-function ProgramOverview({ prog, onStart, onClose }) {
+function ProgramOverview({ prog, onStart, onClose, profile, wPrefs, schedule, currentId }) {
   const [tab, setTab] = React.useState('overview');
   const meta = PROG_META[prog.id] || {};
   const img = getProgramImage(prog.id);
@@ -560,17 +561,62 @@ function ProgramOverview({ prog, onStart, onClose }) {
           {tab === 'program' && (
             <div>
               {!split ? (
-                <div style={{ textAlign:'center', padding:'32px 16px' }}>
-                  <div style={{ fontSize:40, marginBottom:14 }}>{prog.isRun?'🏃':prog.isHyrox?'🔥':prog.isHybrid?'⚡':'🔄'}</div>
-                  <div style={{ fontSize:13, color:'rgba(var(--cm-ink-rgb),.6)', lineHeight:1.7, maxWidth:280, margin:'0 auto' }}>
-                    {prog.isRun
-                      ? 'This is a running program. Sessions are structured around run types — easy runs, tempo runs, and long runs — not a fixed lifting split.'
-                      : prog.isHyrox
-                        ? 'This is a Hyrox-specific program. Sessions include station work, aerobic conditioning, and race simulations.'
-                        : prog.isHybrid
-                          ? 'This is a hybrid run/lift program. The weekly layout is personalised to your chosen training days during setup.'
-                          : 'This program uses a flexible conditioning format, not a fixed day-by-day lifting split.'}
-                  </div>
+                <div>
+                  {(prog.isRun || prog.isHybrid) && prog.id === currentId
+                    ? (()=>{
+                        const _weekNum = Math.floor((Date.now() - new Date(profile?.program_start_date || Date.now())) / 86400000 / 7) + 1;
+                        const _mode = (() => { try { return resolveProgram(wPrefs, profile).mode; } catch { return null; } })();
+                        let _sessions = null;
+                        try {
+                          if (_mode === 'running' || (_mode === 'hybrid' && wPrefs?.dayPlan)) {
+                            _sessions = getRunWeek(profile, wPrefs, schedule, _weekNum)?.sessions || [];
+                          }
+                        } catch { _sessions = null; }
+                        if (!_sessions || _sessions.length === 0) return (
+                          <div style={{ textAlign:'center', padding:'32px 16px' }}>
+                            <div style={{ fontSize:40, marginBottom:14 }}>{prog.isRun?'🏃':'⚡'}</div>
+                            <div style={{ fontSize:13, color:'rgba(var(--cm-ink-rgb),.6)', lineHeight:1.7, maxWidth:280, margin:'0 auto' }}>
+                              {prog.isRun ? 'This is a running program. Sessions are structured around run types — easy runs, tempo runs, and long runs — not a fixed lifting split.' : 'This is a hybrid run/lift program. The weekly layout is personalised to your chosen training days during setup.'}
+                            </div>
+                          </div>
+                        );
+                        const _paces = getPacesFromTime(wPrefs?.current5KTime || profile?.current5KTime);
+                        return (
+                          <div>
+                            <div style={{ fontSize:10, fontWeight:700, letterSpacing:'.14em', textTransform:'uppercase', color:'rgba(var(--cm-ink-rgb),.4)', marginBottom:12 }}>THIS WEEK'S RUNS</div>
+                            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                              {_sessions.map((s, i) => {
+                                const _sp = resolveSessionPace(s.pace, _paces);
+                                return (
+                                  <div key={i} style={{ background:'rgba(var(--cm-ink-rgb),.04)', borderRadius:10, padding:'12px 14px', border:'1px solid rgba(var(--cm-ink-rgb),.08)' }}>
+                                    <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:_sp?4:0 }}>
+                                      <span style={{ fontSize:11, fontWeight:700, letterSpacing:'.06em', textTransform:'uppercase', color:'rgba(var(--cm-ink-rgb),.45)', minWidth:28 }}>{s.day?.slice(0,3)}</span>
+                                      <span style={{ fontSize:13, fontWeight:600, color:'var(--cm-ink)' }}>{RUN_SESSION_TITLE[s.type] || s.type}</span>
+                                      {s.distanceMi && <span style={{ fontSize:12, color:'rgba(var(--cm-ink-rgb),.5)', marginLeft:'auto' }}>{s.distanceMi} mi</span>}
+                                    </div>
+                                    {_sp && <div style={{ fontSize:12, color:'rgba(var(--cm-ink-rgb),.6)' }}>{_sp.label}: <span style={{ fontWeight:600, color:'var(--cm-ink)', fontFamily:"'DM Mono',monospace" }}>{_sp.value}</span></div>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })()
+                    : (
+                        <div style={{ textAlign:'center', padding:'32px 16px' }}>
+                          <div style={{ fontSize:40, marginBottom:14 }}>{prog.isRun?'🏃':prog.isHyrox?'🔥':prog.isHybrid?'⚡':'🔄'}</div>
+                          <div style={{ fontSize:13, color:'rgba(var(--cm-ink-rgb),.6)', lineHeight:1.7, maxWidth:280, margin:'0 auto' }}>
+                            {prog.isRun
+                              ? 'This is a running program. Sessions are structured around run types — easy runs, tempo runs, and long runs — not a fixed lifting split.'
+                              : prog.isHyrox
+                                ? 'This is a Hyrox-specific program. Sessions include station work, aerobic conditioning, and race simulations.'
+                                : prog.isHybrid
+                                  ? 'This is a hybrid run/lift program. The weekly layout is personalised to your chosen training days during setup.'
+                                  : 'This program uses a flexible conditioning format, not a fixed day-by-day lifting split.'}
+                          </div>
+                        </div>
+                      )
+                  }
                 </div>
               ) : (
                 <>
@@ -923,6 +969,10 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
             }
           }}
           onClose={() => setDetailProg(null)}
+          profile={profile}
+          wPrefs={wPrefs}
+          schedule={schedule}
+          currentId={currentId}
         />
         {confirmProg && (()=>{ const {modeChange,newModeLabel}=getModeInfo(confirmProg); return (
           <FuelAwarenessModal
