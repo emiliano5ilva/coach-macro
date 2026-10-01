@@ -6103,6 +6103,37 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
 
               {/* PHASE TIMELINE */}
               <div style={{margin:'-54px 12px 0',paddingBottom:8}}>
+                {/* YOUR PACES */}
+                {(()=>{
+                  const _5kRaw=wPrefs.current5KTime||profile?.current5KTime;
+                  let _rp=getPacesFromTime(_5kRaw);
+                  if(!_rp)return null;
+                  if(profile?.run_target_time){
+                    const _gpSecs=parseTimeInput(profile.run_target_time);
+                    if(_gpSecs>0)_rp={..._rp,goalPace:computeGoalPace(_gpSecs,profile?.run_race_type||'5k',_rp.tempo)};
+                  }
+                  const _zones=[
+                    {key:'easy',label:'Easy'},
+                    {key:'tempo',label:'Tempo'},
+                    {key:'longRun',label:'Long Run'},
+                    {key:'interval5K',label:'Intervals'},
+                    {key:'maintenance',label:'Maintenance'},
+                    ...(_rp.goalPace?[{key:'goalPace',label:'Goal Pace'}]:[]),
+                  ].filter(z=>_rp[z.key]);
+                  return(
+                    <div style={{background:'var(--cm-paper)',borderRadius:16,padding:'16px 16px 14px',marginBottom:8,boxShadow:'0 2px 8px rgba(0,0,0,.08)',border:'1.5px solid rgba(var(--cm-ink-rgb),.08)'}}>
+                      <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:'0.18em',textTransform:'uppercase',color:'rgba(var(--cm-ink-rgb),.45)',marginBottom:12}}>YOUR PACES</div>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px 10px'}}>
+                        {_zones.map(({key,label})=>(
+                          <div key={key} style={{background:key==='goalPace'?'rgba(var(--cm-accent-rgb),.08)':'rgba(var(--cm-ink-rgb),.04)',borderRadius:10,padding:'10px 12px',border:key==='goalPace'?'1px solid rgba(var(--cm-accent-rgb),.20)':'1px solid rgba(var(--cm-ink-rgb),.07)'}}>
+                            <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:'0.10em',textTransform:'uppercase',color:'rgba(var(--cm-ink-rgb),.45)',marginBottom:4}}>{label}</div>
+                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:17,letterSpacing:'-0.01em',color:key==='goalPace'?'var(--cm-accent)':'var(--cm-ink)',lineHeight:1}}>{_rp[key].display}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
                 {segs.map((seg,si)=>{
                   const col=_phaseCols[seg.phase]||'#60a5fa';
                   const colRgb=_phaseColsRgb[seg.phase]||'96,165,250';
@@ -6159,10 +6190,35 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
 
                 {/* RACE DAY CARD */}
                 {raceD&&!isNaN(raceD.getTime())&&(
-                  <div style={{background:'var(--cm-accent)',borderRadius:16,padding:'20px 18px',marginTop:4,boxShadow:'0 4px 20px rgba(0,0,0,.12)'}}>
-                    <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:'0.18em',textTransform:'uppercase',color:'rgba(255,255,255,0.55)',marginBottom:4}}>RACE DAY</div>
-                    <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:26,textTransform:'uppercase',color:'#fff',lineHeight:0.92,marginBottom:4}}>{raceLabel}</div>
-                    <div style={{fontFamily:_MO,fontSize:11,color:'rgba(255,255,255,0.65)',letterSpacing:'0.04em',marginBottom:_goalTimeStr||_projStr?16:12}}>{_fmtDFull(raceD)} · {_rtLabels[goalDistance]||goalDistance}</div>
+                  <div style={{borderRadius:16,padding:'20px 18px 22px',marginTop:4,background:'linear-gradient(150deg, var(--cm-accent) 0%, var(--cm-accent-deep) 100%)',boxShadow:'0 8px 32px rgba(var(--cm-accent-rgb),0.38), 0 2px 8px rgba(0,0,0,.18)',position:'relative',overflow:'hidden'}}>
+                    {/* decorative radial glow */}
+                    <div style={{position:'absolute',top:-40,right:-30,width:220,height:220,background:'radial-gradient(circle, rgba(255,255,255,0.13) 0%, transparent 68%)',pointerEvents:'none'}}/>
+                    {/* RACE DAY eyebrow */}
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:daysToRace===0?10:6}}>
+                      <div style={{fontFamily:_MO,fontSize:9,fontWeight:500,letterSpacing:'0.18em',textTransform:'uppercase',color:'rgba(255,255,255,0.55)'}}>RACE DAY</div>
+                      <span style={{fontSize:18,lineHeight:1}}>🏆</span>
+                    </div>
+                    {/* COUNTDOWN HERO */}
+                    {daysToRace!==null&&daysToRace>0&&(
+                      <div style={{marginBottom:14}}>
+                        <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:72,lineHeight:0.88,textTransform:'uppercase',color:'#fff',letterSpacing:'-0.03em'}}>{daysToRace}</div>
+                        <div style={{fontFamily:_MO,fontSize:11,fontWeight:500,letterSpacing:'0.18em',textTransform:'uppercase',color:'rgba(255,255,255,0.72)',marginTop:7}}>DAYS TO RACE DAY</div>
+                      </div>
+                    )}
+                    {/* RACE DAY ITSELF */}
+                    {daysToRace===0&&(
+                      <div style={{marginBottom:14}}>
+                        <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:36,textTransform:'uppercase',color:'#fff',lineHeight:1,letterSpacing:'-0.01em'}}>TODAY IS<br/>RACE DAY 🎉</div>
+                      </div>
+                    )}
+                    {/* divider */}
+                    <div style={{height:1,background:'rgba(255,255,255,0.20)',marginBottom:14}}/>
+                    {/* race name + date */}
+                    <div style={{marginBottom:_goalTimeStr||_projStr?14:0}}>
+                      <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:22,textTransform:'uppercase',color:'#fff',lineHeight:1,marginBottom:4}}>{raceLabel}</div>
+                      <div style={{fontFamily:_MO,fontSize:11,color:'rgba(255,255,255,0.60)',letterSpacing:'0.04em'}}>{_fmtDFull(raceD)} · {_rtLabels[goalDistance]||goalDistance}</div>
+                    </div>
+                    {/* goal / projected time boxes */}
                     {(_goalTimeStr||_projStr)&&(
                       <div style={{display:'flex',gap:10}}>
                         {_goalTimeStr&&(
@@ -6179,12 +6235,6 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                           </div>
                         )}
                       </div>
-                    )}
-                    {daysToRace!==null&&daysToRace>0&&(
-                      <div style={{fontFamily:_MO,fontSize:10,color:'rgba(255,255,255,0.50)',letterSpacing:'0.08em',textTransform:'uppercase',marginTop:12}}>{daysToRace} days to race day</div>
-                    )}
-                    {daysToRace===0&&(
-                      <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:18,color:'#fff',marginTop:10}}>TODAY IS RACE DAY 🎉</div>
                     )}
                   </div>
                 )}
