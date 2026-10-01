@@ -98,7 +98,7 @@ import { getRunningPhase } from "./services/runningPeriodisationService.js";
 import { getStrengthPhase } from "./services/strengthPeriodisationService.js";
 import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, getSwapOptionsForEquipment, EXERCISE_MUSCLE_GROUP, getMuscleGroup } from "./exercise_database.js";
 import { resolveTodaysExercises, resolveTodaysRunSession } from "./services/exerciseResolver.js";
-import { getPacesFromTime, resolvePaceTokens, computeGoalPace, formatRaceTime, getRacePredictions, enrichRunSession, parseTimeInput } from "./utils/runningPaces.js";
+import { getPacesFromTime, resolvePaceTokens, computeGoalPace, formatRaceTime, getRacePredictions, enrichRunSession, parseTimeInput, resolveSessionPace } from "./utils/runningPaces.js";
 import { renderWithPaces } from "./services/paceService.js";
 import { buildAdaptiveSession } from "./services/adaptiveSessionService.js";
 import { shouldRunAnalysis, runWeeklyAnalysis } from "./services/adaptiveAnalysisService.js";
@@ -4945,14 +4945,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                         {macroAdj&&<span style={{fontSize:11,fontWeight:600,letterSpacing:"0.04em",background:`${T.carb}15`,color:T.carb,padding:"3px 8px",borderRadius:6}}>+{macroAdj} carbs</span>}
                       </div>
                       {todayPrescription.description&&<div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb),0.8)",lineHeight:1.6,marginBottom:8}}>{todayPrescription.description}</div>}
-                      {runPaces&&<div style={{background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.12)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
-                        <div style={{fontFamily:_AF,fontSize:10,color:"rgba(var(--cm-ink-rgb),0.55)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:6}}>YOUR PACES TODAY</div>
-                        <div style={{display:"flex",flexWrap:"wrap",gap:"6px 14px"}}>
-                          {[["Easy",runPaces.easy.display],["Tempo",runPaces.tempo.display],["Long Run",runPaces.longRun.display],["Intervals",runPaces.interval5K.display]].map(([l,v])=>(
-                            <div key={l} style={{fontSize:13,lineHeight:1.6}}><span style={{color:"rgba(var(--cm-ink-rgb),0.8)"}}>{l}: </span><span style={{color:"var(--cm-ink)",fontWeight:500,fontFamily:_MO}}>{v}</span></div>
-                          ))}
-                        </div>
-                      </div>}
+                      {runPaces&&(()=>{const _sp=resolveSessionPace(todayPrescription.pace,runPaces);if(!_sp)return null;return(<div style={{background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.12)",borderRadius:9,padding:"10px 12px",marginBottom:8}}><div style={{fontFamily:_AF,fontSize:10,color:"rgba(var(--cm-ink-rgb),0.55)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:6}}>YOUR PACE TODAY</div><div style={{fontSize:13,lineHeight:1.6}}><span style={{color:"rgba(var(--cm-ink-rgb),0.8)"}}>{_sp.label}: </span><span style={{color:"var(--cm-ink)",fontWeight:500,fontFamily:_MO}}>{_sp.value}</span></div></div>);})()}
                       {preFuel&&<div style={{background:"rgba(245,158,11,.06)",border:"1px solid rgba(245,158,11,.2)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
                         <div style={{fontFamily:_AF,fontSize:10,color:"rgba(var(--cm-ink-rgb),0.55)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>PRE-RUN FUEL</div>
                         <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb),0.8)",lineHeight:1.6}}>{preFuel}</div>

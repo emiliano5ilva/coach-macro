@@ -118,6 +118,32 @@ export const resolvePaceTokens = (text, paces) => {
     .replace(/\{goalPace\}/g,    (paces.goalPace?.display ?? paces.tempo.display));
 };
 
+// Resolve a single pace token (e.g. '{tempo}') to its human label + display value.
+// Used by the run-day card (one pace today) and ProgramOverview week list.
+// Returns { label, value } or null if the token is absent / unrecognised.
+export const resolveSessionPace = (paceToken, runPaces) => {
+  if (!paceToken || !runPaces) return null;
+  const key = paceToken.replace(/[{}]/g, '').trim();
+  const MAP = {
+    easy:        { label: 'Easy',            pk: 'easy' },
+    tempo:       { label: 'Tempo',           pk: 'tempo' },
+    longRun:     { label: 'Long Run',        pk: 'longRun' },
+    maintenance: { label: 'Maintenance',     pk: 'maintenance' },
+    interval5K:  { label: 'Intervals',       pk: 'interval5K' },
+    interval1mi: { label: 'Intervals (1mi)', pk: 'interval1mi' },
+    marathon:    { label: 'Marathon Pace',   pk: 'marathon' },
+    goalPace:    { label: 'Goal Pace',       pk: 'goalPace' },
+    stride:      { label: 'Strides',         pk: 'stride' },
+  };
+  const entry = MAP[key];
+  if (!entry) return null;
+  const paceObj = entry.pk === 'goalPace'
+    ? (runPaces.goalPace ?? runPaces.tempo)
+    : runPaces[entry.pk];
+  if (!paceObj) return null;
+  return { label: entry.label, value: paceObj.display };
+};
+
 // Estimate 5K time from fitness level when user doesn't know their time.
 export const estimateFrom = (fitnessLevel) => {
   const estimates = {
