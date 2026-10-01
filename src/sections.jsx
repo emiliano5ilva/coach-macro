@@ -4648,7 +4648,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
               })():(
                 <div className="header-eyebrow">// {todayFocus||cfg.label}</div>
               )}
-              <div className="header-title">{trainScreen==="today"?"Today's Session":trainScreen==="plan"?"My Program":trainScreen==="library"?"Exercise Library":trainScreen==="routines"?"My Routines":trainScreen==="warmup-protocols"?"Protocols":trainScreen==="builder"?"Lift Smarter":trainScreen==="progress"?"Progress":trainScreen==="plan-overview"?"Training Plan":"Train"}</div>
+              <div className="header-title">{trainScreen==="today"?"Today's Session":trainScreen==="plan"?"My Program":trainScreen==="library"?"Programs":trainScreen==="routines"?"My Routines":trainScreen==="warmup-protocols"?"Protocols":trainScreen==="builder"?"Lift Smarter":trainScreen==="progress"?"Progress":trainScreen==="plan-overview"?"Training Plan":"Train"}</div>
             </div>
           </div>
         </div>
@@ -6226,11 +6226,9 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
           </div>
         )}
 
-        {/* ── EXERCISE LIBRARY ── real exercise browser (replaces the mislabelled Program Library) */}
+        {/* ── PROGRAM LIBRARY ── */}
         {trainScreen==="library"&&(
-          <div style={{height:"calc(100vh - 120px)",display:"flex",flexDirection:"column"}}>
-            <ExerciseBrowser />
-          </div>
+          <ProgramLibraryScreen wPrefs={wPrefs} setWPrefs={setWPrefs} profile={profile} setTrainScreen={setTrainScreen} user={user} onProfileUpdate={onProfileUpdate} schedule={schedule} setSchedule={setSchedule}/>
         )}
 
         {/* ── MY ROUTINES ── */}
