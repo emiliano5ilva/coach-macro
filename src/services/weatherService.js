@@ -41,7 +41,7 @@ export async function getWeatherPaceAdjustment(latitude, longitude) {
       humidity: Math.round(humidity),
       adjustmentFactor: totalFactor,
       note: totalFactor > 1.04
-        ? `${Math.round(temp)}°C today — your paces are adjusted for the heat. This is correct physiology, not weakness. Do not chase your normal paces.`
+        ? `Your paces are adjusted for the heat. This is correct physiology, not weakness. Do not chase your normal paces.`
         : null,
     };
 

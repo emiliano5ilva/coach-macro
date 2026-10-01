@@ -118,6 +118,22 @@ export const resolvePaceTokens = (text, paces) => {
     .replace(/\{goalPace\}/g,    (paces.goalPace?.display ?? paces.tempo.display));
 };
 
+// Scale a getPacesFromTime() runPaces object by a heat adjustment factor.
+// Each zone's .secs is multiplied by factor; .display is recomputed in the same
+// M:SS/mi format getPacesFromTime produces — so the shown pace is genuinely slower.
+export const applyWeatherToRunPaces = (runPaces, factor) => {
+  if (!runPaces || !(factor > 1.0)) return runPaces;
+  const result = {};
+  for (const [k, v] of Object.entries(runPaces)) {
+    if (!v || typeof v.secs !== 'number') { result[k] = v; continue; }
+    const secs = v.secs * factor;
+    const m = Math.floor(secs / 60);
+    const s = Math.round(secs % 60);
+    result[k] = { secs, display: (s < 10 ? `${m}:0${s}` : `${m}:${s}`) + '/mi' };
+  }
+  return result;
+};
+
 // Resolve a single pace token (e.g. '{tempo}') to its human label + display value.
 // Used by the run-day card (one pace today) and ProgramOverview week list.
 // Returns { label, value } or null if the token is absent / unrecognised.

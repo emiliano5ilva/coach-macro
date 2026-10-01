@@ -98,7 +98,7 @@ import { getRunningPhase } from "./services/runningPeriodisationService.js";
 import { getStrengthPhase } from "./services/strengthPeriodisationService.js";
 import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, getSwapOptionsForEquipment, EXERCISE_MUSCLE_GROUP, getMuscleGroup } from "./exercise_database.js";
 import { resolveTodaysExercises, resolveTodaysRunSession } from "./services/exerciseResolver.js";
-import { getPacesFromTime, resolvePaceTokens, computeGoalPace, formatRaceTime, getRacePredictions, enrichRunSession, parseTimeInput, resolveSessionPace } from "./utils/runningPaces.js";
+import { getPacesFromTime, resolvePaceTokens, computeGoalPace, formatRaceTime, getRacePredictions, enrichRunSession, parseTimeInput, resolveSessionPace, applyWeatherToRunPaces } from "./utils/runningPaces.js";
 import { renderWithPaces } from "./services/paceService.js";
 import { buildAdaptiveSession } from "./services/adaptiveSessionService.js";
 import { shouldRunAnalysis, runWeeklyAnalysis } from "./services/adaptiveAnalysisService.js";
@@ -4930,7 +4930,8 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                   );
                 })()}
                 {(todayType==="training"||todayType==="run"||todayType==="cardio"||hybridRunDay)&&todayPrescription&&!Array.isArray(todayPrescription)&&(()=>{
-                  const runPaces=getPacesFromTime(wPrefs.current5KTime||profile?.current5KTime);
+                  const _rawPaces=getPacesFromTime(wPrefs.current5KTime||profile?.current5KTime);
+                  const runPaces=weatherAdjustment?.adjustmentFactor>1.0?applyWeatherToRunPaces(_rawPaces,weatherAdjustment.adjustmentFactor):_rawPaces;
                   const preFuel=todayPrescription.preFuel;
                   const postFuel=todayPrescription.postFuel;
                   const macroAdj=todayPrescription.macroAdjustment;
@@ -4943,9 +4944,10 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                         {todayPrescription.distance&&<span style={{fontSize:11,fontWeight:600,letterSpacing:"0.04em",background:`${T.fat}18`,color:T.fat,padding:"3px 8px",borderRadius:6}}>{todayPrescription.distance} km</span>}
                         {todayPrescription.zone&&<span style={{fontSize:11,fontWeight:600,letterSpacing:"0.04em",background:`${ZONE_COLOR[todayPrescription.zone]}25`,color:ZONE_COLOR[todayPrescription.zone],padding:"3px 8px",borderRadius:6}}>{ZONE_LABEL[todayPrescription.zone]||`Zone ${todayPrescription.zone}`}</span>}
                         {macroAdj&&<span style={{fontSize:11,fontWeight:600,letterSpacing:"0.04em",background:`${T.carb}15`,color:T.carb,padding:"3px 8px",borderRadius:6}}>+{macroAdj} carbs</span>}
+                        {weatherAdjustment?.note&&weatherAdjustment.tempC!=null&&<span style={{fontSize:11,fontWeight:600,letterSpacing:"0.04em",background:"rgba(249,115,22,0.12)",color:"#f97316",padding:"3px 8px",borderRadius:6}}>🌡️ {weatherAdjustment.tempC}°C</span>}
                       </div>
                       {todayPrescription.description&&<div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb),0.8)",lineHeight:1.6,marginBottom:8}}>{todayPrescription.description}</div>}
-                      {runPaces&&(()=>{const _sp=resolveSessionPace(todayPrescription.pace,runPaces);if(!_sp)return null;return(<div style={{background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.12)",borderRadius:9,padding:"10px 12px",marginBottom:8}}><div style={{fontFamily:_AF,fontSize:10,color:"rgba(var(--cm-ink-rgb),0.55)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:6}}>YOUR PACE TODAY</div><div style={{fontSize:13,lineHeight:1.6}}><span style={{color:"rgba(var(--cm-ink-rgb),0.8)"}}>{_sp.label}: </span><span style={{color:"var(--cm-ink)",fontWeight:500,fontFamily:_MO}}>{_sp.value}</span></div></div>);})()}
+                      {runPaces&&(()=>{const _sp=resolveSessionPace(todayPrescription.pace,runPaces);if(!_sp)return null;return(<div style={{background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.12)",borderRadius:9,padding:"12px 14px",marginBottom:8}}><div style={{fontFamily:_AF,fontSize:10,color:"rgba(var(--cm-ink-rgb),0.55)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>{_sp.label.toUpperCase()} PACE</div><div style={{fontFamily:_AF,fontWeight:800,fontSize:32,letterSpacing:"-0.02em",color:"var(--cm-ink)",lineHeight:1}}>{_sp.value}</div></div>);})()}
                       {preFuel&&<div style={{background:"rgba(245,158,11,.06)",border:"1px solid rgba(245,158,11,.2)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
                         <div style={{fontFamily:_AF,fontSize:10,color:"rgba(var(--cm-ink-rgb),0.55)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>PRE-RUN FUEL</div>
                         <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb),0.8)",lineHeight:1.6}}>{preFuel}</div>
@@ -6115,7 +6117,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                       {si<segs.length-1&&(
                         <div style={{position:'absolute',left:31,bottom:-8,width:2,height:16,borderLeft:`2px dashed ${col}50`,zIndex:0}}/>
                       )}
-                      <div style={{background:isHere?`rgba(${colRgb},0.04)`:'var(--cm-paper)',borderRadius:16,padding:'16px 16px 14px',marginBottom:8,boxShadow:isHere?`0 4px 20px rgba(0,0,0,.10),0 0 0 2px ${col}40`:'0 2px 8px rgba(0,0,0,.08)',border:`1.5px solid ${isHere?col+'55':'rgba(var(--cm-ink-rgb),.08)'}`}}>
+                      <div style={{background:'var(--cm-paper)',borderRadius:16,padding:'16px 16px 14px',marginBottom:8,boxShadow:isHere?`0 4px 20px rgba(0,0,0,.10),0 0 0 2px ${col}40`:'0 2px 8px rgba(0,0,0,.08)',border:`1.5px solid ${isHere?col+'55':'rgba(var(--cm-ink-rgb),.08)'}`}}>
                         <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
                           {/* dot */}
                           <div style={{width:22,height:22,borderRadius:11,background:isPast||isHere?col:'rgba(var(--cm-ink-rgb),.12)',flexShrink:0,marginTop:2,display:'flex',alignItems:'center',justifyContent:'center'}}>
