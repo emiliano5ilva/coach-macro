@@ -5255,7 +5255,14 @@ function BodyweightSection({logs,user:u,setLogs,wUnit,profile,onProfileUpdate}) 
     setBwSaving(true);
     const entry={date:bwDate,weight:w};
     await sb.from("bodyweight_logs").upsert({user_id:u.id,...entry},{onConflict:"user_id,date"});
-    setLogs(prev=>[...prev.filter(x=>x.date!==bwDate),entry].sort((a,b)=>a.date.localeCompare(b.date)));
+    const updatedLogs=[...logs.filter(x=>x.date!==bwDate),entry].sort((a,b)=>a.date.localeCompare(b.date));
+    setLogs(updatedLogs);
+    // sync to profile.weight_kg when this is the most-recent entry (don't let backdated entries overwrite current weight)
+    if(updatedLogs.length&&updatedLogs[updatedLogs.length-1].date===bwDate){
+      const kg=wUnit==='lbs'?+(w*0.453592).toFixed(2):w;
+      sb.from("profiles").upsert({id:u.id,weight_kg:kg},{onConflict:"id"});
+      onProfileUpdate&&onProfileUpdate({weight_kg:kg});
+    }
     setBwModal(false);setBwInput("");setBwSaving(false);
   }
 
