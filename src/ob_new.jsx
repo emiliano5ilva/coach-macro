@@ -71,6 +71,17 @@ function Sub({ children }) {
   );
 }
 
+function SettingsNote({ children }) {
+  return (
+    <p style={{
+      fontSize: 11, color: "var(--text-dim)", opacity: 0.6,
+      lineHeight: 1.5, marginBottom: 16, marginTop: -12,
+    }}>
+      {children}
+    </p>
+  );
+}
+
 // Tap card — reuses the existing visual pattern
 // Accepts both `label` (spec) and shorthand `l` (legacy option arrays) so neither needs changing.
 function TapCard({ label, l, sub, icon, selected, onClick }) {
@@ -739,6 +750,7 @@ export function NewOnboarding({ onComplete, user, signupName }) {
         <div style={{ animation: "fadeIn 0.25s ease" }}>
           <Eyebrow>// Step 5</Eyebrow>
           <Headline>Your <span style={{ color: "var(--accent)" }}>height.</span></Headline>
+          <SettingsNote>You can change this anytime in Settings</SettingsNote>
           <UnitToggle
             opts={[{ val: "ft", label: "ft & in" }, { val: "cm", label: "cm" }]}
             val={d.hUnit}
@@ -770,6 +782,7 @@ export function NewOnboarding({ onComplete, user, signupName }) {
           <Eyebrow>// Step 6</Eyebrow>
           <Headline>Current <span style={{ color: "var(--accent)" }}>weight.</span></Headline>
           <Sub>Your weight right now — not your goal. The equation only works with real numbers.</Sub>
+          <SettingsNote>You can change this anytime in Settings</SettingsNote>
           <UnitToggle
             opts={[{ val: "lbs", label: "lbs" }, { val: "kg", label: "kg" }]}
             val={d.wUnit}
@@ -895,6 +908,7 @@ export function NewOnboarding({ onComplete, user, signupName }) {
           <Eyebrow>// Equipment</Eyebrow>
           <Headline>What equipment do you <span style={{ color: "var(--accent)" }}>train with?</span></Headline>
           <Sub>This filters programs to only show what actually works for you.</Sub>
+          <SettingsNote>You can change this anytime in Settings</SettingsNote>
           {[
             { v: "full",      l: "Full commercial gym",     e: "🏛️", sub: "Barbells, cables, machines — everything" },
             { v: "home_bar",  l: "Home gym with barbell",   e: "🏋️", sub: "Barbell, rack, dumbbells" },
@@ -925,6 +939,7 @@ export function NewOnboarding({ onComplete, user, signupName }) {
           <Eyebrow>// Step 13</Eyebrow>
           <Headline>Training <span style={{ color: "var(--accent)" }}>experience?</span></Headline>
           <Sub>Overall experience in your sport — lifting, running, or both. This sets the pace of your program.</Sub>
+          <SettingsNote>You can change this anytime in Settings</SettingsNote>
           {[
             { v: "none", e: "🌱", l: "None", sub: "Brand new to structured training" },
             { v: "beginner", e: "💪", l: "Beginner", sub: "Less than 1 year" },
@@ -1099,6 +1114,7 @@ export function NewOnboarding({ onComplete, user, signupName }) {
           <Eyebrow>// Almost there</Eyebrow>
           <Headline>What's your <span style={{ color: "var(--accent)" }}>goal?</span></Headline>
           <Sub>Based on your answers, we'll set the right approach and tell you exactly why.</Sub>
+          <SettingsNote>You can change this anytime in Settings</SettingsNote>
           <div style={{ display: "flex", gap: 10 }}>
             {[
               { v: "cut", l: "Lose Fat", icon: "fluent-emoji-flat:fire", sub: "Fat loss" },
@@ -1178,6 +1194,7 @@ export function NewOnboarding({ onComplete, user, signupName }) {
             <Eyebrow>// Step 26</Eyebrow>
             <Headline>Your calorie <span style={{ color: "var(--accent)" }}>rate.</span></Headline>
             <Sub>Choose your deficit or surplus depth. We'll tell you the exact daily target.</Sub>
+            <SettingsNote>You can change this anytime in Settings</SettingsNote>
             {RATES.map(o => <TapCard key={o.v} label={o.l} sub={o.sub} selected={d.goalRate === o.v} onClick={() => auto("goalRate", o.v)} />)}
           </div>
         );
