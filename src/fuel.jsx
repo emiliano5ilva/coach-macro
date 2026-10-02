@@ -42,7 +42,7 @@ import {
 } from "./services/foodDatabase.js";
 import { getAIErrorMessage } from "./utils/errors.js";
 import { getSlotsForFreq, getSlotLabel, normaliseSlotToNumber, getSlotTargets, getMissingSlots, getLoggedSlots, calculateOverage } from './utils/mealSlots.js';
-import { buildUserContext, getRestaurantRecs, getMenuScanRecs } from './services/restaurantAiService.js';
+import { buildUserContext, getRestaurantRecs, getMenuScanRecs, matchMenuItems } from './services/restaurantAiService.js';
 import { geocodeCity, getNearbyRestaurants } from './services/locationService.js';
 import { getRecentMealsForSlot, getPerformanceCorrelations } from './services/macroMemoryService.js';
 
@@ -2139,13 +2139,21 @@ export const FuelSection=React.memo(function FuelSection({log,macros,consumed,re
           (cached||[]).filter(r=>r.updated_at>seventyFiveDaysAgo).map(r=>r.restaurant_key)
         );
 
-        // 2. Pre-populate _raRecCache for any server-cache hits (instant for subsequent taps)
+        // 2. Pre-populate _raRecCache for any server-cache hits (instant for subsequent taps).
+        // nutrition_data is now raw per-item menu data — run matchMenuItems per user's targets.
         if(cached){
           cached.forEach(row=>{
             if(row.updated_at<seventyFiveDaysAgo)return;
-            // Key includes user context — so each user's specific targets still get their own entry
             const recKey=`${row.restaurant_display_name||row.restaurant_key}|${restaurantAI.calTarget}|${restaurantAI.proteinTarget}|${restaurantAI.carbTarget}|${restaurantAI.fatTarget}`;
-            if(!_raRecCache.has(recKey))_raRecCache.set(recKey,row.nutrition_data);
+            if(!_raRecCache.has(recKey)){
+              const rec=matchMenuItems(row.nutrition_data?.items||[],{
+                calories:restaurantAI.calTarget,
+                protein: restaurantAI.proteinTarget,
+                carbs:   restaurantAI.carbTarget,
+                fat:     restaurantAI.fatTarget,
+              });
+              if(rec)_raRecCache.set(recKey,rec);
+            }
           });
         }
 
@@ -5266,14 +5274,35 @@ Reply with ONLY a valid JSON object, no markdown:
                             <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.04em",textTransform:"uppercase",marginBottom:8}}>Also Good</div>
                             {raResult.backup_options.map((opt,i)=>{
                               const open=raBackupOpen===i;
+                              const om=opt.estimated_macros||{};
                               return(
-                              <div key={i} onClick={()=>setRaBackupOpen(open?null:i)} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)",borderRadius:10,padding:"12px 14px",marginBottom:6,boxShadow:"0 2px 12px rgba(0,0,0,.08)",cursor:"pointer"}}>
-                                <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:10}}>
-                                  <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:"var(--cm-ink)"}}>{opt.item}<span style={{color:"var(--cm-red,#FF3B30)"}}>.</span></div>
-                                  <span style={{flexShrink:0,fontSize:13,color:"var(--cm-red,#FF3B30)",transition:"transform 0.2s",transform:open?"rotate(180deg)":"none"}}>↓</span>
+                              <div key={i} style={{marginBottom:8}}>
+                                <div onClick={()=>setRaBackupOpen(open?null:i)} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)",borderRadius:10,padding:"12px 14px",boxShadow:"0 2px 12px rgba(0,0,0,.08)",cursor:"pointer"}}>
+                                  <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:10}}>
+                                    <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:"var(--cm-ink)"}}>{opt.item}<span style={{color:"var(--cm-red,#FF3B30)"}}>.</span></div>
+                                    <span style={{flexShrink:0,fontSize:13,color:"var(--cm-red,#FF3B30)",transition:"transform 0.2s",transform:open?"rotate(180deg)":"none"}}>↓</span>
+                                  </div>
+                                  <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:500,fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.7)",lineHeight:1.4,marginTop:3,...(open?{}:{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"})}}>{opt.reason}</div>
+                                  {open&&(
+                                    <div style={{marginTop:10}}>
+                                      {om.calories!=null&&(
+                                        <div style={{display:"flex",gap:6,marginBottom:6}}>
+                                          {[{label:"CAL",val:om.calories},{label:"PRO",val:`${om.protein_g}G`},{label:"CARB",val:`${om.carbs_g}G`},{label:"FAT",val:`${om.fat_g}G`}].map(({label,val})=>(
+                                            <div key={label} style={{flex:1,background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",borderRadius:6,padding:"4px 3px",textAlign:"center"}}>
+                                              <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:13,color:"var(--cm-ink)",lineHeight:1}}>{val}</div>
+                                              <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.55)",letterSpacing:"0.02em",marginTop:1,textTransform:"uppercase"}}>{label}</div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                      {opt.customisation&&<div style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:12,color:"var(--cm-ink)",letterSpacing:0}}>{opt.customisation}</div>}
+                                    </div>
+                                  )}
                                 </div>
-                                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:500,fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.7)",lineHeight:1.4,marginTop:3,...(open?{}:{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"})}}>{opt.reason}</div>
-                                {open&&opt.customisation&&<div style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:12,color:"var(--cm-ink)",letterSpacing:0,marginTop:6}}>{opt.customisation}</div>}
+                                <button
+                                  onClick={()=>handleAddRestaurantDish(opt)}
+                                  style={{width:"100%",marginTop:4,padding:"10px",background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",border:"1.5px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:8,fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:11,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.04em",textTransform:"uppercase",cursor:"pointer"}}
+                                >ADD TO MEAL {restaurantAI.slot}</button>
                               </div>
                               );
                             })}
