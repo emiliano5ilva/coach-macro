@@ -1,12 +1,11 @@
 /**
  * seed-restaurant-cache.mjs
  *
- * ONE-TIME seed job: populates restaurant_menu_cache with AI-generated
- * recommendations for ~100 popular US fast-food / fast-casual chains.
+ * ONE-TIME seed job: populates restaurant_menu_cache with AI-extracted
+ * raw per-item menu data for ~100 popular US fast-food / fast-casual chains.
  *
- * Calls Anthropic directly (no Vercel /api/claude hop) using the same
- * RESTAURANT_REC_TOOLS schema and prompt used by restaurantAiService.js,
- * with a generic "typical user" context so results are broadly useful.
+ * Stores {items:[{name,calories,protein_g,carbs_g,fat_g}]} per restaurant.
+ * Personalized recommendations are computed client-side from this raw data.
  *
  * Required env vars (same .env that already has these):
  *   SUPABASE_SERVICE_KEY   — writes to restaurant_menu_cache
@@ -32,7 +31,6 @@ const FORCE   = process.argv.includes('--force');
 
 const sb = createClient(SUPABASE_URL, SVC_KEY);
 
-// ── 100 popular US chains ─────────────────────────────────────────────────────
 const CHAINS = [
   "McDonald's", "Burger King", "Wendy's", "Taco Bell", "Subway",
   "Chipotle Mexican Grill", "Chick-fil-A", "Panera Bread", "Starbucks",
@@ -61,138 +59,48 @@ const CHAINS = [
   "MOD Pizza", "Blaze Pizza", "California Pizza Kitchen",
   "Pieology Pizzeria", "Portillo's", "Giordano's",
   "Corner Bakery Cafe", "Au Bon Pain", "Einstein Bros. Bagels",
-  "Bruegger's Bagels", "Panera Bread", "Tim Hortons",
+  "Bruegger's Bagels", "Tim Hortons",
   "Biggby Coffee", "Dutch Bros Coffee", "Caribou Coffee",
   "Peet's Coffee", "The Coffee Bean & Tea Leaf",
-  "Gyro Wrap", "Halal Guys", "Shake Shack", "Smashburger",
-  "Habit Burger", "Culver's", "Freddy's Frozen Custard",
-  "Steak 'n Shake", "Cook Out", "Cookout",
+  "Gyro Wrap", "Halal Guys", "Smashburger",
+  "Habit Burger", "Freddy's Frozen Custard",
+  "Steak 'n Shake", "Cook Out",
 ];
 
-// Deduplicate (a few duplicates crept in above for safety)
 const UNIQUE_CHAINS = [...new Set(CHAINS)];
 
-// ── Generic "typical user" context ───────────────────────────────────────────
-// ~500 kcal / ~40g protein per meal, balanced goal — broadly useful for most users.
-const GENERIC_CONTEXT = {
-  goal: 'maintenance',
-  dietary: [],
-  currentMealSlot: 2,
-  totalMeals: 3,
-  currentMealCalorieTarget: 500,
-  mealProteinTarget: 40,
-  mealCarbTarget: 55,
-  mealFatTarget: 18,
-  trainedToday: false,
-  sessionType: null,
-  healthConditions: [],
-  conditions: [],
-  goalTimeline: null,
-  fasting: null,
-};
-
-// ── Restaurant rec tool schema (mirrors restaurantAiService.js) ──────────────
-const RESTAURANT_REC_TOOLS = [{
-  name: 'restaurant_recommendation',
-  description: 'Structured restaurant meal recommendation matching user macro targets',
+const RESTAURANT_MENU_EXTRACT_TOOLS = [{
+  name: 'restaurant_menu_data',
+  description: 'Per-item menu nutrition data for a restaurant',
   input_schema: {
     type: 'object',
     properties: {
-      best_order: {
-        type: 'object',
-        properties: {
-          item:           { type: 'string' },
-          customisation:  { type: 'string' },
-          reason:         { type: 'string' },
-          estimated_macros: {
-            type: 'object',
-            properties: {
-              calories:  { type: 'number' },
-              protein_g: { type: 'number' },
-              carbs_g:   { type: 'number' },
-              fat_g:     { type: 'number' },
-              sodium_mg: { type: 'number' },
-              sugar_g:   { type: 'number' },
-            },
-            required: ['calories','protein_g','carbs_g','fat_g','sodium_mg','sugar_g'],
-          },
-          protein_coverage_pct: { type: 'number' },
-          warnings: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                nutrient: { type: 'string' },
-                message:  { type: 'string' },
-                fix:      { type: 'string' },
-              },
-              required: ['nutrient','message','fix'],
-            },
-          },
-        },
-        required: ['item','reason','estimated_macros','protein_coverage_pct','warnings'],
-      },
-      backup_options: {
+      items: {
         type: 'array',
         items: {
           type: 'object',
           properties: {
-            item:          { type: 'string' },
-            customisation: { type: 'string' },
-            reason:        { type: 'string' },
+            name:      { type: 'string' },
+            calories:  { type: 'number' },
+            protein_g: { type: 'number' },
+            carbs_g:   { type: 'number' },
+            fat_g:     { type: 'number' },
           },
-          required: ['item','reason'],
+          required: ['name','calories','protein_g','carbs_g','fat_g'],
         },
       },
-      avoid: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            item:   { type: 'string' },
-            reason: { type: 'string' },
-          },
-          required: ['item','reason'],
-        },
-      },
-      coach_note: { type: 'string' },
     },
-    required: ['best_order','backup_options','avoid','coach_note'],
+    required: ['items'],
   },
 }];
 
 function buildPrompt(restaurantName) {
-  const { goal, dietary, currentMealSlot, totalMeals,
-    currentMealCalorieTarget, mealProteinTarget, mealCarbTarget, mealFatTarget } = GENERIC_CONTEXT;
-
-  return `You are the Coach Macro nutrition AI. Recommend exactly what to order at ${restaurantName}.
-
-MEAL CONTEXT:
-- This is Meal ${currentMealSlot} of ${totalMeals} today
-- Calorie target for THIS meal: ${currentMealCalorieTarget} kcal
-- Protein target: ${mealProteinTarget}g
-- Carb target: ${mealCarbTarget}g
-- Fat target: ${mealFatTarget}g
-- Training goal: ${goal}
-- Trained today: false
-- Session type: none
-
-RESTAURANT: ${restaurantName}
-Known chain — use exact menu knowledge and suggest specific modifications (e.g. "ask for half rice", "no cheese", "sauce on the side", "grilled not fried").
-
-FLAG WARNINGS IF:
-- Calories > ${Math.round(currentMealCalorieTarget * 1.1)} (110% of meal target)
-- Protein < ${Math.round(mealProteinTarget * 0.8)}g (below 80% of target)
-- Carbs > ${Math.round(mealCarbTarget * 1.1)}g (110% of target)
-- Fat > ${Math.round(mealFatTarget * 1.1)}g (110% of target)
-- Sodium > 1000mg
-- Sugar > 20g
-
-RULES: Optimise for protein first. Stay within 110% of all targets. Never recommend alcohol. Be specific with exact item names.`;
+  return `List menu items for ${restaurantName} with estimated nutrition per standard serving.
+Use published nutritional values for this known chain.
+Include 15–30 items across all main categories. For each item provide: exact menu name, calories, protein (g), carbs (g), fat (g).`;
 }
 
 async function callAI(restaurantName) {
-  const prompt = buildPrompt(restaurantName);
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method:  'POST',
     headers: {
@@ -203,9 +111,9 @@ async function callAI(restaurantName) {
     body: JSON.stringify({
       model:       'claude-sonnet-4-6',
       max_tokens:  1200,
-      tools:       RESTAURANT_REC_TOOLS,
-      tool_choice: { type: 'tool', name: 'restaurant_recommendation' },
-      messages:    [{ role: 'user', content: prompt }],
+      tools:       RESTAURANT_MENU_EXTRACT_TOOLS,
+      tool_choice: { type: 'tool', name: 'restaurant_menu_data' },
+      messages:    [{ role: 'user', content: buildPrompt(restaurantName) }],
     }),
   });
 
@@ -217,15 +125,15 @@ async function callAI(restaurantName) {
   const d = await response.json();
   if (d.stop_reason === 'max_tokens') throw new Error('max_tokens truncation');
 
-  const toolUse = d.content?.find(b => b.type === 'tool_use' && b.name === 'restaurant_recommendation');
-  if (!toolUse?.input || Object.keys(toolUse.input).length === 0) {
+  const toolUse = d.content?.find(b => b.type === 'tool_use' && b.name === 'restaurant_menu_data');
+  if (!toolUse?.input || !toolUse.input.items?.length) {
     throw new Error('No structured output returned');
   }
   return toolUse.input;
 }
 
 async function main() {
-  console.log(`\n🍔 Restaurant Cache Seed — ${UNIQUE_CHAINS.length} chains`);
+  console.log(`\n🍔 Restaurant Cache Seed (raw menu data) — ${UNIQUE_CHAINS.length} chains`);
   console.log(`   Mode: ${DRY_RUN ? 'DRY RUN' : FORCE ? 'FORCE (re-seed all)' : 'SMART (skip cached)'}\n`);
 
   if (DRY_RUN) {
@@ -234,7 +142,6 @@ async function main() {
     return;
   }
 
-  // Fetch already-cached keys so we can skip them (unless --force)
   let alreadyCached = new Set();
   if (!FORCE) {
     const { data } = await sb
@@ -265,13 +172,12 @@ async function main() {
       }, { onConflict: 'restaurant_key' });
       if (error) throw new Error(error.message);
       seeded++;
-      console.log('✓ seeded');
-      // Polite rate limit: ~2 req/s stays well within Anthropic's tier limits
+      console.log(`✓ seeded (${nutritionData.items?.length || 0} items)`);
       await new Promise(r => setTimeout(r, 500));
     } catch (e) {
       failed.push({ name, error: e.message });
       console.log(`✗ FAILED: ${e.message}`);
-      await new Promise(r => setTimeout(r, 1000)); // back off on error
+      await new Promise(r => setTimeout(r, 1000));
     }
   }
 

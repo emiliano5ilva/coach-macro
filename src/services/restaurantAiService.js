@@ -17,9 +17,36 @@ function isKnownChain(name) {
   return KNOWN_CHAINS.some(chain => lower.includes(chain));
 }
 
-// Forced tool-use schema — model MUST fill this shape; no JSON parsing, no markdown fences.
-// Root cause of "Could not get recommendations": 900-token output cap truncated the JSON mid-response.
-// Tool-use path on the server uses max(clientMax, serverLimit) so 2000 tokens always gets through.
+// Tool schema for extracting raw per-item menu data.
+// No user context embedded — the same extracted data is shared across all users.
+// Personalized matching happens client-side via matchMenuItems().
+const RESTAURANT_MENU_EXTRACT_TOOLS = [{
+  name: "restaurant_menu_data",
+  description: "Per-item menu nutrition data for a restaurant",
+  input_schema: {
+    type: "object",
+    properties: {
+      items: {
+        type: "array",
+        description: "Menu items with estimated per-serving nutrition",
+        items: {
+          type: "object",
+          properties: {
+            name:      { type: "string" },
+            calories:  { type: "number" },
+            protein_g: { type: "number" },
+            carbs_g:   { type: "number" },
+            fat_g:     { type: "number" },
+          },
+          required: ["name","calories","protein_g","carbs_g","fat_g"],
+        },
+      },
+    },
+    required: ["items"],
+  },
+}];
+
+// Kept for menu-scan path (stays AI-driven per-user, no shared cache).
 const RESTAURANT_REC_TOOLS = [{
   name: "restaurant_recommendation",
   description: "Structured restaurant meal recommendation matching user macro targets",
@@ -110,64 +137,115 @@ export function buildUserContext(profile, slotTargets, currentSlot, totalMeals, 
   };
 }
 
-function buildRestaurantPrompt(restaurantName, userContext) {
-  const { goal, dietary, currentMealSlot, totalMeals, currentMealCalorieTarget, mealProteinTarget, mealCarbTarget, mealFatTarget, trainedToday, sessionType, healthConditions, conditions, goalTimeline, fasting } = userContext;
-  const dietStr = dietary.length > 0 ? `\nDIETARY RESTRICTIONS (strictly avoid): ${dietary.join(', ')}.` : '';
+// Pure function: given raw menu items + user's meal macro targets,
+// returns a personalized {best_order, backup_options, avoid, coach_note}.
+// No AI call — runs instantly against already-cached per-item data.
+export function matchMenuItems(items, userMacros) {
+  const { calories: calTarget, protein: protTarget, carbs: carbTarget, fat: fatTarget } = userMacros;
+  if (!items || !items.length) return null;
+
+  function scoreItem(item) {
+    const calRatio  = item.calories  / (calTarget  || 1);
+    const protRatio = item.protein_g / (protTarget || 1);
+    const carbRatio = item.carbs_g   / (carbTarget || 1);
+    const fatRatio  = item.fat_g     / (fatTarget  || 1);
+    // Over-calorie penalized heavily; under-protein penalized heavily
+    const calP  = calRatio  > 1 ? (calRatio  - 1) * 3   : (1 - calRatio)  * 0.5;
+    const protP = protRatio < 1 ? (1 - protRatio) * 4   : (protRatio - 1) * 0.5;
+    const carbP = carbRatio > 1 ? (carbRatio - 1) * 1   : 0;
+    const fatP  = fatRatio  > 1 ? (fatRatio  - 1) * 1   : 0;
+    return calP + protP + carbP + fatP;
+  }
+
+  const sorted = [...items].sort((a, b) => scoreItem(a) - scoreItem(b));
+
+  function itemToEntry(item) {
+    const calories  = Math.round(item.calories);
+    const protein_g = Math.round(item.protein_g);
+    const carbs_g   = Math.round(item.carbs_g);
+    const fat_g     = Math.round(item.fat_g);
+    const protein_coverage_pct = Math.min(100, Math.round((protein_g / (protTarget || 1)) * 100));
+    const calPct  = Math.round((calories  / (calTarget  || 1)) * 100);
+    const protPct = Math.round((protein_g / (protTarget || 1)) * 100);
+
+    let reason;
+    if (protein_g >= protTarget * 0.9) {
+      reason = `Hits ${protPct}% of your protein target at ${calories} kcal`;
+    } else if (calories <= calTarget * 0.95) {
+      reason = `Fits your calorie window at ${calPct}% · ${protein_g}g protein`;
+    } else {
+      reason = `${protein_g}g protein · ${calories} kcal`;
+    }
+
+    const warnings = [];
+    if (calories > calTarget * 1.1) {
+      warnings.push({
+        nutrient: 'calories',
+        message:  `${calories} kcal — ${Math.round(((calories / calTarget) - 1) * 100)}% above your meal target`,
+        fix:      'Ask for a smaller portion or share it',
+      });
+    }
+    if (protein_g < protTarget * 0.8) {
+      warnings.push({
+        nutrient: 'protein',
+        message:  `Only ${protein_g}g protein (target: ${protTarget}g)`,
+        fix:      'Add a side of grilled chicken or cottage cheese to boost protein',
+      });
+    }
+    if (carbs_g > carbTarget * 1.1) {
+      warnings.push({
+        nutrient: 'carbs',
+        message:  `${carbs_g}g carbs — above your ${carbTarget}g target`,
+        fix:      'Ask for less rice or bread, or swap for a salad',
+      });
+    }
+    if (fat_g > fatTarget * 1.1) {
+      warnings.push({
+        nutrient: 'fat',
+        message:  `${fat_g}g fat — above your ${fatTarget}g target`,
+        fix:      'Ask for sauce on the side or skip added cheese',
+      });
+    }
+
+    return {
+      item: item.name,
+      customisation: null,
+      reason,
+      estimated_macros: { calories, protein_g, carbs_g, fat_g, sodium_mg: null, sugar_g: null },
+      protein_coverage_pct,
+      warnings,
+    };
+  }
+
+  return {
+    best_order:     itemToEntry(sorted[0]),
+    backup_options: sorted.slice(1, 4).map(itemToEntry),
+    avoid:          [],
+    coach_note:     null,
+  };
+}
+
+function buildMenuExtractPrompt(restaurantName) {
   const isChain = isKnownChain(restaurantName);
-
-  const diabetesCtx = (healthConditions||[]).includes('diabetes')
-    ? '\nDIABETES: Avoid high GI foods. Flag dishes with heavy sugar, white rice, white bread, or sugary sauces. Recommend protein + vegetables + complex carbs.'
-    : '';
-  const hypertensionCtx = (healthConditions||[]).includes('hypertension')
-    ? '\nHYPERTENSION: Flag high sodium dishes. Note any item over 800mg sodium. Recommend sauces on the side.'
-    : '';
-  const thyroidCtx = (conditions||[]).includes('thyroid')
-    ? '\nTHYROID CONDITION: Avoid recommending raw cruciferous vegetables in large quantities. Cooked is fine.'
-    : '';
-  const urgentCtx = goalTimeline === '1_month'
-    ? '\nURGENT TIMELINE: 1 month to goal. Be strict — flag anything that significantly exceeds macro targets.'
-    : '';
-  const goalCtx = goal === 'lose_fat'
-    ? '\nWEIGHT LOSS GOAL: Prioritise high protein, high volume/low calorie foods. Flag hidden calories in sauces, dressings, oils.'
-    : goal === 'build_muscle'
-      ? '\nMUSCLE BUILDING GOAL: Prioritise protein-dense dishes and adequate carbs. Slight calorie overage acceptable.'
-      : '';
-  const fastingCtx = fasting && fasting !== 'no' && fasting !== 'none'
-    ? `\nFASTING PROTOCOL: ${fasting}. This may be their first or last meal in their eating window. Recommend higher protein and calorie-dense options if first meal.`
-    : '';
-
-  return `You are the Coach Macro nutrition AI. Recommend exactly what to order at ${restaurantName}.
-
-MEAL CONTEXT:
-- This is Meal ${currentMealSlot} of ${totalMeals} today
-- Calorie target for THIS meal: ${currentMealCalorieTarget} kcal
-- Protein target: ${mealProteinTarget}g
-- Carb target: ${mealCarbTarget}g
-- Fat target: ${mealFatTarget}g
-- Training goal: ${goal}
-- Trained today: ${trainedToday}
-- Session type: ${sessionType || 'none'}${dietStr}${diabetesCtx}${hypertensionCtx}${thyroidCtx}${urgentCtx}${goalCtx}${fastingCtx}
-
-RESTAURANT: ${restaurantName}
-${isChain ? 'Known chain — use exact menu knowledge and suggest specific modifications (e.g. "ask for half rice", "no cheese", "sauce on the side", "grilled not fried").' : 'Independent restaurant — suggest general preparation modifications only, not specific portion requests.'}
-
-FLAG WARNINGS IF:
-- Calories > ${Math.round(currentMealCalorieTarget * 1.1)} (110% of meal target)
-- Protein < ${Math.round(mealProteinTarget * 0.8)}g (below 80% of target)
-- Carbs > ${Math.round(mealCarbTarget * 1.1)}g (110% of target)
-- Fat > ${Math.round(mealFatTarget * 1.1)}g (110% of target)
-- Sodium > 1000mg${(healthConditions||[]).includes('hypertension') ? ' (flag above 800mg for hypertension)' : ''}
-- Sugar > 20g${(healthConditions||[]).includes('diabetes') ? ' (flag above 10g for diabetes)' : ''}
-
-RULES: Optimise for protein first. Stay within 110% of all targets. Never recommend alcohol. Be specific with exact item names.`;
+  return `List menu items for ${restaurantName} with estimated nutrition per standard serving.
+${isChain ? 'Use published nutritional values.' : 'Estimate from typical ingredients and portion sizes.'}
+Include 15–30 items across all main categories. For each item provide: exact menu name, calories, protein (g), carbs (g), fat (g).`;
 }
 
 export async function getRestaurantRecs(restaurantName, _cuisineTypes, userContext) {
-  const prompt = buildRestaurantPrompt(restaurantName, userContext);
-  // Lever 2: 2000 → 1200. A structured rec (best_order + 2-3 backups + avoid + coach_note)
-  // fits comfortably under 1200; Sonnet stops sooner. 1200 (not 1000) keeps a safety margin
-  // against the max_tokens truncation guard in aiWithTools for verbose backup lists.
-  return aiWithTools(prompt, RESTAURANT_REC_TOOLS, 'restaurant_recommendation', 1200, 'restaurant_pick');
+  const prompt  = buildMenuExtractPrompt(restaurantName);
+  const rawData = await aiWithTools(prompt, RESTAURANT_MENU_EXTRACT_TOOLS, 'restaurant_menu_data', 1200, 'restaurant_pick');
+  const items   = rawData?.items || [];
+  const userMacros = {
+    calories: userContext.currentMealCalorieTarget,
+    protein:  userContext.mealProteinTarget,
+    carbs:    userContext.mealCarbTarget,
+    fat:      userContext.mealFatTarget,
+  };
+  return matchMenuItems(items, userMacros) || {
+    best_order: null, backup_options: [], avoid: [],
+    coach_note: 'Could not match items — try scanning the menu instead.',
+  };
 }
 
 export async function getMenuScanRecs(base64Image, mediaType, userContext) {

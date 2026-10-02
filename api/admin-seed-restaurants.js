@@ -51,72 +51,35 @@ const CHAINS = [
 ];
 const UNIQUE_CHAINS = [...new Set(CHAINS)];
 
-const RESTAURANT_REC_TOOLS = [{
-  name: 'restaurant_recommendation',
-  description: 'Structured restaurant meal recommendation matching user macro targets',
+const RESTAURANT_MENU_EXTRACT_TOOLS = [{
+  name: 'restaurant_menu_data',
+  description: 'Per-item menu nutrition data for a restaurant',
   input_schema: {
     type: 'object',
     properties: {
-      best_order: {
-        type: 'object',
-        properties: {
-          item:           { type: 'string' },
-          customisation:  { type: 'string' },
-          reason:         { type: 'string' },
-          estimated_macros: {
-            type: 'object',
-            properties: {
-              calories:  { type: 'number' },
-              protein_g: { type: 'number' },
-              carbs_g:   { type: 'number' },
-              fat_g:     { type: 'number' },
-              sodium_mg: { type: 'number' },
-              sugar_g:   { type: 'number' },
-            },
-            required: ['calories','protein_g','carbs_g','fat_g','sodium_mg','sugar_g'],
+      items: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            name:      { type: 'string' },
+            calories:  { type: 'number' },
+            protein_g: { type: 'number' },
+            carbs_g:   { type: 'number' },
+            fat_g:     { type: 'number' },
           },
-          protein_coverage_pct: { type: 'number' },
-          warnings: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                nutrient: { type: 'string' },
-                message:  { type: 'string' },
-                fix:      { type: 'string' },
-              },
-              required: ['nutrient','message','fix'],
-            },
-          },
+          required: ['name','calories','protein_g','carbs_g','fat_g'],
         },
-        required: ['item','reason','estimated_macros','protein_coverage_pct','warnings'],
       },
-      backup_options: { type: 'array', items: { type: 'object', properties: { item: { type: 'string' }, customisation: { type: 'string' }, reason: { type: 'string' } }, required: ['item','reason'] } },
-      avoid:          { type: 'array', items: { type: 'object', properties: { item: { type: 'string' }, reason: { type: 'string' } }, required: ['item','reason'] } },
-      coach_note: { type: 'string' },
     },
-    required: ['best_order','backup_options','avoid','coach_note'],
+    required: ['items'],
   },
 }];
 
 function buildPrompt(name) {
-  return `You are the Coach Macro nutrition AI. Recommend exactly what to order at ${name}.
-
-MEAL CONTEXT:
-- This is Meal 2 of 3 today
-- Calorie target for THIS meal: 500 kcal
-- Protein target: 40g
-- Carb target: 55g
-- Fat target: 18g
-- Training goal: maintenance
-- Trained today: false
-- Session type: none
-
-RESTAURANT: ${name}
-Known chain — use exact menu knowledge and suggest specific modifications (e.g. "ask for half rice", "no cheese", "sauce on the side", "grilled not fried").
-
-FLAG WARNINGS IF: Calories > 550 | Protein < 32g | Carbs > 60g | Fat > 20g | Sodium > 1000mg | Sugar > 20g
-RULES: Optimise for protein first. Stay within 110% of all targets. Be specific with exact item names.`;
+  return `List menu items for ${name} with estimated nutrition per standard serving.
+Use published nutritional values for this known chain.
+Include 15–30 items across all main categories. For each item provide: exact menu name, calories, protein (g), carbs (g), fat (g).`;
 }
 
 async function callAI(anthropicKey, name) {
@@ -130,8 +93,8 @@ async function callAI(anthropicKey, name) {
     body: JSON.stringify({
       model:       'claude-sonnet-4-6',
       max_tokens:  1200,
-      tools:       RESTAURANT_REC_TOOLS,
-      tool_choice: { type: 'tool', name: 'restaurant_recommendation' },
+      tools:       RESTAURANT_MENU_EXTRACT_TOOLS,
+      tool_choice: { type: 'tool', name: 'restaurant_menu_data' },
       messages:    [{ role: 'user', content: buildPrompt(name) }],
     }),
   });
@@ -140,8 +103,8 @@ async function callAI(anthropicKey, name) {
     throw new Error(`Anthropic ${r.status}: ${e.error?.message || 'error'}`);
   }
   const d = await r.json();
-  const toolUse = d.content?.find(b => b.type === 'tool_use');
-  if (!toolUse?.input || Object.keys(toolUse.input).length === 0) throw new Error('no tool output');
+  const toolUse = d.content?.find(b => b.type === 'tool_use' && b.name === 'restaurant_menu_data');
+  if (!toolUse?.input || !toolUse.input.items?.length) throw new Error('no tool output');
   return toolUse.input;
 }
 
