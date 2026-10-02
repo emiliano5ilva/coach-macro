@@ -99,6 +99,60 @@ export default withLogging(async function handler(req, res) {
   const feature = req.body?.feature || 'default';
   const limits  = TOKEN_LIMITS[feature] || TOKEN_LIMITS.default;
 
+  // ── 0. Restaurant cache read-through (restaurant_pick only) ───────────────
+  // Checks restaurant_menu_cache before any AI call or usage increment.
+  // On a fresh hit: returns immediately (zero tokens, zero quota consumed).
+  // On a miss: sets _raKey/_raDisplay so the post-AI block can upsert the result.
+  // TTL = 75 days (menus change occasionally; lazy refresh at read time).
+  let _raKey = null, _raDisplay = null;
+  if (feature === 'restaurant_pick') {
+    const { feature: _f2, stream: _s2, ..._rb2 } = req.body;
+    const _prompt = _rb2.messages?.[0]?.content ?? '';
+    const _match  = _prompt.match(/^RESTAURANT:\s*(.+)$/m);
+    _raDisplay = _match?.[1]?.trim() ?? null;
+    if (_raDisplay) {
+      _raKey = _raDisplay.toLowerCase().trim().replace(/\s+/g, ' ');
+      const _stale = new Date(Date.now() - 75 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: _cached } = await sb
+        .from('restaurant_menu_cache')
+        .select('nutrition_data, updated_at')
+        .eq('restaurant_key', _raKey)
+        .maybeSingle();
+      if (_cached?.nutrition_data && _cached.updated_at > _stale) {
+        // Cache hit — subscription still required, but no AI cost or quota consumed.
+        const { data: _prof } = await sb
+          .from('profiles')
+          .select('is_pro, subscription_tier, trial_ends_at, profile_data')
+          .eq('id', userId).maybeSingle();
+        const _trialAt  = _prof?.trial_ends_at || _prof?.profile_data?.trialEndsAt;
+        const _trialOK  = _trialAt && new Date(_trialAt) > new Date();
+        const _isPro    = _prof?.is_pro === true
+          || _prof?.subscription_tier === 'monthly'
+          || _prof?.subscription_tier === 'annual';
+        if (!_isPro && !_trialOK) {
+          return res.status(402).json({
+            error:        'Subscription required',
+            reason:       'subscription_required',
+            message:      _trialAt
+              ? 'Your free trial has ended. Upgrade to Pro to continue using AI features.'
+              : 'Upgrade to Pro to access AI features.',
+            trialExpired: !!_trialAt,
+          });
+        }
+        return res.status(200).json({
+          id: 'cached', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6',
+          content: [{
+            type: 'tool_use', id: 'cached',
+            name: _rb2.tool_choice?.name || 'restaurant_recommendation',
+            input: _cached.nutrition_data,
+          }],
+          stop_reason: 'tool_use',
+          usage: { input_tokens: 0, output_tokens: 0 },
+        });
+      }
+    }
+  }
+
   // ── 1. Subscription check ──────────────────────────────────────────────────
   const { data: profile } = await sb
     .from('profiles')
@@ -282,6 +336,21 @@ export default withLogging(async function handler(req, res) {
     const d = await r.json();
 
     // ── 5. Track token usage ──────────────────────────────────────────────────
+    // Cache the result for restaurant_pick (fire-and-forget, non-blocking).
+    if (r.ok && _raKey && d.stop_reason === 'tool_use') {
+      const _toolInput = d.content?.find(b => b.type === 'tool_use')?.input;
+      if (_toolInput && Object.keys(_toolInput).length > 0) {
+        sb.from('restaurant_menu_cache').upsert({
+          restaurant_key:          _raKey,
+          restaurant_display_name: _raDisplay,
+          nutrition_data:          _toolInput,
+          source:                  'live',
+          updated_at:              new Date().toISOString(),
+        }, { onConflict: 'restaurant_key' }).catch(e =>
+          console.error('[ra-cache] upsert failed:', e?.message)
+        );
+      }
+    }
     if (r.ok && d.usage) {
       const tokensUsed = (d.usage.input_tokens || 0) + (d.usage.output_tokens || 0);
       await sb.from('token_usage').upsert({
