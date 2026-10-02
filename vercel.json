@@ -3,5 +3,8 @@
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/r/:code/:token", "destination": "/api/r?code=:code&token=:token" },
     { "source": "/(.*)", "destination": "/index.html" }
-  ]
+  ],
+  "functions": {
+    "api/admin-seed-restaurants.js": { "maxDuration": 300 }
+  }
 }
