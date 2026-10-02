@@ -95,9 +95,9 @@ const RESTAURANT_MENU_EXTRACT_TOOLS = [{
 }];
 
 function buildPrompt(restaurantName) {
-  return `List menu items for ${restaurantName} with estimated nutrition per standard serving.
-Use published nutritional values for this known chain.
-Include 15–30 items across all main categories. For each item provide: exact menu name, calories, protein (g), carbs (g), fat (g).`;
+  return `List exactly 20 menu items for ${restaurantName} with estimated nutrition per standard serving.
+Use published nutritional values for this known chain. Pick representative items across all main categories (entrées, sides, drinks if notable).
+For each item provide: exact menu name, calories, protein (g), carbs (g), fat (g).`;
 }
 
 async function callAI(restaurantName) {
@@ -110,7 +110,7 @@ async function callAI(restaurantName) {
     },
     body: JSON.stringify({
       model:       'claude-sonnet-4-6',
-      max_tokens:  1200,
+      max_tokens:  2000,
       tools:       RESTAURANT_MENU_EXTRACT_TOOLS,
       tool_choice: { type: 'tool', name: 'restaurant_menu_data' },
       messages:    [{ role: 'user', content: buildPrompt(restaurantName) }],
