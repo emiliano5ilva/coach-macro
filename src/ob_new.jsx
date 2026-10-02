@@ -489,6 +489,7 @@ export function NewOnboarding({ onComplete, user, signupName }) {
   const [ageWarning, setAgeWarning] = useState(null);
   const [parentalConfirmed, setParentalConfirmed] = useState(false);
   const savedRef = useRef(false); // ensures onComplete fires exactly once
+  const [weightManual, setWeightManual] = useState(false);
 
   const upd = (k, v) => setD(p => ({ ...p, [k]: v }));
   const auto = (k, v) => { upd(k, v); setTimeout(next, 260); };
@@ -777,29 +778,72 @@ export function NewOnboarding({ onComplete, user, signupName }) {
       );
 
       // ── 6 — Weight ─────────────────────────────────────────────────────────
-      case 6: return (
-        <div style={{ animation: "fadeIn 0.25s ease" }}>
-          <Eyebrow>// Step 6</Eyebrow>
-          <Headline>Current <span style={{ color: "var(--accent)" }}>weight.</span></Headline>
-          <Sub>Your weight right now — not your goal. The equation only works with real numbers.</Sub>
-          <SettingsNote>You can change this anytime in Settings</SettingsNote>
-          <UnitToggle
-            opts={[{ val: "lbs", label: "lbs" }, { val: "kg", label: "kg" }]}
-            val={d.wUnit}
-            onChange={v => { upd("wUnit", v); upd("hUnit", v === "kg" ? "cm" : "ft"); }}
-          />
-          <div style={{ maxWidth: 160, margin: "0 auto", textAlign: "center" }}>
-            <Rolodex items={d.wUnit === "lbs" ? LBS_A : KG_A} sel={d.weight} onChange={v => upd("weight", v)} />
+      case 6: {
+        const _wArr = d.wUnit === "lbs" ? LBS_A : KG_A;
+        const _wMin = parseFloat(_wArr[0]);
+        const _wMax = parseFloat(_wArr[_wArr.length - 1]);
+        const _handleManualW = (raw) => {
+          const n = parseFloat(raw);
+          if (!isNaN(n) && n >= _wMin && n <= _wMax) {
+            upd("weight", String(Math.round(n)));
+          } else if (!isNaN(n)) {
+            upd("weight", String(Math.round(Math.max(_wMin, Math.min(_wMax, n)))));
+          }
+        };
+        return (
+          <div style={{ animation: "fadeIn 0.25s ease" }}>
+            <Eyebrow>// Step 6</Eyebrow>
+            <Headline>Current <span style={{ color: "var(--accent)" }}>weight.</span></Headline>
+            <Sub>Your weight right now — not your goal. The equation only works with real numbers.</Sub>
+            <SettingsNote>You can change this anytime in Settings</SettingsNote>
+            <UnitToggle
+              opts={[{ val: "lbs", label: "lbs" }, { val: "kg", label: "kg" }]}
+              val={d.wUnit}
+              onChange={v => { upd("wUnit", v); upd("hUnit", v === "kg" ? "cm" : "ft"); setWeightManual(false); }}
+            />
+            {weightManual ? (
+              <div style={{ maxWidth: 200, margin: "16px auto 0", textAlign: "center" }}>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={d.weight}
+                  min={_wMin}
+                  max={_wMax}
+                  onChange={e => upd("weight", e.target.value)}
+                  onBlur={e => _handleManualW(e.target.value)}
+                  style={{
+                    width: "100%", padding: "16px 12px", fontSize: 32, fontWeight: 700,
+                    fontFamily: "'DM Mono',monospace", textAlign: "center",
+                    background: "#0d0d0d", border: "2px solid var(--accent)",
+                    borderRadius: 12, color: "#fff", outline: "none", boxSizing: "border-box",
+                  }}
+                  autoFocus
+                />
+                <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 6 }}>
+                  {_wMin}–{_wMax} {d.wUnit}
+                </div>
+              </div>
+            ) : (
+              <div style={{ maxWidth: 160, margin: "0 auto", textAlign: "center" }}>
+                <Rolodex items={_wArr} sel={d.weight} onChange={v => upd("weight", v)} />
+              </div>
+            )}
+            <div style={{ textAlign: "center", marginTop: 8, fontSize: 16, fontWeight: 700, color: "var(--accent)" }}>
+              {d.weight} {d.wUnit}
+              <span style={{ fontSize: 12, fontWeight: 400, color: "var(--text-faint)", marginLeft: 8 }}>
+                = {d.wUnit === "lbs" ? Math.round(parseFloat(d.weight) * 0.4536) : Math.round(parseFloat(d.weight) / 0.4536)} {d.wUnit === "lbs" ? "kg" : "lbs"}
+              </span>
+            </div>
+            <button
+              onClick={() => setWeightManual(m => !m)}
+              style={{ display: "block", margin: "8px auto 0", background: "none", border: "none", color: "var(--text-faint)", fontSize: 12, cursor: "pointer", fontFamily: "inherit", padding: "4px 8px", letterSpacing: "0.02em" }}
+            >
+              {weightManual ? "← Use scroll wheel" : "✎ Type it instead"}
+            </button>
+            <PrimaryBtn onClick={next} label="Continue →" style={{ marginTop: 16 }} />
           </div>
-          <div style={{ textAlign: "center", marginTop: 8, fontSize: 16, fontWeight: 700, color: "var(--accent)" }}>
-            {d.weight} {d.wUnit}
-            <span style={{ fontSize: 12, fontWeight: 400, color: "var(--text-faint)", marginLeft: 8 }}>
-              = {d.wUnit === "lbs" ? Math.round(parseFloat(d.weight) * 0.4536) : Math.round(parseFloat(d.weight) / 0.4536)} {d.wUnit === "lbs" ? "kg" : "lbs"}
-            </span>
-          </div>
-          <PrimaryBtn onClick={next} label="Continue →" style={{ marginTop: 16 }} />
-        </div>
-      );
+        );
+      }
 
       // ── 7 — Body fat ───────────────────────────────────────────────────────
       case 7: return (

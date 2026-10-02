@@ -3748,9 +3748,9 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
           <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>DURATION</div>
           {/* Bounded MIN/SEC wheels — no colon to type, seconds physically 0–59, minutes capped 600. */}
           <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:12,border:"1.5px solid rgba(var(--cm-red-rgb,255,59,48),0.4)",padding:"8px 8px 12px",display:"flex",alignItems:"center",justifyContent:"center",gap:0}}>
-            <Rolodex items={_minItems} sel={runManualMin} onChange={setRunManualMin} itemH={44} bgColor="var(--cm-paper,#FFFFFF)" selectedColor="var(--cm-ink,#0A0A0A)" adjacentColor="rgba(var(--cm-ink-rgb,10,10,10),0.35)" farColor="rgba(var(--cm-ink-rgb,10,10,10),0.12)"/>
+            <Rolodex items={_minItems} sel={runManualMin} onChange={setRunManualMin} itemH={44} bgColor="var(--cm-paper,#FFFFFF)" selectedColor="var(--cm-ink,#0A0A0A)" adjacentColor="rgba(var(--cm-ink-rgb,10,10,10),0.35)" farColor="rgba(var(--cm-ink-rgb,10,10,10),0.12)" onTick={wPrefs?.scrollHaptics!==false?undefined:()=>{}}/>
             <span style={{fontFamily:_MO,fontWeight:500,fontSize:22,color:"var(--cm-ink,#0A0A0A)",flexShrink:0,padding:"0 2px"}}>:</span>
-            <Rolodex items={_secItems} sel={runManualSec} onChange={setRunManualSec} itemH={44} bgColor="var(--cm-paper,#FFFFFF)" selectedColor="var(--cm-ink,#0A0A0A)" adjacentColor="rgba(var(--cm-ink-rgb,10,10,10),0.35)" farColor="rgba(var(--cm-ink-rgb,10,10,10),0.12)"/>
+            <Rolodex items={_secItems} sel={runManualSec} onChange={setRunManualSec} itemH={44} bgColor="var(--cm-paper,#FFFFFF)" selectedColor="var(--cm-ink,#0A0A0A)" adjacentColor="rgba(var(--cm-ink-rgb,10,10,10),0.35)" farColor="rgba(var(--cm-ink-rgb,10,10,10),0.12)" onTick={wPrefs?.scrollHaptics!==false?undefined:()=>{}}/>
           </div>
           <div style={{display:"flex",justifyContent:"space-between",padding:"6px 12px 0"}}>
             <span style={{fontFamily:"'Archivo',sans-serif",fontSize:8.5,fontWeight:700,color:"rgba(255,255,255,0.45)",letterSpacing:"0.12em",textTransform:"uppercase"}}>Minutes</span>
@@ -4746,6 +4746,7 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
           const exCount=Array.isArray(todayPrescription)?todayPrescription.length:0;
           const totalSets=Array.isArray(todayPrescription)?todayPrescription.reduce((a,ex)=>a+(Number(ex.sets)||3),0):0;
           const estMin=exCount>0?Math.round(exCount*9+12):0;
+          const sessionDoneToday=(workoutLogsRaw||[]).some(w=>w.date===todayKey)||!!completedWorkout;
           // race countdown — single source of phase truth via getRunningPhase
           const _raceDate = profile?.runProfile?.raceDate || profile?.run_race_date || null;
           const _phase = getRunningPhase(_raceDate);
@@ -4983,10 +4984,27 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                     <button onClick={()=>setTrainScreen("plan")} style={{padding:"12px 24px",background:"#FF3B30",color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:_AF,textTransform:"uppercase",letterSpacing:1}}>Pick a Program →</button>
                   </div>
                 )}
-                {/* ── LIFTING action region (unchanged) ── */}
+                {/* ── LIFTING action region ── */}
                 {todayType==="training"&&(
                   <div style={{marginTop:8}}>
-                    {Array.isArray(todayPrescription)&&todayPrescription.length>0?(
+                    {sessionDoneToday?(
+                      <div>
+                        <div style={{display:"flex",alignItems:"center",gap:10,padding:"14px 16px",background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.22)",borderRadius:14,marginBottom:8}}>
+                          <div style={{width:36,height:36,borderRadius:10,background:"rgba(34,197,94,0.14)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          </div>
+                          <div>
+                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:16,color:"var(--cm-ink,#0A0A0A)",lineHeight:1,marginBottom:3}}>Workout Complete</div>
+                            <div style={{fontFamily:_MO,fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.50)",letterSpacing:"0.06em"}}>{todayFocus||"Session"} · logged today</div>
+                          </div>
+                        </div>
+                        <button onClick={()=>{_hL();todayPrescription?startFromProgram():startStructured(todayFocus);}}
+                          style={{width:"100%",padding:"11px 0",background:"transparent",border:"1px solid rgba(var(--cm-ink-rgb),.15)",borderRadius:12,color:"rgba(var(--cm-ink-rgb),.55)",fontFamily:_MO,fontSize:10,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                          <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.39"/></svg>
+                          Do it again
+                        </button>
+                      </div>
+                    ):Array.isArray(todayPrescription)&&todayPrescription.length>0?(
                       <>
                         <div onClick={()=>{_hL();setSessionDetailExpanded(s=>!s);}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 14px",background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.12)",borderRadius:10,cursor:"pointer",marginBottom:sessionDetailExpanded?10:0,transition:"margin 0.2s"}}>
                           <span style={{fontFamily:_AF,fontSize:11,fontWeight:800,color:"#FF3B30",letterSpacing:0,textTransform:"uppercase"}}>{sessionDetailExpanded?"Hide ↑":"See exercises ↓"}</span>
@@ -5034,8 +5052,8 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                         transition={{type:'spring',stiffness:600,damping:20}}
                         style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:500,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START SESSION →</motion.button>
                     )}
-                    {/* Adapt today — secondary quiet pill, only when a session exists + quota remains */}
-                    {Array.isArray(todayPrescription)&&todayPrescription.length>0&&adaptLeft>0&&(
+                    {/* Adapt today — secondary quiet pill, only when a session exists + quota remains + not yet done */}
+                    {!sessionDoneToday&&Array.isArray(todayPrescription)&&todayPrescription.length>0&&adaptLeft>0&&(
                       <button onClick={()=>{_hL();setShowAdapt(true);}}
                         style={{width:"100%",marginTop:8,padding:"11px 0",background:"transparent",
                                 border:"1px solid rgba(var(--cm-ink-rgb),.15)",borderRadius:12,
@@ -5052,29 +5070,81 @@ export const TrainSection = React.memo(function TrainSection({profile,schedule,s
                 {/* ── RUN action region: run/cardio day or hybrid-run day ── */}
                 {(todayType==="run"||todayType==="cardio"||hybridRunDay)&&(
                   <div style={{marginTop:8}}>
-                    <motion.button
-                      onClick={()=>{_hM();startFromProgram();}}
-                      onPointerDown={()=>_hL()}
-                      whileTap={{scale:0.94}}
-                      transition={{type:'spring',stiffness:600,damping:20}}
-                      style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:500,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START RUN →</motion.button>
+                    {sessionDoneToday?(
+                      <div>
+                        <div style={{display:"flex",alignItems:"center",gap:10,padding:"14px 16px",background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.22)",borderRadius:14,marginBottom:8}}>
+                          <div style={{width:36,height:36,borderRadius:10,background:"rgba(34,197,94,0.14)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          </div>
+                          <div>
+                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:16,color:"var(--cm-ink,#0A0A0A)",lineHeight:1,marginBottom:3}}>Run Logged</div>
+                            <div style={{fontFamily:_MO,fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.50)",letterSpacing:"0.06em"}}>Session complete · logged today</div>
+                          </div>
+                        </div>
+                        <button onClick={()=>{_hL();startFromProgram();}} style={{width:"100%",padding:"11px 0",background:"transparent",border:"1px solid rgba(var(--cm-ink-rgb),.15)",borderRadius:12,color:"rgba(var(--cm-ink-rgb),.55)",fontFamily:_MO,fontSize:10,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                          <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.39"/></svg>
+                          Log another run
+                        </button>
+                      </div>
+                    ):(
+                      <motion.button
+                        onClick={()=>{_hM();startFromProgram();}}
+                        onPointerDown={()=>_hL()}
+                        whileTap={{scale:0.94}}
+                        transition={{type:'spring',stiffness:600,damping:20}}
+                        style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:500,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START RUN →</motion.button>
+                    )}
                   </div>
                 )}
                 {/* ── HYROX action region: hyrox or hybrid-hyrox day ── */}
                 {todayType==="hyrox"&&(
                   <div style={{marginTop:8}}>
-                    <motion.button
-                      onClick={()=>{_hM();startFromProgram();}}
-                      onPointerDown={()=>_hL()}
-                      whileTap={{scale:0.94}}
-                      transition={{type:'spring',stiffness:600,damping:20}}
-                      style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:500,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START HYROX →</motion.button>
+                    {sessionDoneToday?(
+                      <div>
+                        <div style={{display:"flex",alignItems:"center",gap:10,padding:"14px 16px",background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.22)",borderRadius:14,marginBottom:8}}>
+                          <div style={{width:36,height:36,borderRadius:10,background:"rgba(34,197,94,0.14)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          </div>
+                          <div>
+                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:16,color:"var(--cm-ink,#0A0A0A)",lineHeight:1,marginBottom:3}}>Hyrox Session Done</div>
+                            <div style={{fontFamily:_MO,fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.50)",letterSpacing:"0.06em"}}>Session complete · logged today</div>
+                          </div>
+                        </div>
+                        <button onClick={()=>{_hL();startFromProgram();}} style={{width:"100%",padding:"11px 0",background:"transparent",border:"1px solid rgba(var(--cm-ink-rgb),.15)",borderRadius:12,color:"rgba(var(--cm-ink-rgb),.55)",fontFamily:_MO,fontSize:10,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                          <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.39"/></svg>
+                          Do it again
+                        </button>
+                      </div>
+                    ):(
+                      <motion.button
+                        onClick={()=>{_hM();startFromProgram();}}
+                        onPointerDown={()=>_hL()}
+                        whileTap={{scale:0.94}}
+                        transition={{type:'spring',stiffness:600,damping:20}}
+                        style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:500,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START HYROX →</motion.button>
+                    )}
                   </div>
                 )}
                 {/* ── CUSTOM action region: custom routine day ── */}
                 {todayType==="custom"&&(
                   <div style={{marginTop:8}}>
-                    {Array.isArray(todayPrescription)&&todayPrescription.length>0?(
+                    {sessionDoneToday?(
+                      <div>
+                        <div style={{display:"flex",alignItems:"center",gap:10,padding:"14px 16px",background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.22)",borderRadius:14,marginBottom:8}}>
+                          <div style={{width:36,height:36,borderRadius:10,background:"rgba(34,197,94,0.14)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          </div>
+                          <div>
+                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:16,color:"var(--cm-ink,#0A0A0A)",lineHeight:1,marginBottom:3}}>Workout Complete</div>
+                            <div style={{fontFamily:_MO,fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.50)",letterSpacing:"0.06em"}}>Session complete · logged today</div>
+                          </div>
+                        </div>
+                        <button onClick={()=>{_hL();startFromProgram();}} style={{width:"100%",padding:"11px 0",background:"transparent",border:"1px solid rgba(var(--cm-ink-rgb),.15)",borderRadius:12,color:"rgba(var(--cm-ink-rgb),.55)",fontFamily:_MO,fontSize:10,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                          <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.39"/></svg>
+                          Do it again
+                        </button>
+                      </div>
+                    ):Array.isArray(todayPrescription)&&todayPrescription.length>0?(
                       <>
                         <div onClick={()=>{_hL();setSessionDetailExpanded(s=>!s);}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 14px",background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.12)",borderRadius:10,cursor:"pointer",marginBottom:sessionDetailExpanded?10:0,transition:"margin 0.2s"}}>
                           <span style={{fontFamily:_AF,fontSize:11,fontWeight:800,color:"#FF3B30",letterSpacing:0,textTransform:"uppercase"}}>{sessionDetailExpanded?"Hide ↑":"See exercises ↓"}</span>
@@ -7832,6 +7902,13 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
                   <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)"}}>Notifications</span>
                   <Toggle value={wPrefs?.notifications!==false} onChange={v=>{const wp={...wPrefs,notifications:v};setWPrefs(wp);saveSettings(wp,null);}}/>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
+                  <div>
+                    <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)"}}>Scroll Haptics</span>
+                    <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:1}}>Vibration on wheel pickers &amp; page scroll</div>
+                  </div>
+                  <Toggle value={wPrefs?.scrollHaptics!==false} onChange={v=>{const wp={...wPrefs,scrollHaptics:v};setWPrefs(wp);saveSettings(wp,null);}}/>
                 </div>
               </div>
             </div>

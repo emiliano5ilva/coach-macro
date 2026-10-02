@@ -1094,6 +1094,35 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
         <div style={{ textAlign:"center", padding:"32px 0", color:"rgba(var(--cm-ink-rgb),.55)", fontSize:13 }}>No programs match these filters.</div>
       )}
 
+      {/* Build Your Own — shown on the All tab only, below the program grid */}
+      {catFilter === "All" && (
+        <div
+          onClick={() => setTrainScreen("plan")}
+          style={{
+            background:"rgba(var(--cm-ink-rgb,10,10,10),0.04)",
+            border:"1.5px dashed rgba(var(--cm-ink-rgb,10,10,10),0.20)",
+            borderRadius:14, padding:"18px 16px", marginBottom:24, cursor:"pointer",
+            display:"flex", alignItems:"center", gap:14,
+          }}
+        >
+          <div style={{
+            width:44, height:44, borderRadius:12, flexShrink:0,
+            background:"rgba(var(--cm-red-rgb,255,59,48),0.08)",
+            border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.18)",
+            display:"flex", alignItems:"center", justifyContent:"center",
+          }}>
+            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",lineHeight:1,marginBottom:4}}>Build Your Own</div>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.55)",lineHeight:1.4}}>Customize your training days, assign routines to each session, and build a plan that's entirely yours.</div>
+          </div>
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="rgba(var(--cm-ink-rgb,10,10,10),.30)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      )}
+
 
       {/* Fuel awareness modal over the list */}
       {confirmProg && (()=>{ const {modeChange,newModeLabel}=getModeInfo(confirmProg); return (

@@ -10790,6 +10790,7 @@ Rules:
     // Attaches to window: .app-screen has no fixed height so it never itself scrolls;
     // the window is the actual scroll container for the today tab.
     const ZIPPER_PX = 30;
+    const _scrollHap = wPrefs?.scrollHaptics !== false;
     useEffect(()=>{
       if(!GOCLUB_REDESIGN||reducedMotion) return;
       function onScroll(){
@@ -10799,12 +10800,12 @@ Rules:
         zipperAccRef.current+=delta;
         if(zipperAccRef.current>=ZIPPER_PX){
           zipperAccRef.current=0;
-          try{Haptics.impact({style:ImpactStyle.Heavy});}catch{}
+          if(_scrollHap) try{Haptics.impact({style:ImpactStyle.Heavy});}catch{}
         }
       }
       window.addEventListener('scroll',onScroll,{passive:true});
       return()=>window.removeEventListener('scroll',onScroll);
-    },[isToday,reducedMotion]);
+    },[isToday,reducedMotion,_scrollHap]);
 
     // ─────────────────────────────────────────────────────────────────────
 

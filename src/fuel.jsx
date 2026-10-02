@@ -2118,6 +2118,7 @@ export const FuelSection=React.memo(function FuelSection({log,macros,consumed,re
   const [raLoadMsg,setRaLoadMsg]=useState(0);                 // #4: index into the shuffled loader order
   const raLoadOrder=useRef(RA_LOAD_MSGS.map((_,i)=>i));       // shuffled display order (per generation)
   const menuScanRef=useRef(null);
+  const raRequestRef=useRef(0); // incremented on each new tap; stale responses are dropped
 
   // #4: cycle funky food-themed loader copy in a fresh random order each generation (feel, not speed).
   useEffect(()=>{
@@ -2242,8 +2243,23 @@ export const FuelSection=React.memo(function FuelSection({log,macros,consumed,re
       setRaLoading(false);
       return;
     }
+    // Cross-session cache: localStorage with 2-hour TTL so repeat visits are instant
+    try{
+      const _stored=localStorage.getItem('cm_ra_cache_'+recKey);
+      if(_stored){
+        const {ts,data}=JSON.parse(_stored);
+        if(Date.now()-ts<7200000){ // 2-hour TTL
+          _raRecCache.set(recKey,data);
+          setRaResult(data);
+          setRaLoading(false);
+          return;
+        }
+      }
+    }catch{}
     setRaResult(null);
     setRaLoading(true);
+    // Race-condition guard: capture request ID before the await; ignore stale responses
+    const reqId = ++raRequestRef.current;
     try{
       const ctx=buildUserContext(
         profile,
@@ -2254,13 +2270,17 @@ export const FuelSection=React.memo(function FuelSection({log,macros,consumed,re
         todayType||null
       );
       const result=await getRestaurantRecs(r.name,r.types||[],ctx);
+      // Discard if the user navigated away and tapped a different restaurant
+      if(reqId!==raRequestRef.current)return;
       _raRecCache.set(recKey,result);
+      try{localStorage.setItem('cm_ra_cache_'+recKey,JSON.stringify({ts:Date.now(),data:result}));}catch{}
       setRaResult(result);
     }catch(e){
+      if(reqId!==raRequestRef.current)return;
       setRaError('Could not get recommendations. Try again.');
       console.error('getRestaurantRecs failed:',e);
     }
-    setRaLoading(false);
+    if(reqId===raRequestRef.current)setRaLoading(false);
   }
 
   async function handleMenuScan(e){
