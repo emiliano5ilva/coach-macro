@@ -58,8 +58,9 @@ const _RA_PROXY = import.meta.env.VITE_API_BASE_URL || 'https://www.coach-macro.
 // Lever 4: Restaurant AI session caches (module scope → survive modal open/close for the app session).
 // Re-tapping a restaurant you already viewed (same meal targets) = instant, no LLM call.
 // Re-searching a city you already searched = instant, no geocode/places round-trips.
-const _raRecCache = new Map();     // key: `${name}|${cal}|${prot}|${carb}|${fat}` → rec result
-const _raPlacesCache = new Map();  // key: city (lowercased, trimmed)               → places array
+const _raRecCache = new Map();          // key: `${name}|${cal}|${prot}|${carb}|${fat}` → rec result
+const _raPlacesCache = new Map();       // key: city (lowercased, trimmed)               → places array
+const _raPrefetchInFlight = new Set();  // restaurant keys currently being prefetched
 
 // Chain-logo override: when a restaurant name contains a known brand, show the official logo
 // (via Google's no-auth favicon API) instead of the Google Places location photo.
@@ -2119,6 +2120,63 @@ export const FuelSection=React.memo(function FuelSection({log,macros,consumed,re
   const raLoadOrder=useRef(RA_LOAD_MSGS.map((_,i)=>i));       // shuffled display order (per generation)
   const menuScanRef=useRef(null);
   const raRequestRef=useRef(0); // incremented on each new tap; stale responses are dropped
+
+  // Part 5: when the nearby restaurant list renders, warm the server-side cache for
+  // any visible restaurants not already there. Silent/background — no UI state change.
+  // The in-flight guard (_raPrefetchInFlight) prevents duplicate concurrent calls.
+  useEffect(()=>{
+    if(!raNearby.length||!restaurantAI)return;
+    const names=raNearby.slice(0,10).map(r=>r.name);
+    const keys=names.map(n=>n.toLowerCase().trim().replace(/\s+/g,' '));
+
+    // 1. Check server-side cache for all visible restaurants in one query
+    sb.from('restaurant_menu_cache')
+      .select('restaurant_key,restaurant_display_name,nutrition_data,updated_at')
+      .in('restaurant_key',keys)
+      .then(({data:cached})=>{
+        const seventyFiveDaysAgo=new Date(Date.now()-75*24*60*60*1000).toISOString();
+        const freshKeys=new Set(
+          (cached||[]).filter(r=>r.updated_at>seventyFiveDaysAgo).map(r=>r.restaurant_key)
+        );
+
+        // 2. Pre-populate _raRecCache for any server-cache hits (instant for subsequent taps)
+        if(cached){
+          cached.forEach(row=>{
+            if(row.updated_at<seventyFiveDaysAgo)return;
+            // Key includes user context — so each user's specific targets still get their own entry
+            const recKey=`${row.restaurant_display_name||row.restaurant_key}|${restaurantAI.calTarget}|${restaurantAI.proteinTarget}|${restaurantAI.carbTarget}|${restaurantAI.fatTarget}`;
+            if(!_raRecCache.has(recKey))_raRecCache.set(recKey,row.nutrition_data);
+          });
+        }
+
+        // 3. For server cache misses, fire background AI calls to warm the cache
+        names.forEach((name,i)=>{
+          const key=keys[i];
+          if(freshKeys.has(key))return;           // already cached server-side
+          if(_raPrefetchInFlight.has(key))return; // already warming
+          _raPrefetchInFlight.add(key);
+          const ctx=buildUserContext(
+            profile,
+            {calories:restaurantAI.calTarget,protein:restaurantAI.proteinTarget,
+             carbs:restaurantAI.carbTarget,fat:restaurantAI.fatTarget},
+            restaurantAI.slot,
+            mealSlots.length,
+            (todayActs||[]).length>0,
+            todayType||null
+          );
+          getRestaurantRecs(name,[],ctx)
+            .then(result=>{
+              const recKey=`${name}|${restaurantAI.calTarget}|${restaurantAI.proteinTarget}|${restaurantAI.carbTarget}|${restaurantAI.fatTarget}`;
+              _raRecCache.set(recKey,result);
+              try{localStorage.setItem('cm_ra_cache_'+recKey,JSON.stringify({ts:Date.now(),data:result}));}catch{}
+            })
+            .catch(()=>{}) // silent — this is best-effort
+            .finally(()=>_raPrefetchInFlight.delete(key));
+        });
+      })
+      .catch(()=>{}); // silent
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[raNearby]);
 
   // #4: cycle funky food-themed loader copy in a fresh random order each generation (feel, not speed).
   useEffect(()=>{
