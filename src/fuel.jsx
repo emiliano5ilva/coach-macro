@@ -3794,11 +3794,21 @@ Reply with ONLY a valid JSON object, no markdown:
                         :h<14
                           ?{head:"WHAT ARE YOU EATING TODAY?",sub:`You have ${calR} calories and ${protR}g protein to hit. Every meal is a step toward your goal.`,btn:"LOG A MEAL →"}
                           :{head:"THE DAY ISN'T OVER.",sub:`You have ${calR} calories remaining. Make the rest of today count.`,btn:"LOG NOW →"};
+                      // Find the first slot the user can actually log: not locked, not skipped, not
+                      // hard-blocked by an unconfirmed predecessor — mirrors the slot-map isBlocked logic.
+                      const _firstActionable=mealSlots.findIndex((s,si)=>{
+                        if((skippedSlots||[]).includes(s))return false;
+                        if((lockedSlots||[]).includes(s))return false;
+                        const prev=si>0?mealSlots[si-1]:null;
+                        if(prev!=null&&!((lockedSlots||[]).includes(prev)||(skippedSlots||[]).includes(prev)))return false;
+                        return true;
+                      });
+                      const _targetIdx=_firstActionable>=0?_firstActionable:0;
                       return(
                         <div style={{textAlign:"center",padding:"24px 16px"}}>
                           <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:800,fontSize:20,letterSpacing:"-0.01em",color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",marginBottom:6,lineHeight:1.05}}>{msg.head}</div>
                           <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"'Archivo',sans-serif",fontSize:13,fontWeight:GOCLUB_REDESIGN?500:400,color:"rgba(var(--cm-red-rgb,255,59,48),0.4)",lineHeight:1.55,marginBottom:14,maxWidth:260,margin:"0 auto 14px"}}>{msg.sub}</div>
-                          <button onClick={()=>setLogMode("search")} style={{background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:999,padding:"11px 24px",fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:700,color:"#fff",letterSpacing:"0.04em",textTransform:"uppercase",cursor:"pointer"}}>{msg.btn}</button>
+                          <button onClick={()=>{pendingLogSlotRef.current=_targetIdx;setFuelScreen('log');}} style={{background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:999,padding:"11px 24px",fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:700,color:"#fff",letterSpacing:"0.04em",textTransform:"uppercase",cursor:"pointer"}}>{msg.btn}</button>
                         </div>
                       );
                     })()}
