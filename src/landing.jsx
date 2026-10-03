@@ -283,6 +283,29 @@ const CSS = `
   .lp-testi-name { font-family: var(--condensed); font-weight: 700; font-size: 14px; color: var(--white); text-transform: uppercase; letter-spacing: 0.04em; }
   .lp-testi-role { font-family: var(--mono); font-size: 11px; color: var(--white-dim); letter-spacing: 0.04em; margin-top: 2px; }
 
+  /* ── PROOF CARDS (narrative arc "receipt" section) ── */
+  .lp-proof-cards { display: grid; grid-template-columns: repeat(2,1fr); gap: 28px; max-width: 1200px; margin: 64px auto 0; }
+  .lp-proof-card { background: var(--bg-card); border: 1px solid var(--red-border); border-radius: 24px; padding: 32px; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.35),0 0 40px rgba(255,59,48,0.04); }
+  .lp-proof-card.hydration-card { border-color: rgba(41,121,255,0.28); box-shadow: 0 20px 60px rgba(0,0,0,0.35),0 0 40px rgba(41,121,255,0.2); }
+  .lp-proof-card-hl { font-family: var(--condensed); font-weight: 800; font-size: 22px; line-height: 1.1; text-transform: uppercase; color: var(--white); margin-bottom: 12px; letter-spacing: -0.01em; }
+  .lp-proof-card-body { font-family: var(--body); font-size: 15px; line-height: 1.6; color: var(--white); margin-bottom: 28px; }
+  /* Large screenshot (no phone chrome) — scroll-tilt applied via JS */
+  .lp-proof-shot-stage { perspective: 1500px; display: flex; justify-content: center; margin-top: auto; }
+  .lp-proof-shot-el { display: block; width: 100%; max-width: 300px; border-radius: 20px; overflow: hidden; will-change: transform; transform-origin: center center; backface-visibility: hidden; transition: transform 0.12s cubic-bezier(0.33,1,0.68,1); box-shadow: 0 24px 60px rgba(0,0,0,0.55),0 0 40px rgba(255,59,48,0.12); }
+  .lp-proof-card.hydration-card .lp-proof-shot-el { box-shadow: 0 24px 60px rgba(0,0,0,0.55),0 0 40px rgba(41,121,255,0.2); }
+  .lp-proof-shot-el img { display: block; width: 100%; height: auto; }
+  /* Smaller phone frame for Card 3 (restaurant AI teaser) */
+  .lp-proof-phone-stage { perspective: 1500px; display: flex; justify-content: center; margin-top: auto; }
+  .lp-proof-phone-el { flex-shrink: 0; width: 200px; height: 432px; background: #0a0e1a; border-radius: 36px; overflow: hidden; position: relative; box-shadow: 0 0 0 7px #1a1a1f,0 0 0 8px #2a2a30,0 0 40px rgba(255,59,48,0.12),0 24px 50px rgba(0,0,0,0.8); will-change: transform; transform-origin: center center; backface-visibility: hidden; transition: transform 0.12s cubic-bezier(0.33,1,0.68,1); }
+  .lp-proof-phone-notch { position: absolute; top: 7px; left: 50%; transform: translateX(-50%); width: 72px; height: 20px; background: #000; border-radius: 12px; z-index: 5; }
+  .lp-proof-phone-el img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+  .lp.motion-off .lp-proof-shot-el, .lp.motion-off .lp-proof-phone-el { transform: none !important; transition: none; }
+  @media (max-width: 820px) {
+    .lp-proof-cards { grid-template-columns: 1fr; gap: 20px; }
+    .lp-proof-shot-stage, .lp-proof-phone-stage { perspective: none; }
+    .lp-proof-shot-el, .lp-proof-phone-el { transform: none !important; }
+  }
+
   /* FAQ */
   .lp-faq { padding: 140px 48px; max-width: 900px; margin: 0 auto; }
   .lp-faq-list { margin-top: 32px; }
@@ -1245,6 +1268,101 @@ function SolutionSection() {
   );
 }
 
+// ── SCROLL TILT — reuses the exact same constants + logic as ScreensSection. ──
+// Starts angled (rotateY -18deg / rotateX 8deg) on entry, straightens to face-on
+// as it scrolls into view, then holds face-on. Disabled on mobile (≤760px) and
+// reduced-motion identically to the restaurant-AI showcase implementation.
+function useScrollTilt(stageRef, phoneRef) {
+  useEffect(() => {
+    const stage = stageRef.current, phone = phoneRef.current;
+    if (!stage || !phone) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      || document.querySelector('.lp')?.classList.contains('motion-off');
+    const mobile = window.matchMedia('(max-width: 760px)').matches;
+    if (reduce || mobile) { phone.style.transform = 'none'; return; }
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const r = stage.getBoundingClientRect();
+      const vh = window.innerHeight || 1;
+      const p = Math.max(0, Math.min(1, (vh - r.top) / (vh * 0.62)));
+      const inv = 1 - p;
+      phone.style.transform = `perspective(1500px) rotateY(${(-18*inv).toFixed(2)}deg) rotateX(${(8*inv).toFixed(2)}deg) scale(${(0.9+0.1*p).toFixed(3)})`;
+    };
+    update();
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, []);
+}
+
+// ── PROOF — four concrete capability receipts, each with a screenshot or text ─
+function ProofSection() {
+  const stage1 = useRef(null), phone1 = useRef(null);
+  const stage3 = useRef(null), phone3 = useRef(null);
+  const stage4 = useRef(null), phone4 = useRef(null);
+  useScrollTilt(stage1, phone1);
+  useScrollTilt(stage3, phone3);
+  useScrollTilt(stage4, phone4);
+
+  return (
+    <section className="lp-proof" id="proof">
+      <div style={{maxWidth:1200,margin:'0 auto'}}>
+        <div className="lp-section-eyebrow">This is what that looks like</div>
+        <h2 className="lp-section-title fade-up">Not a pitch.<br/>A <span className="accent">receipt.</span></h2>
+      </div>
+      <div className="lp-proof-cards">
+        {/* Card 1 — Dynamic macros (large screenshot, no phone chrome) */}
+        <div className="lp-proof-card fade-up">
+          <h3 className="lp-proof-card-hl">Your macros move with your training. Automatically.</h3>
+          <p className="lp-proof-card-body">Heavy day earns you more food. Rest day doesn't. You don't recalculate anything — it already did.</p>
+          <div className="lp-proof-shot-stage" ref={stage1}>
+            <div className="lp-proof-shot-el" ref={phone1}>
+              <picture>
+                <source srcSet="/screens/training-recovery.webp" type="image/webp" />
+                <img src="/screens/training-recovery.jpg" alt="Coach Macro training and recovery dashboard — dynamic macros" width="800" height="1731" loading="lazy" decoding="async" />
+              </picture>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2 — Metabolic adaptation (text-only, no image) */}
+        <div className="lp-proof-card text-only fade-up">
+          <h3 className="lp-proof-card-hl">It catches you plateauing before you give up.</h3>
+          <p className="lp-proof-card-body">Same calories, no movement on the scale for weeks, despite hitting your targets? It notices, tells you exactly why, and hands you a specific 3-week protocol to break through it.</p>
+        </div>
+
+        {/* Card 3 — Restaurant AI (smaller phone with chrome, teaser before full ScreensSection showcase) */}
+        <div className="lp-proof-card fade-up">
+          <h3 className="lp-proof-card-hl">Eating out stops being the thing that derails you.</h3>
+          <p className="lp-proof-card-body">It finds your best order wherever you are — and when you're cooking, it builds your week's meal plan and grocery list around your actual training schedule.</p>
+          <div className="lp-proof-phone-stage" ref={stage3}>
+            <div className="lp-proof-phone-el" ref={phone3}>
+              <picture>
+                <source srcSet="/screens/restaurant-ai-lg.webp" type="image/webp" />
+                <img src="/screens/restaurant-ai-lg.jpg" alt="Coach Macro restaurant AI — best order for your macros" width="1080" height="2337" loading="lazy" decoding="async" />
+              </picture>
+              <div className="lp-proof-phone-notch"/>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4 — Hydration tied to training (large screenshot, no chrome, blue glow) */}
+        <div className="lp-proof-card hydration-card fade-up">
+          <h3 className="lp-proof-card-hl">Even your water goal knows what today is.</h3>
+          <p className="lp-proof-card-body">Your hydration target isn't a flat number — it moves with what you're training that day.</p>
+          <div className="lp-proof-shot-stage" ref={stage4}>
+            <div className="lp-proof-shot-el" ref={phone4}>
+              <img src="/screens/02-fuel-hydration.png" alt="Coach Macro hydration ring and weekly prep — targets that move with your training" width="800" height="1731" loading="lazy" decoding="async" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── TRUST / EVIDENCE — verified peer-reviewed stat bubbles only. ──────────────
 // ⚠️ NO fabricated testimonials, star counts, or install numbers. Every claim below
 // is traced to a real source (see onboarding-stat-bubbles-verified.md) and framed to
@@ -1735,8 +1853,9 @@ export function LandingPage({ onSignUp }) {
         </div>
       </section>
 
-      {/* Conversion sequence: Hero → Problem → Solution → How → Trust → Screens → Features → Works → Pricing (comparison table now consolidated inside Pricing) → FAQ → Final CTA */}
+      {/* Conversion sequence: Hero → Problem → Solution → Proof → Detail → How → Kitchen → Screens → Features → Works → Cards → Trust → Pricing → FAQ → Final CTA */}
       <SolutionSection/>
+      <ProofSection/>
       <DetailSection/>
       <HowSection/>
       <TrustSection/>
