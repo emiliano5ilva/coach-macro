@@ -1858,12 +1858,12 @@ export function LandingPage({ onSignUp }) {
       <ProofSection/>
       <DetailSection/>
       <HowSection/>
-      <TrustSection/>
       <KitchenSection/>
       <ScreensSection/>
       <FeatureDumpSection/>
       <WorksWithSection/>
       <CardsSection/>
+      <TrustSection/>
       <PricingSection onStart={startTrial}/>
       <FaqSection/>
       <FinalCtaSection onStart={startTrial}/>
