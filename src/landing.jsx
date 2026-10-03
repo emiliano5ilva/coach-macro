@@ -1726,11 +1726,11 @@ export function LandingPage({ onSignUp }) {
         <div className="lp-problem-grid" style={{maxWidth:1000,alignItems:'flex-start'}}>
           <div className="lp-problem-block fade-up" style={{textAlign:'left'}}>
             <div className="lp-problem-label">The real problem</div>
-            <h2 className="lp-problem-lead">You're the app<br/>connecting all<br/>the <span className="red">other apps.</span></h2>
+            <h2 className="lp-problem-lead">You crushed leg day.<br/>Your macros <span className="red">have no idea.</span></h2>
           </div>
           <div className="lp-problem-block fade-up" style={{textAlign:'left'}}>
             <p className="lp-problem-body">Recovery in one. Training in another. Food in a third. And every day, you're the one stitching it together in your head — push or rest, ate enough or didn't, is this even working.</p>
-            <p className="lp-problem-body">You became the integration layer. That's not a job you signed up for. It's the whole reason this exists.</p>
+            <p className="lp-problem-body">And the cost isn't convenience — it's results. A plan that doesn't know you're exhausted pushes you toward injury. Macros that don't move with your training either stall your progress or wreck your recovery. A plateau nobody's watching for costs you months before you even notice. You're not failing. You're using tools that were never built to see the whole picture.</p>
           </div>
         </div>
       </section>
