@@ -206,7 +206,7 @@ const CSS = `
   /* HOW */
   .lp-how { padding: 140px 48px; border-top: 1px solid var(--white-border); }
   .lp-how-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; max-width: 1280px; margin: 0 auto; }
-  .lp-how-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--red-border); border-radius: 24px; padding: 40px 32px; position: relative; overflow: hidden; transition: transform 0.4s cubic-bezier(.2,.7,.3,1),border-color 0.3s,box-shadow 0.3s; box-shadow: 0 20px 60px rgba(0,0,0,0.9),0 0 40px rgba(255,59,48,0.04); }
+  .lp-how-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--red-border); border-radius: 24px; padding: 40px 32px; position: relative; overflow: hidden; transition: transform 0.3s cubic-bezier(.2,.7,.3,1),border-color 0.3s,box-shadow 0.3s; box-shadow: 0 20px 60px rgba(0,0,0,0.9),0 0 40px rgba(255,59,48,0.04); }
   .lp-how-card:hover { transform: translateY(-4px); border-color: var(--red-border-strong); box-shadow: 0 24px 80px rgba(0,0,0,0.9),0 0 60px rgba(255,59,48,0.12); }
   .lp-how-num { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 88px; line-height: 0.9; color: var(--red); letter-spacing: -0.04em; margin-bottom: 24px; text-shadow: 0 0 30px rgba(255,59,48,0.4); }
   .lp-how-step { font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em; color: var(--red-text); text-transform: uppercase; margin-bottom: 12px; }
@@ -228,7 +228,7 @@ const CSS = `
   .lp-compare-table td.col-cm { text-align: center; }
   .lp-compare-note { text-align: center; margin-top: 24px; font-family: var(--mono); font-size: 10px; color: var(--white-faint); letter-spacing: 0.08em; text-transform: uppercase; }
   .lp-cross { color: var(--white); opacity: 0.55; font-size: 16px; }
-  .lp-check { color: var(--red); font-size: 18px; font-weight: 700; text-shadow: 0 0 10px var(--red-glow); }
+  .lp-check { color: var(--red-text); font-size: 18px; font-weight: 700; text-shadow: 0 0 10px var(--red-glow); }
 
   /* SCREENS */
   .lp-screens { padding: 140px 0 140px 48px; }
@@ -510,7 +510,7 @@ const CSS = `
   .lp-price-card.featured .lp-price-eff { font-size: 19px; font-weight: 500; letter-spacing: 0.03em; min-height: 24px; margin: 14px 0 24px; }
   .lp-price-list { list-style: none; margin: 0 0 26px; padding: 0; display: flex; flex-direction: column; gap: 11px; flex: 1; }
   .lp-price-list li { font-family: var(--body); font-size: 14px; color: var(--white); display: flex; gap: 10px; align-items: flex-start; line-height: 1.4; }
-  .lp-price-list li::before { content: '✓'; color: var(--red); font-weight: 700; flex-shrink: 0; }
+  .lp-price-list li::before { content: '✓'; color: var(--red-text); font-weight: 700; flex-shrink: 0; }
   .lp-price-btn { width: 100%; background: var(--cm-accent-deep); color: #fff; border: none; border-radius: 8px; padding: 15px; font-family: var(--condensed); font-weight: 700; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; box-shadow: 0 0 30px var(--red-glow); transition: transform 0.2s; }
   .lp-price-btn.ghost { background: transparent; border: 1px solid var(--red-text); color: var(--red-text); box-shadow: none; }
   .lp-price-btn:hover { transform: translateY(-2px); }
@@ -548,7 +548,8 @@ const CSS = `
   .lp-ladder-price { text-align: right; font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 21px; color: var(--white); letter-spacing: -0.01em; white-space: nowrap; }
   .lp-ladder-price span { font-size: 11px; font-style: normal; font-weight: 600; margin-left: 1px; }
   .lp-ladder tr.cm th, .lp-ladder tr.cm td { background: var(--bg-card); border-top: 1.5px solid var(--red); box-shadow: inset 0 0 30px var(--red-glow); }
-  .lp-ladder tr.cm .lp-ladder-name, .lp-ladder tr.cm .lp-ladder-price { color: var(--red); }
+  .lp-ladder tr.cm .lp-ladder-name { color: var(--red-text); }
+  .lp-ladder tr.cm .lp-ladder-price { color: var(--red); }
 
   /* ── "Works with" trust strip (Apple Health — live integration) ── */
   .lp-works { padding: 72px 48px; border-top: 1px solid var(--white-border); text-align: center; }
@@ -575,7 +576,7 @@ const CSS = `
   .lp-sign-l2 { display: block; font-weight: 900; }
   .lp-sign-cta { margin-top: 46px; }
   .lp-sign-link { background: none; border: none; cursor: pointer; font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--red-text); border-bottom: 1px solid var(--red-border); padding: 0 0 5px; transition: color .2s,border-color .2s; }
-  .lp-sign-link:hover { color: var(--red); border-color: var(--red); }
+  .lp-sign-link:hover { color: var(--red-text); border-color: var(--red); }
   .lp-sign-fine { font-family: var(--mono); font-size: 11px; color: var(--white); letter-spacing: 0.04em; margin-top: 16px; }
   @media (max-width: 560px) {
     .lp-sign { padding: 88px 24px 76px; }
@@ -596,7 +597,7 @@ const CSS = `
   .lp-dump-close { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 16px 32px; margin-top: 48px; }
   .lp-dump-close-line { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(28px, 3.6vw, 44px); text-transform: uppercase; letter-spacing: -0.02em; color: var(--white); }
   .lp-dump-link { font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--red-text); text-decoration: none; border-bottom: 1px solid var(--red-border); padding-bottom: 4px; transition: color 0.2s, border-color 0.2s; white-space: nowrap; }
-  .lp-dump-link:hover { color: var(--red); border-color: var(--red); }
+  .lp-dump-link:hover { color: var(--red-text); border-color: var(--red); }
 
   @media (max-width: 980px) {
     .lp-hero { grid-template-columns: 1fr; gap: 40px; padding: 100px 24px 60px; }
@@ -626,7 +627,7 @@ const CSS = `
 
   /* ── THEME TOGGLE (nav) — labeled, not icon-only ── */
   .lp-theme-toggle { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--white); background: transparent; border: 1px solid var(--lp-border); padding: 8px 13px; border-radius: 4px; cursor: pointer; transition: border-color 0.2s, color 0.2s; white-space: nowrap; }
-  .lp-theme-toggle:hover { border-color: var(--red); color: var(--red); }
+  .lp-theme-toggle:hover { border-color: var(--red); color: var(--red-text); }
   .lp-theme-toggle svg { display: block; }
 
   /* ── ACCESSIBILITY ── */
