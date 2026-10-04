@@ -81,6 +81,8 @@ const CSS = `
   .lp-section-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--red-text); margin-bottom: 16px; }
   .lp-section-title { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(48px, 6vw, 96px); line-height: 0.92; letter-spacing: -0.02em; text-transform: uppercase; color: var(--white); margin-bottom: 64px; }
   .lp-section-title .accent { color: var(--red); }
+  /* Apple-rhythm alternating section background — light mode only (--lp-alt-bg = --bg in dark so no change) */
+  .lp-alt { background: var(--lp-alt-bg); }
 
   /* CTA BUTTON */
   .lp-cta-btn { display: inline-flex; align-items: center; gap: 10px; background: var(--cm-accent-deep); color: #fff; font-family: var(--condensed); font-weight: 700; font-size: 16px; letter-spacing: 0.06em; text-transform: uppercase; padding: 16px 28px; border-radius: 6px; border: none; cursor: pointer; transition: transform 0.2s, box-shadow 0.3s; box-shadow: 0 0 30px var(--red-glow), 0 12px 40px rgba(0,0,0,0.6); position: relative; }
@@ -283,27 +285,47 @@ const CSS = `
   .lp-testi-name { font-family: var(--condensed); font-weight: 700; font-size: 14px; color: var(--white); text-transform: uppercase; letter-spacing: 0.04em; }
   .lp-testi-role { font-family: var(--mono); font-size: 11px; color: var(--white-dim); letter-spacing: 0.04em; margin-top: 2px; }
 
-  /* ── PROOF CARDS (narrative arc "receipt" section) ── */
-  .lp-proof-cards { display: grid; grid-template-columns: repeat(2,1fr); gap: 28px; max-width: 1200px; margin: 64px auto 0; }
-  .lp-proof-card { background: var(--bg-card); border: 1px solid var(--red-border); border-radius: 24px; padding: 32px; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.35),0 0 40px rgba(255,59,48,0.04); }
-  .lp-proof-card.hydration-card { border-color: rgba(41,121,255,0.28); box-shadow: 0 20px 60px rgba(0,0,0,0.35),0 0 40px rgba(41,121,255,0.2); }
-  .lp-proof-card-hl { font-family: var(--condensed); font-weight: 800; font-size: 22px; line-height: 1.1; text-transform: uppercase; color: var(--white); margin-bottom: 12px; letter-spacing: -0.01em; }
-  .lp-proof-card-body { font-family: var(--body); font-size: 15px; line-height: 1.6; color: var(--white); margin-bottom: 28px; }
-  /* Large screenshot (no phone chrome) — scroll-tilt applied via JS */
-  .lp-proof-shot-stage { perspective: 1500px; display: flex; justify-content: center; margin-top: auto; }
-  .lp-proof-shot-el { display: block; width: 100%; max-width: 300px; border-radius: 20px; overflow: hidden; will-change: transform; transform-origin: center center; backface-visibility: hidden; transition: transform 0.12s cubic-bezier(0.33,1,0.68,1); box-shadow: 0 24px 60px rgba(0,0,0,0.55),0 0 40px rgba(255,59,48,0.12); }
-  .lp-proof-card.hydration-card .lp-proof-shot-el { box-shadow: 0 24px 60px rgba(0,0,0,0.55),0 0 40px rgba(41,121,255,0.2); }
-  .lp-proof-shot-el img { display: block; width: 100%; height: auto; }
-  /* Smaller phone frame for Card 3 (restaurant AI teaser) */
-  .lp-proof-phone-stage { perspective: 1500px; display: flex; justify-content: center; margin-top: auto; }
-  .lp-proof-phone-el { flex-shrink: 0; width: 200px; height: 432px; background: #0a0e1a; border-radius: 36px; overflow: hidden; position: relative; box-shadow: 0 0 0 7px #1a1a1f,0 0 0 8px #2a2a30,0 0 40px rgba(255,59,48,0.12),0 24px 50px rgba(0,0,0,0.8); will-change: transform; transform-origin: center center; backface-visibility: hidden; transition: transform 0.12s cubic-bezier(0.33,1,0.68,1); }
-  .lp-proof-phone-notch { position: absolute; top: 7px; left: 50%; transform: translateX(-50%); width: 72px; height: 20px; background: #000; border-radius: 12px; z-index: 5; }
-  .lp-proof-phone-el img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
-  .lp.motion-off .lp-proof-shot-el, .lp.motion-off .lp-proof-phone-el { transform: none !important; transition: none; }
-  @media (max-width: 820px) {
-    .lp-proof-cards { grid-template-columns: 1fr; gap: 20px; }
-    .lp-proof-shot-stage, .lp-proof-phone-stage { perspective: none; }
-    .lp-proof-shot-el, .lp-proof-phone-el { transform: none !important; }
+  /* ── PROOF TAB SWITCHER (narrative arc "receipt" section) ── */
+  .lp-proof-card-hl { font-family: var(--condensed); font-weight: 800; font-size: clamp(22px,3vw,34px); line-height: 1.05; text-transform: uppercase; color: var(--white); margin-bottom: 16px; letter-spacing: -0.01em; }
+  .lp-proof-card-body { font-family: var(--body); font-size: 17px; line-height: 1.65; color: var(--white); }
+  /* Pill row */
+  .lp-proof-tabs { display: flex; gap: 8px; flex-wrap: wrap; max-width: 1200px; margin: 0 auto 48px; }
+  .lp-proof-tab { font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; padding: 9px 20px; border-radius: 100px; border: 1px solid var(--lp-border); background: transparent; color: var(--white); cursor: pointer; transition: border-color 0.2s, background 0.2s, color 0.2s; white-space: nowrap; }
+  .lp-proof-tab:hover:not(.active) { border-color: var(--red); color: var(--red-text); }
+  .lp-proof-tab.active { background: var(--cm-accent-deep); border-color: var(--cm-accent-deep); color: #fff; }
+  /* Content panel */
+  .lp-proof-panel { max-width: 1200px; margin: 0 auto; min-height: 440px; }
+  .lp-proof-panel-split { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+  /* Entry animations — fired on each tab change via React key reset */
+  @keyframes lp-proof-text-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes lp-proof-img-enter { from { opacity: 0.2; transform: perspective(1500px) rotateY(-18deg) rotateX(8deg) scale(0.9); } to { opacity: 1; transform: perspective(1500px) rotateY(0deg) rotateX(0deg) scale(1); } }
+  .lp-proof-panel-split .lp-proof-panel-text { animation: lp-proof-text-in 0.3s cubic-bezier(0.33,1,0.68,1) both; }
+  .lp-proof-panel-img-wrap { animation: lp-proof-img-enter 0.3s cubic-bezier(0.33,1,0.68,1) both; transform-origin: center center; will-change: transform; display: flex; justify-content: center; }
+  /* Large screenshot (no chrome) */
+  .lp-proof-shot { border-radius: 20px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.55),0 0 40px rgba(255,59,48,0.12); max-width: 340px; width: 100%; }
+  .lp-proof-shot.blue { box-shadow: 0 24px 60px rgba(0,0,0,0.55),0 0 40px rgba(41,121,255,0.2); }
+  .lp-proof-shot img { display: block; width: 100%; height: auto; }
+  /* Phone frame (Restaurant AI — smaller teaser with chrome) */
+  .lp-proof-phone { width: 240px; height: 520px; background: #0a0e1a; border-radius: 40px; overflow: hidden; position: relative; box-shadow: 0 0 0 8px #1a1a1f,0 0 0 9px #2a2a30,0 0 40px rgba(255,59,48,0.12),0 24px 50px rgba(0,0,0,0.8); flex-shrink: 0; }
+  .lp-proof-phone-notch { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 80px; height: 22px; background: #000; border-radius: 12px; z-index: 5; }
+  .lp-proof-phone img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+  /* Text-only panel (Plateau — no empty image slot) */
+  .lp-proof-panel-text-only { max-width: 640px; animation: lp-proof-text-in 0.3s cubic-bezier(0.33,1,0.68,1) both; }
+  .lp-proof-panel-text-only .lp-proof-card-hl { font-size: clamp(24px,3.6vw,42px); }
+  .lp-proof-panel-text-only .lp-proof-card-body { font-size: 18px; }
+  /* Reduced-motion: instant swap */
+  @media (prefers-reduced-motion: reduce) {
+    .lp-proof-panel-split .lp-proof-panel-text, .lp-proof-panel-img-wrap, .lp-proof-panel-text-only { animation: none !important; }
+  }
+  .lp.motion-off .lp-proof-panel-split .lp-proof-panel-text,
+  .lp.motion-off .lp-proof-panel-img-wrap,
+  .lp.motion-off .lp-proof-panel-text-only { animation: none !important; }
+  /* Mobile: pills scroll horizontally, panel stacks text above image, swap instant */
+  @media (max-width: 760px) {
+    .lp-proof-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+    .lp-proof-tabs::-webkit-scrollbar { display: none; }
+    .lp-proof-panel-split { grid-template-columns: 1fr; gap: 32px; }
+    .lp-proof-panel-split .lp-proof-panel-text, .lp-proof-panel-img-wrap, .lp-proof-panel-text-only { animation: none !important; }
   }
 
   /* FAQ */
@@ -707,6 +729,8 @@ export function applyLandingTheme(el, mode) {
   set('--red-text',      light ? '#D13027' : '#FF3B30');
   // Solid-button background: deepened red both themes so the white label clears AA (5.0:1).
   set('--cm-accent-deep', '#D13027');
+  // Alternating section background (Part 5 rhythm) — light: warm off-white derived from --lp-surface; dark: same as --bg so dark mode is unaffected.
+  set('--lp-alt-bg',     light ? '#F4F1EC' : '#000000');
 }
 
 // Initial theme: localStorage cm-site-theme → prefers-color-scheme → dark (default).
@@ -948,7 +972,7 @@ function ScreenPhone({ eyebrow, title, headerRight, children }) {
 // ── THE DETAILS OTHER APPS SKIP — training/coaching depth (rest calc, progression, level coaching, load mgmt) ──
 function DetailSection() {
   return (
-    <section className="lp-detail" id="details">
+    <section className="lp-detail lp-alt" id="details">
       <div className="lp-kitchen-inner">
         <div className="lp-kitchen-head">
           <div className="lp-section-eyebrow">The details other apps skip</div>
@@ -1010,7 +1034,7 @@ function DetailSection() {
 // ── THE KITCHEN — recipe/nutrition depth: meal plan + recipe library + grocery list ──
 function KitchenSection() {
   return (
-    <section className="lp-kitchen" id="kitchen">
+    <section className="lp-kitchen lp-alt" id="kitchen">
       <div className="lp-kitchen-inner">
         <div className="lp-kitchen-head">
           <div className="lp-section-eyebrow">The Kitchen</div>
@@ -1200,7 +1224,7 @@ function SolutionSection() {
   }, []);
 
   return (
-    <section className="lp-solution" id="solution">
+    <section className="lp-solution lp-alt" id="solution">
       <div className="lp-solution-inner">
         <div className="lp-section-eyebrow">The difference</div>
         <h2 className="lp-section-title fade-up">Everyone connects them now.<br/>Almost no one <span className="accent">goes deep.</span></h2>
@@ -1297,14 +1321,39 @@ function useScrollTilt(stageRef, phoneRef) {
   }, []);
 }
 
-// ── PROOF — four concrete capability receipts, each with a screenshot or text ─
+// ── PROOF — click tab-switcher: one panel at a time, Apple-style ──────────────
+const PROOF_TABS = [
+  { id: 'macros', label: 'Macros',
+    hl: 'Your macros move with your training. Automatically.',
+    body: "Heavy day earns you more food. Rest day doesn't. You don't recalculate anything — it already did.",
+    img: { src: '/screens/training-recovery.jpg', webp: '/screens/training-recovery.webp', chrome: false, blue: false,
+           alt: 'Coach Macro training and recovery dashboard — dynamic macros', w: 800, h: 1731 } },
+  { id: 'plateau', label: 'Plateau',
+    hl: 'It catches you plateauing before you give up.',
+    body: "Same calories, no movement on the scale for weeks, despite hitting your targets? It notices, tells you exactly why, and hands you a specific 3-week protocol to break through it.",
+    img: null },
+  { id: 'restaurant', label: 'Restaurant AI',
+    hl: 'Eating out stops being the thing that derails you.',
+    body: "It finds your best order wherever you are — and when you're cooking, it builds your week's meal plan and grocery list around your actual training schedule.",
+    img: { src: '/screens/restaurant-ai-lg.jpg', webp: '/screens/restaurant-ai-lg.webp', chrome: true, blue: false,
+           alt: 'Coach Macro restaurant AI — best order for your macros', w: 1080, h: 2337 } },
+  { id: 'hydration', label: 'Hydration',
+    hl: 'Even your water goal knows what today is.',
+    body: "Your hydration target isn't a flat number — it moves with what you're training that day.",
+    img: { src: '/screens/02-fuel-hydration.png', webp: null, chrome: false, blue: true,
+           alt: 'Coach Macro hydration ring and weekly prep — targets that move with your training', w: 800, h: 1731 } },
+];
+
 function ProofSection() {
-  const stage1 = useRef(null), phone1 = useRef(null);
-  const stage3 = useRef(null), phone3 = useRef(null);
-  const stage4 = useRef(null), phone4 = useRef(null);
-  useScrollTilt(stage1, phone1);
-  useScrollTilt(stage3, phone3);
-  useScrollTilt(stage4, phone4);
+  const [active, setActive] = useState('macros');
+  const [panelKey, setPanelKey] = useState(0);
+  const tab = PROOF_TABS.find(t => t.id === active);
+
+  const handleTab = (id) => {
+    if (id === active) return;
+    setActive(id);
+    setPanelKey(k => k + 1);
+  };
 
   return (
     <section className="lp-proof" id="proof">
@@ -1312,52 +1361,47 @@ function ProofSection() {
         <div className="lp-section-eyebrow">This is what that looks like</div>
         <h2 className="lp-section-title fade-up">Not a pitch.<br/>A <span className="accent">receipt.</span></h2>
       </div>
-      <div className="lp-proof-cards">
-        {/* Card 1 — Dynamic macros (large screenshot, no phone chrome) */}
-        <div className="lp-proof-card fade-up">
-          <h3 className="lp-proof-card-hl">Your macros move with your training. Automatically.</h3>
-          <p className="lp-proof-card-body">Heavy day earns you more food. Rest day doesn't. You don't recalculate anything — it already did.</p>
-          <div className="lp-proof-shot-stage" ref={stage1}>
-            <div className="lp-proof-shot-el" ref={phone1}>
-              <picture>
-                <source srcSet="/screens/training-recovery.webp" type="image/webp" />
-                <img src="/screens/training-recovery.jpg" alt="Coach Macro training and recovery dashboard — dynamic macros" width="800" height="1731" loading="lazy" decoding="async" />
-              </picture>
+      <div className="lp-proof-tabs" role="tablist" aria-label="Proof capabilities">
+        {PROOF_TABS.map(t => (
+          <button key={t.id} role="tab" aria-selected={active === t.id}
+            className={`lp-proof-tab${active === t.id ? ' active' : ''}`}
+            onClick={() => handleTab(t.id)}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="lp-proof-panel" role="tabpanel">
+        {tab.img ? (
+          <div className="lp-proof-panel-split" key={panelKey}>
+            <div className="lp-proof-panel-text">
+              <h3 className="lp-proof-card-hl">{tab.hl}</h3>
+              <p className="lp-proof-card-body">{tab.body}</p>
+            </div>
+            <div className="lp-proof-panel-img-wrap">
+              {tab.img.chrome ? (
+                <div className="lp-proof-phone">
+                  <picture>
+                    {tab.img.webp && <source srcSet={tab.img.webp} type="image/webp"/>}
+                    <img src={tab.img.src} alt={tab.img.alt} width={tab.img.w} height={tab.img.h} loading="lazy" decoding="async"/>
+                  </picture>
+                  <div className="lp-proof-phone-notch"/>
+                </div>
+              ) : (
+                <div className={`lp-proof-shot${tab.img.blue ? ' blue' : ''}`}>
+                  <picture>
+                    {tab.img.webp && <source srcSet={tab.img.webp} type="image/webp"/>}
+                    <img src={tab.img.src} alt={tab.img.alt} width={tab.img.w} height={tab.img.h} loading="lazy" decoding="async"/>
+                  </picture>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-
-        {/* Card 2 — Metabolic adaptation (text-only, no image) */}
-        <div className="lp-proof-card text-only fade-up">
-          <h3 className="lp-proof-card-hl">It catches you plateauing before you give up.</h3>
-          <p className="lp-proof-card-body">Same calories, no movement on the scale for weeks, despite hitting your targets? It notices, tells you exactly why, and hands you a specific 3-week protocol to break through it.</p>
-        </div>
-
-        {/* Card 3 — Restaurant AI (smaller phone with chrome, teaser before full ScreensSection showcase) */}
-        <div className="lp-proof-card fade-up">
-          <h3 className="lp-proof-card-hl">Eating out stops being the thing that derails you.</h3>
-          <p className="lp-proof-card-body">It finds your best order wherever you are — and when you're cooking, it builds your week's meal plan and grocery list around your actual training schedule.</p>
-          <div className="lp-proof-phone-stage" ref={stage3}>
-            <div className="lp-proof-phone-el" ref={phone3}>
-              <picture>
-                <source srcSet="/screens/restaurant-ai-lg.webp" type="image/webp" />
-                <img src="/screens/restaurant-ai-lg.jpg" alt="Coach Macro restaurant AI — best order for your macros" width="1080" height="2337" loading="lazy" decoding="async" />
-              </picture>
-              <div className="lp-proof-phone-notch"/>
-            </div>
+        ) : (
+          <div className="lp-proof-panel-text-only" key={panelKey}>
+            <h3 className="lp-proof-card-hl">{tab.hl}</h3>
+            <p className="lp-proof-card-body">{tab.body}</p>
           </div>
-        </div>
-
-        {/* Card 4 — Hydration tied to training (large screenshot, no chrome, blue glow) */}
-        <div className="lp-proof-card hydration-card fade-up">
-          <h3 className="lp-proof-card-hl">Even your water goal knows what today is.</h3>
-          <p className="lp-proof-card-body">Your hydration target isn't a flat number — it moves with what you're training that day.</p>
-          <div className="lp-proof-shot-stage" ref={stage4}>
-            <div className="lp-proof-shot-el" ref={phone4}>
-              <img src="/screens/02-fuel-hydration.png" alt="Coach Macro hydration ring and weekly prep — targets that move with your training" width="800" height="1731" loading="lazy" decoding="async" />
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </section>
   );
@@ -1450,7 +1494,7 @@ const DUMP_GROUPS = [
 
 function FeatureDumpSection() {
   return (
-    <section className="lp-dump" id="everything">
+    <section className="lp-dump lp-alt" id="everything">
       <div className="lp-dump-inner">
         <div className="lp-section-eyebrow">Everything it does</div>
         <h2 className="lp-section-title fade-up">The part other<br/>apps <span className="accent">skip.</span></h2>
@@ -1518,7 +1562,7 @@ function CardsSection() {
     { ico: '🔬', label: 'Technical' },
   ];
   return (
-    <section className="lp-cards" id="themes">
+    <section className="lp-cards lp-alt" id="themes">
       <div className="lp-cards-head">
         <div className="lp-section-eyebrow">Make it yours</div>
         <h2 className="lp-section-title fade-up">Your coach,<br/>your <span className="accent">way.</span></h2>
