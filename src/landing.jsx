@@ -1335,7 +1335,7 @@ const PROOF_TABS = [
   { id: 'restaurant', label: 'Restaurant AI',
     hl: 'Eating out stops being the thing that derails you.',
     body: "It finds your best order wherever you are — and when you're cooking, it builds your week's meal plan and grocery list around your actual training schedule.",
-    img: { src: '/screens/restaurant-ai-lg.jpg', webp: '/screens/restaurant-ai-lg.webp', chrome: true, blue: false,
+    img: { src: '/screens/restaurant-ai-lg.jpg', webp: '/screens/restaurant-ai-lg.webp', chrome: false, blue: false,
            alt: 'Coach Macro restaurant AI — best order for your macros', w: 1080, h: 2337 } },
   { id: 'hydration', label: 'Hydration',
     hl: 'Even your water goal knows what today is.',
