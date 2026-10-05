@@ -304,7 +304,7 @@ const CSS = `
   /* Large screenshot (no chrome) */
   .lp-proof-shot { border-radius: 20px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.55),0 0 40px rgba(255,59,48,0.12); max-width: 340px; width: 100%; }
   .lp-proof-shot.blue { box-shadow: 0 24px 60px rgba(0,0,0,0.55),0 0 40px rgba(41,121,255,0.2); }
-  .lp-proof-shot img { display: block; width: 100%; height: auto; }
+  .lp-proof-shot img, .lp-proof-shot video { display: block; width: 100%; height: auto; }
   /* Phone frame (Restaurant AI — smaller teaser with chrome) */
   .lp-proof-phone { width: 240px; height: 520px; background: #0a0e1a; border-radius: 40px; overflow: hidden; position: relative; box-shadow: 0 0 0 8px #1a1a1f,0 0 0 9px #2a2a30,0 0 40px rgba(255,59,48,0.12),0 24px 50px rgba(0,0,0,0.8); flex-shrink: 0; }
   .lp-proof-phone-notch { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 80px; height: 22px; background: #000; border-radius: 12px; z-index: 5; }
@@ -1340,20 +1340,38 @@ const PROOF_TABS = [
   { id: 'hydration', label: 'Hydration',
     hl: 'Even your water goal knows what today is.',
     body: "Your hydration target isn't a flat number — it moves with what you're training that day.",
-    img: { src: '/screens/02-fuel-hydration.png', webp: null, chrome: false, blue: true,
-           alt: 'Coach Macro hydration ring and weekly prep — targets that move with your training', w: 800, h: 1731 } },
+    video: { mp4: '/screens/hydration-fill.mp4', webm: '/screens/hydration-fill.webm',
+             poster: '/screens/hydration-fill-poster.jpg', blue: true,
+             alt: 'Coach Macro hydration card — wave animation showing dynamic hydration target' } },
 ];
 
-function ProofSection() {
+function ProofSection({ motionOff = false }) {
   const [active, setActive] = useState('macros');
   const [panelKey, setPanelKey] = useState(0);
   const tab = PROOF_TABS.find(t => t.id === active);
+  const videoRef = useRef(null);
+
+  const osReducedMotion = typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reducedMotion = motionOff || osReducedMotion;
 
   const handleTab = (id) => {
     if (id === active) return;
+    if (videoRef.current) videoRef.current.pause();
     setActive(id);
     setPanelKey(k => k + 1);
   };
+
+  useEffect(() => {
+    if (motionOff && videoRef.current) videoRef.current.pause();
+  }, [motionOff]);
+
+  useEffect(() => {
+    if (active === 'hydration' && videoRef.current && !reducedMotion) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [active, reducedMotion]);
 
   return (
     <section className="lp-proof" id="proof">
@@ -1371,7 +1389,26 @@ function ProofSection() {
         ))}
       </div>
       <div className="lp-proof-panel" role="tabpanel">
-        {tab.img ? (
+        {tab.video ? (
+          <div className="lp-proof-panel-split" key={panelKey}>
+            <div className="lp-proof-panel-text">
+              <h3 className="lp-proof-card-hl">{tab.hl}</h3>
+              <p className="lp-proof-card-body">{tab.body}</p>
+            </div>
+            <div className="lp-proof-panel-img-wrap">
+              <div className={`lp-proof-shot${tab.video.blue ? ' blue' : ''}`}>
+                {reducedMotion ? (
+                  <img src={tab.video.poster} alt={tab.video.alt} loading="lazy" decoding="async"/>
+                ) : (
+                  <video ref={videoRef} autoPlay loop muted playsInline poster={tab.video.poster}>
+                    <source src={tab.video.webm} type="video/webm"/>
+                    <source src={tab.video.mp4} type="video/mp4"/>
+                  </video>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : tab.img ? (
           <div className="lp-proof-panel-split" key={panelKey}>
             <div className="lp-proof-panel-text">
               <h3 className="lp-proof-card-hl">{tab.hl}</h3>
@@ -1899,7 +1936,7 @@ export function LandingPage({ onSignUp }) {
 
       {/* Conversion sequence: Hero → Problem → Solution → Proof → Detail → How → Kitchen → Screens → Features → Works → Cards → Trust → Pricing → FAQ → Final CTA */}
       <SolutionSection/>
-      <ProofSection/>
+      <ProofSection motionOff={motionOff}/>
       <DetailSection/>
       <HowSection/>
       <KitchenSection/>
